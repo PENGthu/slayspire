@@ -5,7 +5,7 @@ import { Rng } from '../src/core/rng';
 import { botRun } from '../src/game/bot';
 import type { CharId } from '../src/game/types';
 
-const CHARS: CharId[] = ['ironclad', 'silent', 'regent', 'necrobinder'];
+const CHARS: CharId[] = ['ironclad', 'silent', 'regent', 'necrobinder', 'defect'];
 
 describe('完整流程模拟（无敌模式遍历全部内容）', () => {
   for (const ch of CHARS) {

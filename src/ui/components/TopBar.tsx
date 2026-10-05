@@ -16,6 +16,7 @@ const TIER_NAMES: Record<string, string> = {
 };
 
 const ACT_NAMES = ['', '蔓生密林', '嗡鸣蜂巢', '荣光之巅'];
+const CHAR_BADGE: Record<string, string> = { ironclad: '⚔️', silent: '🗡️', regent: '👑', necrobinder: '💀', defect: '🤖' };
 
 export function TopBar({ run }: { run: Run }) {
   const cd = CHARACTERS[run.char];
@@ -27,7 +28,7 @@ export function TopBar({ run }: { run: Run }) {
     <>
       <div class="topbar">
         <div class="tb-char" style={{ color: cd.color }}>
-          <div class="badge">{run.char === 'ironclad' ? '⚔️' : run.char === 'silent' ? '🗡️' : run.char === 'regent' ? '👑' : '💀'}</div>
+          <div class="badge">{CHAR_BADGE[run.char]}</div>
           <span>{cd.name}</span>
         </div>
         <div class="tb-stat tb-hp" {...tipProps([{ title: '生命', body: `${hp} / ${maxHp}` }], 'bottom')}>

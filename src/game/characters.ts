@@ -76,6 +76,19 @@ export const CHARACTERS: Record<CharId, CharDef> = {
     art: 'necrobinder',
     mechanic: '召唤奥斯提 · 灾厄 · 灵魂',
   },
+  defect: {
+    id: 'defect',
+    name: '故障机器人',
+    title: '觉醒的机械',
+    desc: '一具在尖塔深处苏醒的战斗机械。生成闪电、冰霜、黑暗与等离子充能球，并用集中强化它们。',
+    hp: 75,
+    gold: 99,
+    relic: 'cracked_core',
+    deck: ['strike_b', 'strike_b', 'strike_b', 'strike_b', 'defend_b', 'defend_b', 'defend_b', 'defend_b', 'zap', 'dualcast'],
+    color: '#3a8fd6',
+    art: 'defect',
+    mechanic: '充能球 · 集中',
+  },
 };
 
-export const CHAR_ORDER: CharId[] = ['ironclad', 'silent', 'regent', 'necrobinder'];
+export const CHAR_ORDER: CharId[] = ['ironclad', 'silent', 'regent', 'necrobinder', 'defect'];

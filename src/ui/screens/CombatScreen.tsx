@@ -4,7 +4,8 @@ import type { Combat } from '../../game/combat';
 import { CARDS, ENEMIES, POTIONS, POWERS } from '../../game/registry';
 import type { Run } from '../../game/run';
 import type { Card, Creature, Enemy } from '../../game/types';
-import { INTENT_DESC, IntentIcon, OstyArt, Portrait } from '../components/Art';
+import { INTENT_DESC, IntentIcon, OrbArt, OstyArt, Portrait } from '../components/Art';
+import { ORBS } from '../../game/orbs';
 import { CardView, cardTips } from '../components/CardView';
 import { hideTip, rectInStage, showTip, stageInfo, tipProps, toStage, type TipData } from '../components/Tooltip';
 import { playFx } from '../fx';
@@ -343,6 +344,22 @@ export function CombatScreen({ run }: { run: Run }) {
       <div class="battlefield">
         <div class="side-player">
           <div class="creature player" data-cuid={g.player.uid}>
+            {g.orbSlots > 0 && (
+              <div class="orbs">
+                {Array.from({ length: g.orbSlots }, (_, i) => {
+                  const o = g.orbs[i];
+                  if (!o) return <div key={`e${i}`} class="orb empty" {...tipProps([{ title: '空的充能球栏位', body: '生成的充能球会放在这里。' }], 'top')} />;
+                  const d = ORBS[o.id];
+                  const val = o.id === 'dark' ? d.evokeVal(g, o) : d.passiveVal(g, o);
+                  return (
+                    <div key={i} class="orb" {...tipProps(() => [{ title: d.name, body: d.desc(g, o), color: d.color }], 'top')}>
+                      <OrbArt color={d.color} art={d.art} />
+                      <span class="ov">{val}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
             <div class="sprite">
               <span class="shadow" />
               <Portrait char={run.char} size={portrait ? 1.05 : 1.25} />
@@ -458,10 +475,10 @@ export function CombatScreen({ run }: { run: Run }) {
           }
           if (isDrag && dragCard) {
             if (g.needsTarget(c)) {
-              x = 0;
-              y = -(portrait ? 120 : 150);
+              // 瞄准时卡牌停留在手牌位置上方，避免挡住敌人
+              y = -(portrait ? 70 : 96);
               rot = 0;
-              scale = 1.15;
+              scale = portrait ? 1.35 : 1.28;
             } else {
               x = drag!.x - stageInfo.w / 2;
               y = drag!.y - stageInfo.h + (cw * 1.4) / 2;
@@ -477,7 +494,7 @@ export function CombatScreen({ run }: { run: Run }) {
               g={g}
               dataUid
               target={isSel || isDrag ? targetEnemy : null}
-              cls={`${playable && !inPick ? 'playable' : ''} ${!playable && !inPick ? 'unplayable-now' : ''} ${inPick && !pickable ? 'dim' : ''} ${picked || isSel ? 'picked' : ''} ${isHover ? 'hovered' : ''} ${isDrag ? 'dragging' : ''}`}
+              cls={`${playable && !inPick ? 'playable' : ''} ${!playable && !inPick ? 'unplayable-now' : ''} ${inPick && !pickable ? 'dim' : ''} ${picked || isSel ? 'picked' : ''} ${isHover ? 'hovered' : ''} ${isDrag ? 'dragging' : ''} ${isSel && aiming ? 'aiming' : ''}`}
               style={{
                 transform: `translate(${x}px, ${y}px) rotate(${rot}deg) scale(${scale})`,
                 zIndex: z,
@@ -511,7 +528,7 @@ export function CombatScreen({ run }: { run: Run }) {
       {/* 瞄准箭头 */}
       {(aiming || potionTarget !== null) && (pointer || drag) && (
         <TargetArrow
-          from={activeCard ? { x: stageInfo.w / 2 + (drag?.moved ? 0 : handPos(n, g.hand.indexOf(activeCard), cw, maxW).x), y: stageInfo.h - (portrait ? 330 : 390) } : { x: stageInfo.w * 0.3, y: 80 }}
+          from={activeCard ? { x: stageInfo.w / 2 + handPos(n, g.hand.indexOf(activeCard), cw, maxW).x, y: stageInfo.h - (portrait ? 300 : 360) } : { x: stageInfo.w * 0.3, y: 80 }}
           to={drag?.moved ? { x: drag.x, y: drag.y } : pointer!}
           hot={targetEnemyUid !== null}
         />

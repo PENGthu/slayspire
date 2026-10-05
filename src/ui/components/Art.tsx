@@ -155,6 +155,7 @@ export function Portrait({ char, size = 1 }: { char: string; size?: number }) {
       {char === 'silent' && <Silent />}
       {char === 'regent' && <Regent />}
       {char === 'necrobinder' && <Necrobinder />}
+      {char === 'defect' && <Defect />}
     </svg>
   );
 }
@@ -286,6 +287,49 @@ function Necrobinder() {
       <circle cx="32" cy="104" r="6" fill="#d18ce8" opacity="0.8" />
       <path d="M86 74 L94 90 L90 94 L80 80 Z" fill="#6b2a64" />
     </g>
+  );
+}
+
+function Defect() {
+  return (
+    <g stroke="#06121c" stroke-width="2" stroke-linejoin="round">
+      {/* 线缆尾巴 */}
+      <path d="M44 104 C26 112 18 132 30 150" fill="none" stroke="#2a3a4a" stroke-width="5" />
+      {/* 腿 */}
+      <path d="M46 108 L42 152 L56 152 L58 112 Z" fill="#3b4c63" />
+      <path d="M74 108 L78 152 L64 152 L62 112 Z" fill="#3b4c63" />
+      <path d="M40 148 L58 148 L58 156 L38 156 Z" fill="#1f2a38" />
+      <path d="M62 148 L80 148 L82 156 L62 156 Z" fill="#1f2a38" />
+      {/* 躯干 */}
+      <path d="M38 56 L82 56 L86 104 C74 112 46 112 34 104 Z" fill="#5b7fa8" />
+      <path d="M44 62 L76 62 L78 96 C68 102 52 102 42 96 Z" fill="#7aa0c8" />
+      <circle cx="60" cy="80" r="10" fill="#0e2233" />
+      <circle cx="60" cy="80" r="6.5" fill="#7ef2ff" stroke="none" />
+      <circle cx="60" cy="80" r="14" fill="#7ef2ff" opacity="0.18" stroke="none" />
+      {/* 肩与手臂 */}
+      <circle cx="34" cy="60" r="10" fill="#4a6688" />
+      <circle cx="86" cy="60" r="10" fill="#4a6688" />
+      <path d="M26 66 L18 98 L28 100 L36 70 Z" fill="#3b4c63" />
+      <path d="M94 66 L104 96 L94 100 L84 70 Z" fill="#3b4c63" />
+      <rect x="14" y="96" width="16" height="9" rx="3" fill="#2a3a4a" />
+      <rect x="92" y="96" width="16" height="9" rx="3" fill="#2a3a4a" />
+      {/* 头 */}
+      <rect x="44" y="20" width="32" height="30" rx="8" fill="#6d8fb8" />
+      <rect x="47" y="30" width="26" height="9" rx="4" fill="#0e2233" />
+      <rect x="49" y="32" width="22" height="5" rx="2.5" fill="#7ef2ff" stroke="none" />
+      <path d="M60 20 L60 10" stroke="#2a3a4a" stroke-width="3" />
+      <circle cx="60" cy="8" r="3.5" fill="#ff7a6a" />
+      <rect x="54" y="48" width="12" height="8" fill="#3b4c63" />
+    </g>
+  );
+}
+
+/** 充能球图标 */
+export function OrbArt({ color, art }: { color: string; art: string }) {
+  return (
+    <span class="orb-art" style={{ background: `radial-gradient(circle at 36% 30%, ${color} 0%, #24406a 58%, #0b1424 100%)`, boxShadow: `0 0 14px ${color}88, inset 0 0 6px rgba(0,0,0,0.5)` }}>
+      {art}
+    </span>
   );
 }
 

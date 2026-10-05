@@ -22,6 +22,7 @@
   --c-silent: #3f9b5a;
   --c-regent: #e08a1e;
   --c-necrobinder: #b0509a;
+  --c-defect: #3a8fd6;
   --c-colorless: #8d8f96;
   --c-curse: #5e3a6e;
   --c-status: #5a5d66;
@@ -376,6 +377,7 @@ button {
 .card.c-silent { --cc: var(--c-silent); }
 .card.c-regent { --cc: var(--c-regent); }
 .card.c-necrobinder { --cc: var(--c-necrobinder); }
+.card.c-defect { --cc: var(--c-defect); }
 .card.c-curse { --cc: var(--c-curse); }
 .card.c-status { --cc: var(--c-status); }
 
@@ -822,6 +824,63 @@ button {
   text-shadow: 0 0 3px #000, 0 0 6px rgba(207, 74, 60, 0.9);
 }
 
+.orbs {
+  position: absolute;
+  left: 50%;
+  top: -64px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  z-index: 4;
+}
+.orb {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  cursor: help;
+}
+.orb.empty {
+  border: 2px dashed rgba(143, 211, 255, 0.35);
+}
+.orb-art {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.6));
+  animation: orbfloat 2.4s ease-in-out infinite;
+}
+.orb:nth-child(2) .orb-art { animation-delay: -0.6s; }
+.orb:nth-child(3) .orb-art { animation-delay: -1.2s; }
+.orb:nth-child(4) .orb-art { animation-delay: -1.8s; }
+@keyframes orbfloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+.orb .ov {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  font-family: var(--f-num);
+  font-weight: 700;
+  font-size: 13px;
+  color: #fff;
+  text-shadow: 0 0 3px #000, 0 0 3px #000;
+}
+.portrait .orbs {
+  top: -56px;
+}
+.portrait .orb,
+.portrait .orb-art {
+  width: 36px;
+  height: 36px;
+  font-size: 18px;
+}
 .osty {
   opacity: 1;
 }
@@ -968,6 +1027,10 @@ button {
 .hand .card.dragging {
   transition: none;
   z-index: 60 !important;
+  pointer-events: none;
+}
+.hand .card.aiming {
+  pointer-events: none;
 }
 
 .target-arrow {
@@ -1214,7 +1277,7 @@ button {
   flex-wrap: wrap;
 }
 .char-card {
-  width: 250px;
+  width: 228px;
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -1935,7 +1998,7 @@ button {
   gap: 10px;
 }
 .portrait .char-card {
-  width: 230px;
+  width: 150px;
   padding: 10px;
   gap: 4px;
 }
@@ -1949,6 +2012,12 @@ button {
 }
 .portrait .char-card .desc {
   display: none;
+}
+.portrait .char-card .meta {
+  font-size: 12px;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 .portrait .char-card h3 {
   font-size: 20px;

@@ -5,6 +5,7 @@ import './cards/ironclad';
 import './cards/silent';
 import './cards/regent';
 import './cards/necrobinder';
+import './cards/defect';
 import './cards/colorless';
 import './relics';
 import './potions';

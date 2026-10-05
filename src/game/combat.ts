@@ -21,6 +21,7 @@ import {
 } from './cards';
 import { CARDS, ENCHANTS, ENEMIES, POTIONS, POWERS, RELICS } from './registry';
 import type { Run } from './run';
+import { ORBS, type Orb, type OrbId } from './orbs';
 import type {
   Card,
   CardType,
@@ -121,6 +122,9 @@ export class Combat {
   stars = 0;
   /** 君王之刃累计铸造值 */
   forged = 0;
+  /** 充能球（故障机器人） */
+  orbs: Orb[] = [];
+  orbSlots = 0;
   turn = 0;
   phase: Phase = 'busy';
   result: null | 'win' | 'lose' | 'escape' = null;
@@ -135,7 +139,7 @@ export class Combat {
   x = 0;
   t: TurnStats = newTurnStats();
   /** 整场战斗计数 */
-  total = { cards: 0, attacks: 0, hpLossTimes: 0, shuffles: 0, summons: 0, ostyDeaths: 0 };
+  total = { cards: 0, attacks: 0, hpLossTimes: 0, shuffles: 0, summons: 0, ostyDeaths: 0, lightning: 0, frost: 0, powers: 0 };
   firstTurnDrawBonus = 0;
   drawPerTurnBonus = 0;
   /** 战斗结束奖励的额外金币（偷窃被夺回等） */
@@ -182,6 +186,7 @@ export class Combat {
       };
     }
     this.maxEnergy = 3 + run.energyBonus();
+    if (run.char === 'defect') this.orbSlots = 3;
     for (const id of enemyIds) this.spawnEnemy(id);
   }
 
@@ -321,10 +326,11 @@ export class Combat {
       for (const r of this.run.relics) RELICS[r.id]?.onTurnStart?.(this, r);
       const keep = this.run.hasRelic('ice_cream') ? this.energy : 0;
       this.energy = keep + this.maxEnergy;
+      for (const o of [...this.orbs]) if (ORBS[o.id].startOfTurn) ORBS[o.id].passive(this, o);
     });
     this.queue.push(() => {
       if (this.over) return;
-      let n = 5 + this.drawPerTurnBonus + this.pw(p, 'draw_next');
+      let n = 5 + this.drawPerTurnBonus + this.pw(p, 'draw_next') + this.pw(p, 'machine_learning');
       delete p.powers.draw_next;
       if (this.turn === 1) n += this.firstTurnDrawBonus;
       this.draw(n);
@@ -348,6 +354,7 @@ export class Combat {
     this.queue.push(() => {
       this.firePowers(p, 'onTurnEnd');
       for (const r of this.run.relics) RELICS[r.id]?.onTurnEnd?.(this, r);
+      this.triggerPassives();
     });
     // 「计划妥当」：选择保留的牌
     this.queue.push(() => {
@@ -496,6 +503,8 @@ export class Combat {
       this.enemySteps = [];
       if (this.result === 'win') {
         for (const r of this.run.relics) RELICS[r.id]?.onVictory?.(this, r);
+        const sr = this.pw(this.player, 'self_repair');
+        if (sr > 0) this.heal(this.player, sr);
       }
       this.run.hp = Math.max(0, Math.min(this.player.hp, this.player.maxHp));
       this.run.maxHp = this.player.maxHp;
@@ -1156,7 +1165,10 @@ export class Combat {
         this.t.attacks++;
         this.total.attacks++;
       } else if (d.type === 'skill') this.t.skills++;
-      else if (d.type === 'power') this.t.powers++;
+      else if (d.type === 'power') {
+        this.t.powers++;
+        this.total.powers++;
+      }
       this.firePowers(this.player, 'onCardPlayed', c);
       for (const e of this.alive) this.firePowers(e, 'onCardPlayed', c);
       for (const r of this.run.relics) RELICS[r.id]?.onCardPlayed?.(this, r, c);
@@ -1176,6 +1188,11 @@ export class Combat {
       this.reducePower(this.player, 'duplication', 1);
       plays++;
     }
+    if (d.type === 'power' && this.pw(this.player, 'amplify') > 0) {
+      this.reducePower(this.player, 'amplify', 1);
+      plays++;
+    }
+    if (this.t.cards < this.pw(this.player, 'echo_form')) plays++;
     if (isStarCard(c) && this.pw(this.player, 'twin_stars') > 0) {
       this.reducePower(this.player, 'twin_stars', 1);
       plays++;
@@ -1302,6 +1319,54 @@ export class Combat {
       return { dealt: 0, killed: false };
     }
     return this.attack(target, base, card, this.osty);
+  }
+
+  // =========================================================================
+  // 充能球
+  // =========================================================================
+
+  /** 生成充能球：栏位已满时先激发最左侧的充能球 */
+  channel(id: OrbId) {
+    if (this.orbSlots <= 0 || this.over) return;
+    if (this.orbs.length >= this.orbSlots) this.evoke(1);
+    if (this.over) return;
+    this.orbs.push({ id, n: id === 'dark' ? 6 : 0 });
+    if (id === 'lightning') this.total.lightning++;
+    if (id === 'frost') this.total.frost++;
+    this.emit('text', this.player.uid, undefined, `生成${ORBS[id].name}`);
+  }
+
+  /** 激发最左侧的充能球 times 次 */
+  evoke(times = 1) {
+    const o = this.orbs.shift();
+    if (!o) return;
+    for (let i = 0; i < times && !this.over; i++) ORBS[o.id].evoke(this, o);
+    this.emit('text', this.player.uid, undefined, `激发${ORBS[o.id].name}`);
+  }
+
+  evokeAll() {
+    while (this.orbs.length && !this.over) this.evoke(1);
+  }
+
+  /** 触发回合结束型被动（闪电、冰霜、黑暗） */
+  triggerPassives(times = 1) {
+    for (const o of [...this.orbs]) {
+      if (ORBS[o.id].startOfTurn) continue;
+      for (let i = 0; i < times; i++) ORBS[o.id].passive(this, o);
+      if (this.over) return;
+    }
+    const cables = this.run.hasRelic('gold_plated_cables') ? this.orbs[0] : null;
+    if (cables && !ORBS[cables.id].startOfTurn) ORBS[cables.id].passive(this, cables);
+  }
+
+  /** 触发单个充能球的被动 */
+  triggerPassive(o: Orb, times = 1) {
+    for (let i = 0; i < times && !this.over; i++) ORBS[o.id].passive(this, o);
+  }
+
+  addOrbSlots(n: number) {
+    this.orbSlots = Math.max(0, Math.min(10, this.orbSlots + n));
+    while (this.orbs.length > this.orbSlots) this.orbs.pop();
   }
 
   // =========================================================================

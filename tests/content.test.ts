@@ -112,7 +112,7 @@ describe('逐张卡牌打出', () => {
 describe('每个遭遇的随机战斗', () => {
   for (const enc of Object.values(ENCOUNTERS)) {
     it(`${enc.id}`, () => {
-      for (const ch of ['ironclad', 'silent', 'regent', 'necrobinder'] as const) {
+      for (const ch of ['ironclad', 'silent', 'regent', 'necrobinder', 'defect'] as const) {
         const run = Run.create(ch, 7);
         run.maxHp = 3000;
         run.hp = 3000;

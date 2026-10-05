@@ -34,6 +34,11 @@ defineRelics([
     desc: '每场战斗开始时，召唤 5。',
     onCombatStartPostDraw: (g) => g.summon(5),
   },
+  {
+    id: 'cracked_core', name: '破碎核心', art: '⚙️', tier: 'starter', char: 'defect',
+    desc: '每场战斗开始时，生成 1 个闪电。',
+    onCombatStart: (g) => g.channel('lightning'),
+  },
   // ======================================================== 普通
   {
     id: 'anchor', name: '锚', art: '⚓', tier: 'common',
@@ -255,6 +260,11 @@ defineRelics([
     desc: '每当你召唤，获得 2 点格挡。',
     onSummon: (g) => g.gainBlock(g.player, 2),
   },
+  {
+    id: 'data_disk', name: '数据磁盘', art: '💾', tier: 'common', char: 'defect',
+    desc: '每场战斗开始时，获得 1 点集中。',
+    onCombatStart: (g) => g.apply(g.player, 'focus', 1),
+  },
   // ======================================================== 罕见
   {
     id: 'blue_candle', name: '蓝蜡烛', art: '🕯️', tier: 'uncommon',
@@ -437,6 +447,15 @@ defineRelics([
       if (g.phase !== 'enemy') g.gainBlock(g.player, 2);
     },
   },
+  {
+    id: 'gold_plated_cables', name: '镀金缆线', art: '🔗', tier: 'uncommon', char: 'defect',
+    desc: '最左侧充能球的被动额外触发一次。',
+  },
+  {
+    id: 'symbiotic_virus', name: '共生病毒', art: '🦠', tier: 'uncommon', char: 'defect',
+    desc: '每场战斗开始时，生成 1 个黑暗。',
+    onCombatStart: (g) => g.channel('dark'),
+  },
   // ======================================================== 稀有
   {
     id: 'bird_faced_urn', name: '鸟面瓮', art: '🏺', tier: 'rare',
@@ -580,6 +599,20 @@ defineRelics([
     desc: '每当奥斯提死亡，给予所有敌人 6 层灾厄。',
     onCombatStart: (g) => g.apply(g.player, 'grave_urn_power', 6),
   },
+  {
+    id: 'emotion_chip', name: '情感芯片', art: '💟', tier: 'rare', char: 'defect',
+    desc: '若你上回合失去过生命，回合开始时触发所有充能球的被动。',
+    onTurnStartPostDraw: (g, r) => {
+      if (r.counter > 0) {
+        r.counter = 0;
+        g.triggerPassives();
+      }
+    },
+    onPlayerHpLoss: (g, r) => {
+      if (g.phase === 'enemy') r.counter = 1;
+    },
+    onCombatStart: (_g, r) => (r.counter = 0),
+  },
   // ======================================================== 首领遗物
   {
     id: 'coffee_dripper', name: '咖啡滤杯', art: '☕', tier: 'boss', energy: 1,
@@ -714,6 +747,27 @@ defineRelics([
     onCombatStartPostDraw: (g) => g.summon(3),
     onTurnStartPostDraw: (g) => g.summon(2),
   },
+  {
+    id: 'frozen_core', name: '冰冻核心', art: '🧊', tier: 'boss', char: 'defect',
+    desc: '替换破碎核心。若回合结束时有空的充能球栏位，生成 1 个冰霜。',
+    onPickup: (run) => run.loseRelic('cracked_core'),
+    onTurnEnd: (g) => {
+      if (g.orbs.length < g.orbSlots) g.channel('frost');
+    },
+  },
+  {
+    id: 'inserter', name: '插入器', art: '🔌', tier: 'boss', char: 'defect',
+    desc: '每 2 回合，获得 1 个充能球栏位。',
+    counter: true,
+    onCombatStart: (_g, r) => (r.counter = 0),
+    onTurnStartPostDraw: (g, r) => {
+      r.counter++;
+      if (r.counter >= 2) {
+        r.counter = 0;
+        g.addOrbSlots(1);
+      }
+    },
+  },
   // ======================================================== 商店
   {
     id: 'membership_card', name: '会员卡', art: '💳', tier: 'shop',
@@ -775,6 +829,11 @@ defineRelics([
         max: 1,
         onDone: (sel) => sel.forEach((c) => run.addCard({ ...c, uid: makeCard(c.id).uid, ench: c.ench ? { ...c.ench } : undefined })),
       }),
+  },
+  {
+    id: 'runic_capacitor', name: '符文电容', art: '🔋', tier: 'shop', char: 'defect',
+    desc: '每场战斗开始时，获得 3 个充能球栏位。',
+    onCombatStart: (g) => g.addOrbSlots(3),
   },
   {
     id: 'warped_tongs', name: '扭曲钳子', art: '🗜️', tier: 'shop',

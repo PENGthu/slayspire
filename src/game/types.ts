@@ -1,7 +1,7 @@
 import type { Combat } from './combat';
 import type { Run } from './run';
 
-export type CharId = 'ironclad' | 'silent' | 'regent' | 'necrobinder';
+export type CharId = 'ironclad' | 'silent' | 'regent' | 'necrobinder' | 'defect';
 export type Color = CharId | 'colorless' | 'curse' | 'status';
 export type CardType = 'attack' | 'skill' | 'power' | 'status' | 'curse';
 export type Rarity = 'basic' | 'common' | 'uncommon' | 'rare' | 'special' | 'curse' | 'status';

@@ -126,6 +126,11 @@ definePotions([
     desc: '召唤 8。', combatOnly: true,
     use: (x) => G(x).summon(8 * x.potency),
   },
+  {
+    id: 'focus_potion', name: '集中药水', art: '🔷', color: '#4f8fd6', rarity: 'common', char: 'defect', target: 'none',
+    desc: '获得 2 点集中。', combatOnly: true,
+    use: (x) => G(x).apply(G(x).player, 'focus', 2 * x.potency),
+  },
   // ---------------------------------------------------------------- 罕见
   {
     id: 'ancient_potion', name: '古代药水', art: '🏺', color: '#f1c40f', rarity: 'uncommon', target: 'none',
@@ -207,6 +212,11 @@ definePotions([
     desc: '给予 15 层灾厄。', combatOnly: true,
     use: (x) => G(x).apply(x.t, 'doom', 15 * x.potency),
   },
+  {
+    id: 'capacitor_potion', name: '电容药水', art: '🔌', color: '#7fb3e6', rarity: 'uncommon', char: 'defect', target: 'none',
+    desc: '获得 2 个充能球栏位。', combatOnly: true,
+    use: (x) => G(x).addOrbSlots(2 * x.potency),
+  },
   // ---------------------------------------------------------------- 稀有
   {
     id: 'fairy_in_bottle', name: '瓶中精灵', art: '🧚', color: '#f5b7b1', rarity: 'rare', target: 'none',
@@ -262,6 +272,14 @@ definePotions([
     use: (x) => {
       G(x).apply(G(x).player, 'free_stars', 1);
       G(x).gainStars(2 * x.potency);
+    },
+  },
+  {
+    id: 'essence_of_darkness', name: '黑暗精华', art: '🌑', color: '#6c4fa0', rarity: 'rare', char: 'defect', target: 'none',
+    desc: '每有一个充能球栏位，生成 1 个黑暗。', combatOnly: true,
+    use: (x) => {
+      const g = G(x);
+      for (let i = 0; i < g.orbSlots * x.potency; i++) g.channel('dark');
     },
   },
   {

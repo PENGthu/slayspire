@@ -811,6 +811,135 @@ definePowers([
   },
 
   // ---------------------------------------------------------------------------
+  // 故障机器人
+  // ---------------------------------------------------------------------------
+  {
+    id: 'focus',
+    name: '集中',
+    art: '🔷',
+    type: 'buff',
+    negative: true,
+    desc: (n) => (n >= 0 ? `充能球的效果提高 ${n}。` : `充能球的效果降低 ${-n}。`),
+  },
+  {
+    id: 'electrodynamics',
+    name: '电动力学',
+    art: '🌐',
+    type: 'buff',
+    noStack: true,
+    desc: () => '闪电充能球会命中所有敌人。',
+  },
+  {
+    id: 'heatsinks',
+    name: '散热片',
+    art: '🌡️',
+    type: 'buff',
+    desc: (n) => `每当你打出一张能力牌，抽 ${n} 张牌。`,
+    afterCardPlayed: (g, _o, n, c) => {
+      if (cardDef(c).type === 'power') g.draw(n);
+    },
+  },
+  {
+    id: 'storm',
+    name: '风暴',
+    art: '⛈️',
+    type: 'buff',
+    desc: (n) => `每当你打出一张能力牌，生成 ${n} 个闪电。`,
+    afterCardPlayed: (g, _o, n, c) => {
+      if (cardDef(c).type === 'power') for (let i = 0; i < n; i++) g.channel('lightning');
+    },
+  },
+  {
+    id: 'hello_world',
+    name: '你好世界',
+    art: '👋',
+    type: 'buff',
+    desc: (n) => `回合开始时，将 ${n} 张随机普通牌加入手牌。`,
+    onTurnStartPostDraw: (g, _o, n) => {
+      for (const c of g.randomCards(n, (id) => cardDef(id).rarity === 'common')) g.addToHand(c);
+    },
+  },
+  {
+    id: 'creative_ai',
+    name: '创造性 AI',
+    art: '🤖',
+    type: 'buff',
+    desc: (n) => `回合开始时，将 ${n} 张随机能力牌加入手牌。`,
+    onTurnStartPostDraw: (g, _o, n) => {
+      for (const c of g.randomCards(n, (id) => cardDef(id).type === 'power')) g.addToHand(c);
+    },
+  },
+  {
+    id: 'loop',
+    name: '循环',
+    art: '➰',
+    type: 'buff',
+    desc: (n) => `回合开始时，触发最左侧充能球的被动 ${n} 次。`,
+    onTurnStartPostDraw: (g, _o, n) => {
+      const o = g.orbs[0];
+      if (o) g.triggerPassive(o, n);
+    },
+  },
+  {
+    id: 'static_discharge',
+    name: '静电释放',
+    art: '⚡',
+    type: 'buff',
+    desc: (n) => `每当你受到未被格挡的攻击伤害，生成 ${n} 个闪电。`,
+    onHpLost: (g, o, n, _a, src) => {
+      if (src && src !== o && !src.isPlayer) for (let i = 0; i < n; i++) g.channel('lightning');
+    },
+  },
+  {
+    id: 'self_repair',
+    name: '自我修复',
+    art: '🔧',
+    type: 'buff',
+    desc: (n) => `战斗结束时，回复 ${n} 点生命。`,
+  },
+  {
+    id: 'amplify',
+    name: '增幅',
+    art: '📢',
+    type: 'buff',
+    decay: 'clear',
+    desc: (n) => `本回合你打出的下 ${n} 张能力牌会被打出两次。`,
+  },
+  {
+    id: 'biased_cognition',
+    name: '偏差认知',
+    art: '🧠',
+    type: 'debuff',
+    desc: (n) => `回合开始时，失去 ${n} 点集中。`,
+    onTurnStart: (g, o, n) => {
+      g.apply(o, 'focus', -n, o);
+    },
+  },
+  {
+    id: 'echo_form',
+    name: '回响形态',
+    art: '🔊',
+    type: 'buff',
+    desc: (n) => `每回合你打出的前 ${n} 张牌会被打出两次。`,
+  },
+  {
+    id: 'machine_learning',
+    name: '机器学习',
+    art: '📈',
+    type: 'buff',
+    desc: (n) => `回合开始时，额外抽 ${n} 张牌。`,
+  },
+  {
+    id: 'equilibrium',
+    name: '均衡',
+    art: '⚖️',
+    type: 'buff',
+    decay: 'clear',
+    noStack: true,
+    desc: () => '本回合结束时保留手牌。',
+  },
+
+  // ---------------------------------------------------------------------------
   // 敌人专属
   // ---------------------------------------------------------------------------
   {
