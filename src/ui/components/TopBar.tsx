@@ -5,7 +5,7 @@ import { ZONE_NAMES } from '../../game/map';
 import { act, refresh, setOverlay, state } from '../store';
 import { tipProps } from './Tooltip';
 
-const TIER_NAMES: Record<string, string> = {
+export const TIER_NAMES: Record<string, string> = {
   starter: '初始遗物',
   common: '普通遗物',
   uncommon: '罕见遗物',
