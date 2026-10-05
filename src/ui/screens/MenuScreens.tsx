@@ -176,7 +176,7 @@ export function CharSelectScreen() {
             : '以任意难度通关即可为该角色解锁下一级进阶。'
           : `进阶 ${a}：${ASC_DESC[a]}（包含之前所有进阶效果）`}
       </div>
-      <div style={{ display: 'flex', gap: '16px' }}>
+      <div class="cs-actions">
         <button
           class="btn ghost"
           onClick={() => {
