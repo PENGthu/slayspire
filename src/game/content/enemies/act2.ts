@@ -135,7 +135,7 @@ defineEnemies([
     id: 'chomper', name: '大颚虫', art: '🐊', hp: [58, 62],
     init: (e, g) => void g.apply(e, 'artifact', 2, e),
     moves: {
-      chomp: atk('撕咬', 8, 2),
+      chomp: atk('撕咬', 7, 2),
       screech: move('尖啸', 'debuff', (e, g) => {
         g.addToDraw('dazed', false, 2);
         g.apply(g.player, 'weak', 1, e);
@@ -213,7 +213,7 @@ defineEnemies([
     moves: {
       swarm: move('召唤虫群', 'summon', (_e, g) => summon(g, 'worker_bee', 2, 4)),
       command: move('号令', 'buff', (e, g) => {
-        for (const x of g.alive) g.apply(x, 'strength', 2, e);
+        for (const x of g.alive) g.apply(x, 'strength', 1, e);
       }),
       volley: atk('毒针齐射', 6, 3),
     },

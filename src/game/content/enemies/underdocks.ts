@@ -184,10 +184,10 @@ defineEnemies([
         g.gainBlock(e, 18);
         g.apply(e, 'strength', 3, e);
       }),
-      bite: atk('撕咬', 20),
-      frenzy: atk('狂乱', 5, 4),
+      bite: atk('撕咬', 16),
+      frenzy: atk('狂乱', 4, 4),
       blood: move('嗅到血腥', 'strongDebuff', (e, g) => {
-        g.apply(g.player, 'vulnerable', 2, e);
+        g.apply(g.player, 'vulnerable', 1, e);
         g.apply(g.player, 'frail', 1, e);
       }),
     },

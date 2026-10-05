@@ -226,36 +226,39 @@ defineEnemies([
     },
   },
   {
-    id: 'queen', name: '荣光女王', art: '👸', hp: [380, 380], size: 1.7,
+    id: 'queen', name: '荣光女王', art: '👸', hp: [360, 360], size: 1.7,
     init: (e, g) => void g.apply(e, 'artifact', 1, e),
     moves: {
       decree: move('王令', 'buff', (e, g) => {
-        for (const x of g.alive) g.apply(x, 'strength', 3, e);
+        for (const x of g.alive) g.apply(x, 'strength', 2, e);
       }),
-      execute: atk('处决', 10, 3),
+      execute: atk('处决', 6, 3),
       guard: move('召唤卫队', 'summon', (_e, g) => summon(g, 'queen_guard', 2 - g.alive.filter((x) => x.defId === 'queen_guard').length, 3)),
-      wrath: atk('女王之怒', 34),
+      wrath: atk('女王之怒', 30),
     },
     ai: (e, g) => {
+      if (e.turns === 0) return 'decree';
       const guards = g.alive.filter((x) => x.defId === 'queen_guard').length;
-      if (guards === 0 && !last(e, 'guard') && e.turns % 3 === 2) return 'guard';
-      if (guards === 0) return cycle(e, ['wrath', 'execute', 'decree']);
-      return cycle(e, ['execute', 'decree', 'execute']);
+      if (guards === 0) {
+        if (!e.history.slice(-3).includes('guard')) return 'guard';
+        return last(e, 'wrath') ? 'execute' : 'wrath';
+      }
+      return cycle(e, ['execute', 'execute', 'decree'], 2);
     },
   },
   {
-    id: 'queen_guard', name: '御前卫士', art: '💂', hp: [68, 72],
+    id: 'queen_guard', name: '御前卫士', art: '💂', hp: [62, 66],
     moves: {
       protect: move('护驾', 'defend', (_e, g) => {
         const q = g.alive.find((x) => x.defId === 'queen');
         if (q) g.gainBlock(q, 15);
       }),
-      halberd: atk('戟击', 12),
+      halberd: atk('戟击', 9),
     },
-    ai: (e, g) => pickMove(g, [
-      ['protect', 40, last(e, 'protect')],
-      ['halberd', 60, lastTwo(e, 'halberd')],
-    ]),
+    ai: (e, g) => {
+      const idx = g.enemies.filter((x) => x.defId === 'queen_guard').indexOf(e);
+      return cycle(e, ['protect', 'halberd'], idx);
+    },
   },
 ]);
 
