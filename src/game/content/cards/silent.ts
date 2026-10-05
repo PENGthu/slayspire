@@ -155,7 +155,7 @@ defineCards([
     play: (g, c, t) => hit(g, c, t),
   },
   {
-    id: 'sneaky_strike', name: '偷袭', color: S, type: 'attack', rarity: 'common', cost: 2, target: 'enemy',
+    id: 'sneaky_strike', name: '偷袭打击', color: S, type: 'attack', rarity: 'common', cost: 2, target: 'enemy',
     dmg: [12, 16], text: '造成 {D} 点伤害。\n若本回合你丢弃过牌，获得 2 点能量。', art: '🥷', tags: ['strike'],
     play: (g, c, t) => {
       hit(g, c, t);

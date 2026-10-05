@@ -180,7 +180,7 @@ defineEnemies([
       }),
       crystallize: move('结晶', 'defendBuff', (e, g) => {
         g.gainBlock(e, 20);
-        g.apply(e, 'plated_armor', 4, e);
+        g.apply(e, 'artifact', 1, e);
       }),
       beam: atk('棱光', 22),
     },

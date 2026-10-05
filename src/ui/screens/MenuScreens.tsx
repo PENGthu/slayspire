@@ -1,5 +1,5 @@
 import { useState } from 'preact/hooks';
-import { randomSeed } from '../../core/rng';
+import { hashSeed, randomSeed } from '../../core/rng';
 import { CHAR_ORDER, CHARACTERS } from '../../game/characters';
 import { RELICS } from '../../game/registry';
 import { Run } from '../../game/run';
@@ -42,6 +42,16 @@ function SpireBackdrop() {
       <path d="M0 720 L0 640 Q200 600 380 650 T760 640 T1280 620 L1280 720 Z" fill="#05060a" />
     </svg>
   );
+}
+
+/** 种子：纯数字或 36 进制字符串直接解析，其他文本取哈希 */
+export function parseSeed(t: string): number {
+  if (/^[0-9a-z]{1,7}$/i.test(t)) return parseInt(t, 36) >>> 0;
+  return hashSeed(t);
+}
+
+export function seedText(seed: number): string {
+  return seed.toString(36).toUpperCase();
 }
 
 export function MenuScreen() {
@@ -112,8 +122,10 @@ export function CharSelectScreen() {
   const [sel, setSel] = useState<CharId>('ironclad');
   const maxAsc = state.profile.maxAsc[sel] ?? 0;
   const [asc, setAsc] = useState(0);
+  const [seedText, setSeedText] = useState('');
   const a = Math.min(asc, maxAsc);
   const cd = CHARACTERS[sel];
+  const seed = () => (seedText.trim() ? parseSeed(seedText.trim()) : randomSeed());
   return (
     <div class="charselect">
       <h1>选择你的角色</h1>
@@ -127,7 +139,7 @@ export function CharSelectScreen() {
               class={`char-card ${sel === id ? 'sel' : ''}`}
               style={{ '--pc': c.color } as Record<string, string>}
               onClick={() => setSel(id)}
-              onDblClick={() => startNewRun(Run.create(id, randomSeed(), Math.min(asc, state.profile.maxAsc[id] ?? 0)))}
+              onDblClick={() => startNewRun(Run.create(id, seed(), Math.min(asc, state.profile.maxAsc[id] ?? 0)))}
             >
               <div class="portrait">
                 <Portrait char={id} size={1.05} />
@@ -174,7 +186,16 @@ export function CharSelectScreen() {
         >
           返回
         </button>
-        <button class="btn primary" style={{ minWidth: '200px' }} onClick={() => startNewRun(Run.create(sel, randomSeed(), a))}>
+        <input
+          id="seed-input"
+          class="seed-input"
+          placeholder="种子（可选）"
+          value={seedText}
+          maxLength={13}
+          onInput={(e) => setSeedText((e.target as HTMLInputElement).value)}
+          aria-label="随机种子"
+        />
+        <button class="btn primary" style={{ minWidth: '200px' }} onClick={() => startNewRun(Run.create(sel, seed(), a))}>
           以{cd.name}出发
         </button>
       </div>

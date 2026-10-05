@@ -1,6 +1,7 @@
 import { CHARACTERS } from '../../game/characters';
 import { POTIONS, RELICS } from '../../game/registry';
 import type { Run } from '../../game/run';
+import { ZONE_NAMES } from '../../game/map';
 import { act, refresh, setOverlay, state } from '../store';
 import { tipProps } from './Tooltip';
 
@@ -15,7 +16,6 @@ const TIER_NAMES: Record<string, string> = {
   ancient: '先古之民的赠礼',
 };
 
-const ACT_NAMES = ['', '蔓生密林', '嗡鸣蜂巢', '荣光之巅'];
 const CHAR_BADGE: Record<string, string> = { ironclad: '⚔️', silent: '🗡️', regent: '👑', necrobinder: '💀', defect: '🤖' };
 
 export function TopBar({ run }: { run: Run }) {
@@ -66,7 +66,7 @@ export function TopBar({ run }: { run: Run }) {
         </div>
         <div class="tb-spacer" />
         <div class="tb-floor">
-          <span class="lbl">第 {run.act} 幕 · {ACT_NAMES[run.act]} · </span>
+          <span class="lbl">第 {run.act} 幕 · {ZONE_NAMES[run.zone]?.name} · </span>
           <span>第 {run.floor} 层</span>
           {run.ascension > 0 && <span> · 进阶 {run.ascension}</span>}
         </div>

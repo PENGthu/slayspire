@@ -118,6 +118,7 @@ const PERSIST_KEYS = [
   'fights',
   'flags',
   'path',
+  'zone',
 ] as const;
 
 export class Run {
@@ -151,6 +152,8 @@ export class Run {
   fights = 0;
   /** 本幕走过的节点 [行, 列] */
   path: [number, number][] = [];
+  /** 当前区域 */
+  zone = 'overgrowth';
   flags: Record<string, number> = {};
 
   // ---- 非持久化 ----
@@ -532,8 +535,9 @@ export class Run {
     this.pos = null;
     this.fights = 0;
     this.path = [];
+    this.zone = act === 1 ? this.rng('map').pick(['overgrowth', 'underdocks']) : act === 2 ? 'hive' : 'glory';
     this.map = generateMap(this.rng(`map${act}`), act, this.ascension);
-    const bosses = Object.values(ENCOUNTERS).filter((e) => e.act === act && e.kind === 'boss');
+    const bosses = Object.values(ENCOUNTERS).filter((e) => this.encInZone(e) && e.kind === 'boss');
     this.boss = this.rng('enc').pick(bosses).id;
     // 先古之民
     const ancients = Object.values(ANCIENTS).filter((a) => a.acts.includes(act));
@@ -645,9 +649,16 @@ export class Run {
     this.startEvent();
   }
 
+  /** 遭遇是否属于当前幕与区域 */
+  encInZone(e: EncounterDef): boolean {
+    if (e.act !== this.act) return false;
+    const zone = e.zone ?? (e.act === 1 ? 'overgrowth' : undefined);
+    return !zone || zone === this.zone;
+  }
+
   pickEncounter(kind: 'weak' | 'strong' | 'elite'): EncounterDef {
     const rng = this.rng('enc');
-    let pool = Object.values(ENCOUNTERS).filter((e) => e.act === this.act && e.kind === kind);
+    let pool = Object.values(ENCOUNTERS).filter((e) => this.encInZone(e) && e.kind === kind);
     const hist = kind === 'elite' ? this.eliteHistory : this.encHistory;
     const fresh = pool.filter((e) => !hist.slice(-2).includes(e.id));
     if (fresh.length) pool = fresh;

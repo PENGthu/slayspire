@@ -23,6 +23,8 @@ export function playFx(layer: HTMLElement | null, root: HTMLElement | null, fxs:
           shake(host, delay);
           slash(layer, cx, cy, delay);
           sfx('hit');
+          if (friendly[0] === f.uid) hurtFlash(layer, f.n, delay);
+          if (f.n >= 15) screenShake(root, f.n, delay);
         }
         break;
       case 'hploss':
@@ -87,6 +89,33 @@ function float(layer: HTMLElement, x: number, y: number, text: string, cls: stri
   el.style.opacity = '0';
   layer.appendChild(el);
   setTimeout(() => el.remove(), 1100 + delay);
+}
+
+/** 玩家受伤时屏幕边缘泛红 */
+function hurtFlash(layer: HTMLElement, n: number, delay: number) {
+  const el = document.createElement('div');
+  el.className = 'hurt-flash';
+  el.style.animationDelay = `${delay}ms`;
+  el.style.setProperty('--hurt', String(Math.min(1, 0.35 + n / 40)));
+  layer.appendChild(el);
+  setTimeout(() => el.remove(), 600 + delay);
+}
+
+function screenShake(root: HTMLElement, n: number, delay: number) {
+  if (typeof root.animate !== 'function') return;
+  const a = Math.min(12, 3 + n / 5);
+  setTimeout(() => {
+    root.animate(
+      [
+        { transform: 'translate(0,0)' },
+        { transform: `translate(${-a}px, ${a / 2}px)` },
+        { transform: `translate(${a}px, ${-a / 3}px)` },
+        { transform: `translate(${-a / 2}px, ${a / 3}px)` },
+        { transform: 'translate(0,0)' },
+      ],
+      { duration: 280, easing: 'ease-out' },
+    );
+  }, delay);
 }
 
 function shake(host: HTMLElement, delay: number) {

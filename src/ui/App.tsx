@@ -77,7 +77,7 @@ export function App() {
   });
 
   const run = st.run;
-  const actBg = run && st.view === 'run' ? `bg-act${run.act}` : 'bg-menu';
+  const actBg = run && st.view === 'run' ? (run.zone === 'underdocks' ? 'bg-docks' : `bg-act${run.act}`) : 'bg-menu';
   useEffect(() => sfxForScreen(run?.screen.s ?? st.view), [run?.screen.s, st.view]);
   useEffect(() => hideTip(), [run?.screen.s, st.view, st.overlay, run?.selection]);
 

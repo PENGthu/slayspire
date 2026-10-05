@@ -119,6 +119,13 @@ export function nodeAt(map: MapData, row: number, col: number): MapNode | null {
   return map.rows[row]?.[col] ?? null;
 }
 
+export const ZONE_NAMES: Record<string, { name: string; en: string }> = {
+  overgrowth: { name: '蔓生密林', en: 'THE OVERGROWTH' },
+  underdocks: { name: '地下船坞', en: 'THE UNDERDOCKS' },
+  hive: { name: '嗡鸣蜂巢', en: 'THE HIVE' },
+  glory: { name: '荣光之巅', en: 'THE GLORY' },
+};
+
 export const ROOM_NAMES: Record<RoomKind, string> = {
   monster: '敌人',
   elite: '精英',

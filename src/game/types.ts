@@ -295,6 +295,8 @@ export interface EncounterDef {
   id: string;
   name: string;
   act: number;
+  /** 区域（第一幕有两种：蔓生密林 overgrowth / 地下船坞 underdocks） */
+  zone?: string;
   kind: EncounterKind;
   enemies: string[] | ((rng: import('../core/rng').Rng) => string[]);
   weight?: number;

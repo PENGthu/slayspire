@@ -10,6 +10,7 @@ import './cards/colorless';
 import './relics';
 import './potions';
 import './enemies/act1';
+import './enemies/underdocks';
 import './enemies/act2';
 import './enemies/act3';
 import './events';

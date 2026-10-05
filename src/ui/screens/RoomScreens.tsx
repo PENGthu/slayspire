@@ -5,7 +5,7 @@ import type { Run } from '../../game/run';
 import type { Card } from '../../game/types';
 import { Portrait } from '../components/Art';
 import { CardView, cardTips } from '../components/CardView';
-import { hideTip, pointer, showTip, tipProps } from '../components/Tooltip';
+import { hideTip, pointer, showTip, stageInfo, tipProps } from '../components/Tooltip';
 import { act, deleteSave, state, refresh } from '../store';
 
 export function relicTip(id: string) {
@@ -91,12 +91,12 @@ export function RewardScreen({ run }: { run: Run }) {
       {pickCard && pickCard.type === 'card' && (
         <div class="overlay">
           <h2>选择一张牌</h2>
-          <div class="card-grid" style={{ alignContent: 'center', gap: '30px' }}>
+          <div class="card-grid" style={{ alignContent: 'center', gap: stageInfo.w < stageInfo.h ? '12px' : '30px' }}>
             {pickCard.cards.map((c, j) => (
               <CardView
                 key={c.uid}
                 card={c}
-                size="lg"
+                size={stageInfo.w < stageInfo.h ? 'md' : 'lg'}
                 onClick={() => {
                   setCardIdx(null);
                   hideTip();
@@ -428,6 +428,8 @@ export function GameOverScreen({ run }: { run: Run }) {
           <span class="v">{s.damageTaken}</span>
           <span class="k">获得金币</span>
           <span class="v">{s.goldEarned}</span>
+          <span class="k">种子</span>
+          <span class="v">{run.seed.toString(36).toUpperCase()}</span>
           <span class="k">用时</span>
           <span class="v">{mins} 分钟</span>
           <span class="k">分数</span>

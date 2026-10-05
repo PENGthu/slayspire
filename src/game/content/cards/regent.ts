@@ -95,7 +95,7 @@ defineCards([
   },
   {
     id: 'astral_shield', name: '星界之盾', color: O, type: 'skill', rarity: 'common', cost: 1, target: 'self',
-    blk: [5, 7], mag: [2, 3], text: '获得 {B} 点格挡。\n（你每有 1 颗星辰，额外 +{M}）', art: '🌟',
+    blk: [5, 7], mag: [2, 3], text: ['获得 {B} 点格挡。\n（5 点，每有 1 颗星辰再 +{M}）', '获得 {B} 点格挡。\n（7 点，每有 1 颗星辰再 +{M}）'], art: '🌟',
     blkFn: (g, c) => (c.up ? 7 : 5) + (g ? g.stars * (uv(cardDef(c).mag, c.up) ?? 0) : 0),
     play: (g, c) => g.block(B(g, c)),
   },
@@ -295,7 +295,7 @@ defineCards([
   },
   {
     id: 'final_judgment', name: '终审', color: O, type: 'attack', rarity: 'rare', cost: 2, target: 'enemy',
-    mag: [3, 4], text: '造成 {D} 点伤害。\n（你每有 1 颗星辰，伤害 +{M}）', art: '⚖️',
+    mag: [3, 4], text: ['造成 {D} 点伤害。\n（12 点，每有 1 颗星辰再 +{M}）', '造成 {D} 点伤害。\n（16 点，每有 1 颗星辰再 +{M}）'], art: '⚖️',
     dmgFn: (g, c) => (c.up ? 16 : 12) + (g ? g.stars * (uv(cardDef(c).mag, c.up) ?? 0) : 0),
     play: (g, c, t) => hit(g, c, t),
   },

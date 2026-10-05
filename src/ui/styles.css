@@ -103,6 +103,12 @@ button {
     radial-gradient(ellipse at 85% 0%, rgba(120, 160, 90, 0.18), transparent 50%),
     linear-gradient(180deg, #13201a 0%, #0c130f 100%);
 }
+.bg-docks {
+  background:
+    radial-gradient(ellipse at 30% 110%, rgba(60, 150, 170, 0.28), transparent 55%),
+    radial-gradient(ellipse at 85% 0%, rgba(90, 120, 170, 0.18), transparent 50%),
+    linear-gradient(180deg, #0f1d24 0%, #070e12 100%);
+}
 .bg-act2 {
   background:
     radial-gradient(ellipse at 30% 105%, rgba(210, 150, 50, 0.25), transparent 55%),
@@ -1124,6 +1130,45 @@ button {
   15% { opacity: 1; transform: translate(-50%, -60%) scale(1.15); }
   100% { opacity: 0; transform: translate(-50%, -190%) scale(1); }
 }
+.hurt-flash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(ellipse at center, transparent 45%, rgba(200, 30, 20, var(--hurt, 0.5)) 100%);
+  animation: hurtflash 0.55s ease-out forwards;
+}
+@keyframes hurtflash {
+  0% { opacity: 0; }
+  15% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.enemy.is-elite .sprite::before,
+.enemy.is-boss .sprite::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -10px;
+  width: 130%;
+  height: 60%;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(207, 74, 60, 0.22), transparent 65%);
+  z-index: -1;
+  animation: halo 3s ease-in-out infinite;
+}
+.enemy.is-boss .sprite::before {
+  background: radial-gradient(ellipse, rgba(226, 176, 74, 0.32), transparent 70%);
+}
+.enemy.is-boss .cname,
+.enemy.is-elite .cname {
+  font-weight: 700;
+  color: #ffc2b8;
+}
+.enemy.is-boss .cname {
+  font-size: 15px;
+  color: #ffd98a;
+}
 .slash {
   position: absolute;
   width: 140px;
@@ -1368,6 +1413,25 @@ button {
   align-items: center;
   gap: 12px;
   font-size: 16px;
+}
+.seed-input {
+  user-select: text;
+  -webkit-user-select: text;
+  width: 150px;
+  height: 44px;
+  padding: 0 12px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.4);
+  color: var(--parchment);
+  font-family: var(--f-num);
+  font-size: 16px;
+  letter-spacing: 0.08em;
+}
+.seed-input::placeholder {
+  font-family: var(--f-sans);
+  color: var(--muted);
+  letter-spacing: 0;
 }
 .asc-desc {
   color: var(--muted);

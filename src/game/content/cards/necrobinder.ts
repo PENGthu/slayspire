@@ -101,7 +101,7 @@ defineCards([
   },
   {
     id: 'grave_soil', name: '墓土', color: NB, type: 'skill', rarity: 'common', cost: 1, target: 'self',
-    blk: [7, 10], text: '获得 {B} 点格挡。\n（若奥斯提在场，额外 +4）', art: '⚱️',
+    blk: [7, 10], text: ['获得 {B} 点格挡。\n（7 点，奥斯提在场时再 +4）', '获得 {B} 点格挡。\n（10 点，奥斯提在场时再 +4）'], art: '⚱️',
     blkFn: (g, c) => (c.up ? 10 : 7) + (g?.ostyAlive ? 4 : 0),
     play: (g, c) => g.block(B(g, c)),
   },

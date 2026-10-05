@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'preact/hooks';
-import { MAP_H, MAP_W, ROOM_NAMES } from '../../game/map';
+import { MAP_H, MAP_W, ROOM_NAMES, ZONE_NAMES } from '../../game/map';
 import { ENCOUNTERS } from '../../game/registry';
 import type { Run } from '../../game/run';
 import type { MapNode, RoomKind } from '../../game/types';
@@ -17,8 +17,6 @@ export const ROOM_ICONS: Record<RoomKind, string> = {
   ancient: '✨',
 };
 
-const ACT_TITLES = ['', '蔓生密林', '嗡鸣蜂巢', '荣光之巅'];
-const ACT_SUBS = ['', 'THE OVERGROWTH', 'THE HIVE', 'THE GLORY'];
 
 export function MapScreen({ run, readonly = false }: { run: Run; readonly?: boolean }) {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -86,9 +84,9 @@ export function MapScreen({ run, readonly = false }: { run: Run; readonly?: bool
   return (
     <div class="screen" style={{ position: 'relative' }}>
       <div class="map-title">
-        {ACT_TITLES[run.act]}
+        {ZONE_NAMES[run.zone]?.name}
         <small>
-          第 {run.act} 幕 · {ACT_SUBS[run.act]}
+          第 {run.act} 幕 · {ZONE_NAMES[run.zone]?.en}
         </small>
       </div>
       <div class="map-legend panel">

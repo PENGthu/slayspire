@@ -97,6 +97,7 @@ export function CombatScreen({ run }: { run: Run }) {
   const lastPhase = useRef<string>('');
   const lastTurn = useRef(0);
   const dragRef = useRef<Drag | null>(null);
+  const hoverRef = useRef<number | null>(null);
   dragRef.current = drag;
 
   const flash = (text: string) => setBanner({ text, id: Math.random() });
@@ -513,11 +514,15 @@ export function CombatScreen({ run }: { run: Run }) {
               onPointerEnter={(e) => {
                 if (e.pointerType === 'touch') return;
                 setHover(c.uid);
+                hoverRef.current = c.uid;
                 const tips = cardTips(c);
-                if (tips.length) showTip(e.currentTarget as Element, tips, 'top');
+                const el = e.currentTarget as Element;
+                // 等卡牌放大动画结束后再定位提示框，避免挡住卡面
+                if (tips.length) setTimeout(() => hoverRef.current === c.uid && !dragRef.current && showTip(el, tips, 'right'), 200);
               }}
               onPointerLeave={() => {
                 setHover((h) => (h === c.uid ? null : h));
+                if (hoverRef.current === c.uid) hoverRef.current = null;
                 hideTip();
               }}
             />
@@ -703,7 +708,7 @@ function EnemyView({
   };
   return (
     <div
-      class={`creature enemy ${e.dead ? 'dead' : ''} ${e.escaped ? 'escaped' : ''} ${targeted ? 'targeted' : ''} ${targetable ? 'targetable' : ''}`}
+      class={`creature enemy ${e.dead ? 'dead' : ''} ${e.escaped ? 'escaped' : ''} ${targeted ? 'targeted' : ''} ${targetable ? 'targetable' : ''} ${!e.minion && g.boss ? 'is-boss' : !e.minion && g.elite ? 'is-elite' : ''}`}
       data-cuid={e.uid}
       data-enemy={e.dead || e.escaped ? undefined : e.uid}
       onClick={(ev) => {

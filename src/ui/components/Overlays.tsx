@@ -144,6 +144,11 @@ function Settings() {
           操作：拖动卡牌到敌人身上打出，或先点击卡牌再点击目标。按 E 结束回合，数字键 1–9 选牌，Esc 取消。
           右键（或长按）敌人、遗物可以查看详细说明。
         </div>
+        {run && (
+          <div style={{ color: 'var(--muted)', fontSize: '13px' }}>
+            本局种子：<span class="num" style={{ color: 'var(--parchment)', userSelect: 'text' }}>{run.seed.toString(36).toUpperCase()}</span>
+          </div>
+        )}
         {run && run.screen.s !== 'gameover' && (
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
             <button
