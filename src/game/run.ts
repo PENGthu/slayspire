@@ -1067,7 +1067,11 @@ export class Run {
     let evId = id;
     if (!evId) {
       const pool = Object.values(EVENTS).filter(
-        (e) => e.acts.includes(this.act) && !this.seenEvents.includes(e.id) && (!e.cond || e.cond(this)),
+        (e) =>
+          e.acts.includes(this.act) &&
+          (!e.zones || e.zones.includes(this.zone)) &&
+          !this.seenEvents.includes(e.id) &&
+          (!e.cond || e.cond(this)),
       );
       if (!pool.length) {
         this.startCombat(this.pickEncounter('strong'), 'monster');

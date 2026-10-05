@@ -28,6 +28,8 @@ export interface EventDef {
   name: string;
   art: string;
   acts: number[];
+  /** 仅在这些区域出现 */
+  zones?: string[];
   cond?: (run: Run) => boolean;
   init?: (run: Run, ev: EventState) => void;
   view: (run: Run, ev: EventState) => EventView;

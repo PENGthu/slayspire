@@ -319,6 +319,73 @@ defineEvents([
       };
     },
   },
+  // =========================================================== 地下船坞
+  {
+    id: 'shipwreck', name: '沉船残骸', art: '🚢', acts: [1], zones: ['underdocks'],
+    view: (run, ev) => {
+      if (ev.page === 'done') return doneView(run, ev);
+      return {
+        text: '一艘半沉的货船卡在礁石之间，船舱里隐约有金属的反光。海水冰冷刺骨。',
+        options: [
+          { label: '潜入船舱', hint: '失去 8 点生命，50% 几率找到遗物，否则获得 60 金币', tone: 'neutral', go: () => {
+            run.damage(8);
+            if (run.dead) return;
+            if (run.rng('event').chance(0.5)) {
+              run.obtainRelic(run.randomRelicId());
+              done(ev, '你在船长室的保险箱里找到了一件遗物。');
+            } else {
+              run.gainGold(60);
+              done(ev, '你只摸到了一袋湿透的金币。');
+            }
+          } },
+          { label: '打捞货箱', hint: '获得 40 金币和一瓶随机药水', tone: 'good', go: () => {
+            run.gainGold(40);
+            const ok = run.obtainPotion(run.randomPotionId());
+            done(ev, ok ? '货箱里有些金币和一瓶药水。' : '货箱里有些金币，还有一瓶药水，但你已经拿不下了。');
+          } },
+          leave(run),
+        ],
+      };
+    },
+  },
+  {
+    id: 'smuggler', name: '走私者', art: '🏴', acts: [1], zones: ['underdocks'],
+    view: (run, ev) => {
+      if (ev.page === 'done') return doneView(run, ev);
+      return {
+        text: '码头的阴影里，一个独眼的走私者掀开斗篷：「看看这些好货？保证没人知道是从哪儿来的。」',
+        options: [
+          { label: '购买违禁品', hint: '花费 120 金币，获得一件随机罕见遗物', disabled: run.gold < 120 ? '金币不足' : false, tone: 'good', go: () => {
+            run.loseGold(120);
+            run.obtainRelic(run.randomRelicId('uncommon'));
+            done(ev, '走私者把东西塞进你怀里，转身消失在雾中。');
+          } },
+          { label: '揭发他', hint: '与走私者一伙战斗，获胜后获得金币', tone: 'bad', go: () =>
+            run.startEventCombat(['pirate_parrot', 'dock_rat', 'dock_rat'], { gold: 60 }) },
+          leave(run),
+        ],
+      };
+    },
+  },
+  {
+    id: 'tide_pool', name: '潮池', art: '🐚', acts: [1], zones: ['underdocks'],
+    view: (run, ev) => {
+      if (ev.page === 'done') return doneView(run, ev);
+      return {
+        text: '退潮后留下一汪清澈的潮池。池底的贝壳闪烁着柔和的光，一群泥蟹在旁边虎视眈眈。',
+        options: [
+          { label: '静坐冥想', hint: `回复 ${Math.floor(run.maxHp * 0.2)} 点生命，随机升级 1 张牌`, tone: 'good', go: () => {
+            run.heal(Math.floor(run.maxHp * 0.2));
+            const up = run.upgradeRandom(1);
+            done(ev, up[0] ? `潮声让你平静下来。「${cardDef(up[0]).name}」得到了升级。` : '潮声让你平静下来。');
+          } },
+          { label: '捡拾发光的贝壳', hint: '与泥蟹战斗，获胜后获得一件遗物', tone: 'bad', go: () =>
+            run.startEventCombat(['mud_crab', 'mud_crab'], { relic: run.randomRelicId() }) },
+          leave(run),
+        ],
+      };
+    },
+  },
   // =========================================================== 第二幕
   {
     id: 'honey_pot', name: '蜂蜜罐', art: '🍯', acts: [2],
