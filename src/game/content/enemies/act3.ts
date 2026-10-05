@@ -128,7 +128,8 @@ defineEnemies([
     moves: {
       arcane: move('奥术诅咒', 'strongDebuff', (e, g) => {
         g.apply(g.player, 'frail', 2, e);
-        g.apply(g.player, 'weak', 2, e);
+        g.apply(g.player, 'weak', 1, e);
+        g.afflictCards('heavy', 1);
       }),
       charge: move('蓄能', 'defend', (e, g) => g.gainBlock(e, 10)),
       blast: atk('奥术爆发', 26),
@@ -157,6 +158,7 @@ defineEnemies([
       drain: move('汲取', 'strongDebuff', (e, g) => {
         g.apply(g.player, 'weak', 2, e);
         g.apply(g.player, 'frail', 2, e);
+        g.afflictCards('sapping', 2);
         g.heal(e, 15);
       }),
       pulse: atk('灵魂脉冲', 18),

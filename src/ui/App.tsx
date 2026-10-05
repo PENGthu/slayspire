@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
+import { useErrorBoundary, useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
+import type { ComponentChildren } from 'preact';
 import type { Run } from '../game/run';
 import { Compendium, Overlays, SelectionOverlay } from './components/Overlays';
 import { TooltipLayer, hideTip, stageInfo } from './components/Tooltip';
@@ -16,7 +17,7 @@ import {
   ShopScreen,
   TreasureScreen,
 } from './screens/RoomScreens';
-import { refresh, useStore } from './store';
+import { refresh, state, useStore } from './store';
 import { sfxForScreen } from './sound';
 
 interface Dims {
@@ -104,7 +105,11 @@ export function App() {
           </div>
         )}
         {st.view === 'compendium' && <Compendium />}
-        {st.view === 'run' && run && <RunView run={run} />}
+        {st.view === 'run' && run && (
+          <ErrorGuard>
+            <RunView run={run} />
+          </ErrorGuard>
+        )}
         <Overlays />
         {run && run.selection && <SelectionOverlay run={run} />}
         <Toasts run={run} />
@@ -131,6 +136,40 @@ function RunView({ run }: { run: Run }) {
       {sc === 'gameover' && <GameOverScreen run={run} />}
     </div>
   );
+}
+
+/** 界面渲染出错时，提示并允许返回主菜单（存档不受影响） */
+function ErrorGuard({ children }: { children: ComponentChildren }) {
+  const [error, reset] = useErrorBoundary((e) => console.error(e));
+  if (error) {
+    return (
+      <div class="screen" style={{ alignItems: 'center', justifyContent: 'center', gap: '16px', display: 'flex' }}>
+        <h2 style={{ fontFamily: 'var(--f-serif)', margin: 0 }}>画面出了点问题</h2>
+        <div style={{ color: 'var(--muted)', maxWidth: '60ch', textAlign: 'center' }}>
+          {String((error as Error)?.message ?? error)}
+          <br />
+          进度已自动保存，返回主菜单后点击「继续攀登」即可接着玩。
+        </div>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button class="btn" onClick={() => reset()}>
+            重试
+          </button>
+          <button
+            class="btn primary"
+            onClick={() => {
+              state.run = null;
+              state.view = 'menu';
+              reset();
+              refresh();
+            }}
+          >
+            返回主菜单
+          </button>
+        </div>
+      </div>
+    );
+  }
+  return <>{children}</>;
 }
 
 function Toasts({ run }: { run: Run | null }) {

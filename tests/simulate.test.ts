@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import '../src/game/content';
+import { Combat as StrictCombat } from '../src/game/combat';
+StrictCombat.strict = true;
 import { Run } from '../src/game/run';
 import { Rng } from '../src/core/rng';
 import { botRun } from '../src/game/bot';

@@ -170,7 +170,32 @@ defineCards([
       g.apply(t, 'weak', M(c));
     },
   },
+  {
+    id: 'sly_dagger', name: '暗袖匕首', color: S, type: 'attack', rarity: 'common', cost: 1, target: 'enemy',
+    dmg: [9, 12], text: '造成 {D} 点伤害。', art: '🗡️', tags: ['sly'],
+    play: (g, c, t) => hit(g, c, t),
+  },
+  {
+    id: 'smoke_screen', name: '烟幕', color: S, type: 'skill', rarity: 'common', cost: 1, target: 'self',
+    blk: [8, 11], text: '获得 {B} 点格挡。', art: '💨', tags: ['sly'],
+    play: (g, c) => g.block(B(g, c)),
+  },
   // ---------------------------------------------------------------- 罕见
+  {
+    id: 'hidden_venom', name: '暗毒', color: S, type: 'skill', rarity: 'uncommon', cost: 1, target: 'enemy',
+    mag: [6, 9], text: '给予 {M} 层中毒。', art: '🧪', tags: ['sly'],
+    play: (g, c, t) => g.apply(t, 'poison', M(c)),
+  },
+  {
+    id: 'sleight_of_hand', name: '妙手空空', color: S, type: 'skill', rarity: 'uncommon', cost: 0, target: 'self',
+    mag: [1, 2], text: '丢弃 {M} 张牌。\n抽 {M} 张牌。', art: '🎩',
+    play: (g, c) => {
+      g.chooseHand({ title: `丢弃 ${M(c)} 张牌`, min: M(c), max: M(c) }, (s) => {
+        s.forEach((x) => g.discardCard(x));
+        g.draw(M(c));
+      });
+    },
+  },
   {
     id: 'accuracy', name: '精准', color: S, type: 'power', rarity: 'uncommon', cost: 1, target: 'self',
     mag: [4, 6], text: '小刀额外造成 {M} 点伤害。', art: '🎯',
@@ -378,6 +403,11 @@ defineCards([
     id: 'reflexes', name: '本能反应', color: S, type: 'power', rarity: 'uncommon', cost: 1, target: 'self',
     mag: [3, 4], text: '每当你丢弃一张牌，获得 {M} 点格挡。', art: '🌀',
     play: (g, c) => g.apply(g.player, 'reflexes', M(c)),
+  },
+  {
+    id: 'assassinate', name: '暗杀', color: S, type: 'attack', rarity: 'rare', cost: 2, target: 'enemy',
+    dmg: [22, 28], text: '造成 {D} 点伤害。', art: '🥷', tags: ['sly'],
+    play: (g, c, t) => hit(g, c, t),
   },
   // ---------------------------------------------------------------- 稀有
   {

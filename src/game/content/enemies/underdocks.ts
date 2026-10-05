@@ -212,7 +212,8 @@ defineEnemies([
     moves: {
       song: move('魅惑之歌', 'strongDebuff', (e, g) => {
         g.apply(g.player, 'weak', 2, e);
-        g.addToDraw('dazed', false, 2);
+        g.addToDraw('dazed', false, 1);
+        g.afflictCards('sapping', 2);
       }),
       shriek: atk('尖啸', 5, 3),
       drown: atk('溺毙', 22),

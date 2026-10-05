@@ -42,6 +42,8 @@ export interface Card {
   retainOnce?: boolean;
   /** 本场战斗被打出的次数 */
   played?: number;
+  /** 苦难（战斗中由敌人施加的负面卡牌修饰） */
+  afflict?: string;
 }
 
 export interface CardDef {

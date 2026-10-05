@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import '../src/game/content';
+import { Combat as StrictCombat } from '../src/game/combat';
+StrictCombat.strict = true;
 import { ANCIENTS, CARDS, ENCOUNTERS, ENEMIES, EVENTS, POTIONS, POWERS, RELICS } from '../src/game/registry';
 import { CHARACTERS } from '../src/game/characters';
 import { cardDef, cardText, makeCard, rawText } from '../src/game/cards';

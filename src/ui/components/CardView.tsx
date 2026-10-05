@@ -1,5 +1,6 @@
 import type { CSSProperties, JSX } from 'preact';
 import {
+  AFFLICTIONS,
   KEYWORDS,
   TYPE_NAMES,
   baseCost,
@@ -39,6 +40,10 @@ export function cardTips(c: Card): TipData[] {
   if (c.ench) {
     const e = ENCHANTS[c.ench.id];
     if (e) tips.push({ title: `附魔：${e.name}`, body: e.desc(c.ench.n), color: e.color });
+  }
+  if (c.afflict && AFFLICTIONS[c.afflict]) {
+    const a = AFFLICTIONS[c.afflict];
+    tips.push({ title: `苦难：${a.name}`, body: a.desc, color: '#d68cff' });
   }
   return tips;
 }
@@ -104,6 +109,7 @@ export function CardView(p: CardViewProps) {
           {ench.name}
         </div>
       )}
+      {c.afflict && AFFLICTIONS[c.afflict] && <div class="card-afflict">{AFFLICTIONS[c.afflict].name}</div>}
     </div>
   );
 }

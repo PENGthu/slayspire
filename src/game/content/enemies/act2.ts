@@ -175,8 +175,9 @@ defineEnemies([
     moves: {
       refract: atk('折射', 8, 3),
       pulse: move('感染脉冲', 'debuff', (e, g) => {
-        g.addToDiscard('burn', false, 2);
+        g.addToDiscard('burn', false, 1);
         g.apply(g.player, 'weak', 1, e);
+        g.afflictCards('brittle', 2);
       }),
       crystallize: move('结晶', 'defendBuff', (e, g) => {
         g.gainBlock(e, 20);
@@ -255,8 +256,8 @@ defineEnemies([
     moves: {
       curse: move('知识诅咒', 'strongDebuff', (e, g) => {
         g.addToDraw('doubt', false, 1);
-        g.addToDraw('decay', false, 1);
         g.apply(g.player, 'weak', 2, e);
+        g.afflictCards('heavy', 2);
       }),
       blast: atk('心灵冲击', 12, 2),
       ponder: move('沉思', 'defendBuff', (e, g) => {

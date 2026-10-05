@@ -417,7 +417,11 @@ export class Combat {
     if (this.phase !== 'enemy') return false;
     const s = this.enemySteps.shift();
     if (s) {
-      s();
+      try {
+        s();
+      } catch (e) {
+        this.reportError(e);
+      }
       this.checkEnd();
     }
     if (this.over) {
@@ -532,13 +536,29 @@ export class Combat {
     try {
       while (!this.pending && this.queue.length && !this.over) {
         const a = this.queue.shift()!;
-        a();
+        try {
+          a();
+        } catch (e) {
+          // 单个效果出错时跳过它，避免整场战斗卡死
+          this.reportError(e);
+        }
         this.checkEnd();
       }
     } finally {
       this.processing = false;
     }
   }
+
+  /** 记录效果执行中的错误（测试环境下直接抛出，便于发现问题） */
+  errors: string[] = [];
+  reportError(e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    this.errors.push(msg);
+    console.error('[combat]', e);
+    if (Combat.strict) throw e;
+  }
+  /** 严格模式：测试时打开，出错直接抛出 */
+  static strict = false;
 
   /** 把一个行动插入队列最前（在当前行动之后立刻执行） */
   next(a: () => void) {
@@ -973,10 +993,33 @@ export class Combat {
   /** 手动弃牌（触发「反射」等） */
   discardCard(c: Card) {
     this.takeFromPiles(c);
-    this.discardPile.push(c);
     this.t.discarded++;
+    if (hasTag(c, 'sly') && !this.over) {
+      // 机巧：被丢弃时免费打出
+      this.emit('text', this.player.uid, undefined, `机巧：${cardDef(c).name}`);
+      cardDef(c).onManualDiscard?.(this, c);
+      this.firePowers(this.player, 'onManualDiscard', c);
+      this.autoPlay(c, this.randomEnemy());
+      return;
+    }
+    this.discardPile.push(c);
     cardDef(c).onManualDiscard?.(this, c);
     this.firePowers(this.player, 'onManualDiscard', c);
+  }
+
+  /** 给卡牌施加苦难（本场战斗有效） */
+  afflict(c: Card, id: string) {
+    c.afflict = id;
+  }
+
+  /** 随机给牌堆（抽牌堆、弃牌堆、手牌）中的 n 张牌施加苦难 */
+  afflictCards(id: string, n: number) {
+    const cands = [...this.drawPile, ...this.discardPile, ...this.hand].filter(
+      (c) => !c.afflict && baseCost(c) !== UNPLAYABLE && cardDef(c).type !== 'status' && cardDef(c).type !== 'curse',
+    );
+    const picked = this.rng.sample(cands, n);
+    for (const c of picked) this.afflict(c, id);
+    if (picked.length) this.emit('debuff', this.player.uid, picked.length, `${picked.length} 张牌被施加苦难`);
   }
 
   moveTo(c: Card, pile: 'hand' | 'draw' | 'drawTop' | 'discard') {
@@ -1063,6 +1106,7 @@ export class Combat {
     if (d.type === 'skill' && this.has(this.player, 'corruption')) cost = 0;
     if (c.freeOnce) cost = 0;
     if (this.has(this.player, 'free_attacks') && d.type === 'attack') cost = 0;
+    if (c.afflict === 'heavy') cost += 1;
     return Math.max(0, cost);
   }
 
@@ -1158,6 +1202,7 @@ export class Combat {
     const d = cardDef(c);
     const actions: (() => void)[] = [];
     actions.push(() => {
+      if (c.afflict === 'sapping') this.loseHp(this.player, 2);
       this.t.cards++;
       this.total.cards++;
       c.played = (c.played ?? 0) + 1;
@@ -1228,7 +1273,7 @@ export class Combat {
     remove(this.limbo, c);
     if (d.type === 'power') {
       // 能力牌打出后移出
-    } else if (forceExhaust || isExhaust(c) || (d.type === 'skill' && this.has(this.player, 'corruption'))) {
+    } else if (forceExhaust || isExhaust(c) || c.afflict === 'brittle' || (d.type === 'skill' && this.has(this.player, 'corruption'))) {
       if (this.run.hasRelic('strange_spoon') && !forceExhaust && this.rng.chance(0.5)) this.discardPile.push(c);
       else this.exhaustCard(c);
     } else if (d.tags?.includes('returnHand')) {

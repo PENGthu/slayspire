@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import '../src/game/content';
+import { Combat as StrictCombat } from '../src/game/combat';
+StrictCombat.strict = true;
 import { Combat } from '../src/game/combat';
 import { Run } from '../src/game/run';
 import { makeCard } from '../src/game/cards';
@@ -185,6 +187,40 @@ describe('角色机制', () => {
     expect(shivs.length).toBe(3);
     g.playCard(shivs[0], g.enemies[0]);
     expect(g.exhaustPile.some((c) => c.id === 'shiv')).toBe(true);
+  });
+});
+
+describe('机巧与苦难', () => {
+  it('机巧牌被丢弃时会免费打出', () => {
+    const { g, e } = setup('silent');
+    const sly = makeCard('sly_dagger');
+    g.hand.push(sly, makeCard('defend_g'));
+    const hp = e.hp;
+    const energy = g.energy;
+    play(g, 'survivor');
+    // 生存者要求丢弃一张牌：选择机巧牌
+    expect(g.pending).not.toBeNull();
+    g.pending!.resolve([sly]);
+    expect(e.hp).toBe(hp - 9);
+    expect(g.energy).toBe(energy - 1);
+    expect(g.discardPile).toContain(sly);
+  });
+
+  it('苦难：沉重使费用 +1，易碎使牌被消耗，汲取打出时失去生命', () => {
+    const { g } = setup();
+    const a = makeCard('strike_r');
+    const b = makeCard('defend_r');
+    const c = makeCard('defend_r');
+    g.afflict(a, 'heavy');
+    g.afflict(b, 'brittle');
+    g.afflict(c, 'sapping');
+    expect(g.costOf(a)).toBe(2);
+    g.hand.push(b, c);
+    g.playCard(b, null);
+    expect(g.exhaustPile).toContain(b);
+    const hp = g.player.hp;
+    g.playCard(c, null);
+    expect(g.player.hp).toBe(hp - 2);
   });
 });
 

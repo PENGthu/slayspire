@@ -172,6 +172,14 @@ export const KEYWORDS: Record<string, string> = {
   黑暗: '充能球。被动：激发伤害提高 6。激发：对生命最低的敌人造成累积的伤害。',
   等离子: '充能球。被动：回合开始时获得 1 点能量。激发：获得 2 点能量。',
   集中: '提高充能球的效果（等离子除外）。',
+  机巧: '这张牌被丢弃时（回合结束除外），会免费自动打出。',
+};
+
+/** 苦难：敌人在战斗中施加给卡牌的负面修饰（《杀戮尖塔 2》机制） */
+export const AFFLICTIONS: Record<string, { name: string; desc: string }> = {
+  heavy: { name: '沉重', desc: '本场战斗中费用 +1。' },
+  brittle: { name: '易碎', desc: '本场战斗中打出后会被消耗。' },
+  sapping: { name: '汲取', desc: '本场战斗中打出时失去 2 点生命。' },
 };
 
 const KW_RE = new RegExp(`(${Object.keys(KEYWORDS).sort((a, b) => b.length - a.length).join('|')})`, 'g');
@@ -191,6 +199,7 @@ export function cardKeywords(c: Card): string[] {
   if (isRetain(c)) set.add('保留');
   if (isInnate(c)) set.add('固有');
   if (d.tags?.includes('osty')) set.add('奥斯提');
+  if (d.tags?.includes('sly')) set.add('机巧');
   return [...set].filter((k) => k !== '格挡' && k !== '升级');
 }
 
@@ -218,6 +227,7 @@ export function cardText(c: Card, g: Combat | null, target: Enemy | null = null)
   const prefix: string[] = [];
   const suffix: string[] = [];
   if (isInnate(c) && !text.includes('固有')) prefix.push('固有。');
+  if (cardDef(c).tags?.includes('sly') && !text.includes('机巧')) prefix.push('机巧。');
   if (isRetain(c) && !text.includes('保留')) prefix.push('保留。');
   if (isEthereal(c) && !text.includes('虚无')) prefix.push('虚无。');
   if (isExhaust(c) && !text.includes('消耗。')) suffix.push('消耗。');
