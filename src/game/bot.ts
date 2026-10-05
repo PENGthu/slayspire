@@ -1,5 +1,5 @@
 import { Rng } from '../core/rng';
-import { cardDef, canUpgrade } from './cards';
+import { cardBlk, cardDef, canUpgrade } from './cards';
 import type { Combat } from './combat';
 import { POTIONS } from './registry';
 import type { Run } from './run';
@@ -30,20 +30,29 @@ export function resolveSelection(run: Run, rng: Rng) {
   }
 }
 
+function incomingDamage(g: Combat): number {
+  return g.alive.reduce((sum, e) => {
+    const i = g.intentDamage(e);
+    return sum + (i ? i.dmg * i.hits : 0);
+  }, 0);
+}
+
 function scoreCard(g: Combat, c: import('./types').Card): number {
   const d = cardDef(c);
+  const cost = Math.max(1, g.costOf(c));
   let s = 1;
-  if (d.type === 'power') s += 6;
-  if (d.type === 'attack') s += 3;
-  if (d.blk || d.blkFn) {
-    const incoming = g.alive.reduce((sum, e) => {
-      const i = g.intentDamage(e);
-      return sum + (i ? i.dmg * i.hits : 0);
-    }, 0);
-    s += incoming > g.player.block ? 5 : 0;
+  if (d.type === 'power') s += g.turn <= 2 ? 14 : 6;
+  if (d.type === 'attack') {
+    const t = g.alive[0] ?? null;
+    s += g.previewDamage(c, t) * 0.9;
   }
-  if (g.costOf(c) === 0) s += 2;
-  return s;
+  if (d.blk !== undefined || d.blkFn) {
+    const need = incomingDamage(g) - g.player.block;
+    if (need > 0) s += Math.min(g.previewBlock(cardBlk(g, c)), need) * 1.3;
+  }
+  if (d.mag !== undefined && /抽/.test(String(d.text))) s += 4;
+  if (d.type === 'curse' || d.type === 'status') s -= 5;
+  return s / cost;
 }
 
 export function botPlayerTurn(g: Combat, rng: Rng, opts: BotOpts = {}) {
@@ -124,7 +133,13 @@ export function botRun(run: Run, rng: Rng, opts: BotOpts & { godMode?: boolean; 
         }
         const nodes = run.reachable();
         if (!nodes.length) throw new Error('地图上无路可走');
-        const n = rng.pick(nodes);
+        let n = rng.pick(nodes);
+        if (opts.smart) {
+          const low = run.hp < run.maxHp * 0.45;
+          const pref = nodes.find((x) => (low ? x.kind === 'rest' : x.kind === 'elite' && run.hp > run.maxHp * 0.75));
+          const avoid = nodes.filter((x) => !(low && x.kind === 'elite'));
+          n = pref ?? (avoid.length ? rng.pick(avoid) : n);
+        }
         run.enterNode(n.row, n.col);
         break;
       }
@@ -147,7 +162,21 @@ export function botRun(run: Run, rng: Rng, opts: BotOpts & { godMode?: boolean; 
       }
       case 'reward':
         sc.rewards.forEach((r, i) => {
-          if (r.type === 'card') run.takeReward(i, rng.chance(0.7) ? rng.int(0, r.cards.length - 1) : -1);
+          if (r.type === 'card') {
+            if (opts.smart) {
+              const order = { rare: 3, uncommon: 2, common: 1 } as Record<string, number>;
+              let best = -1;
+              let bestScore = 0;
+              r.cards.forEach((c, j) => {
+                const sc2 = (order[cardDef(c).rarity] ?? 0) + (cardDef(c).type === 'power' ? 0.5 : 0) + rng.next();
+                if (sc2 > bestScore) {
+                  bestScore = sc2;
+                  best = j;
+                }
+              });
+              run.takeReward(i, run.deck.length > 25 && bestScore < 3 ? -1 : best);
+            } else run.takeReward(i, rng.chance(0.7) ? rng.int(0, r.cards.length - 1) : -1);
+          }
           else run.takeReward(i);
         });
         resolveSelection(run, rng);
@@ -176,7 +205,12 @@ export function botRun(run: Run, rng: Rng, opts: BotOpts & { godMode?: boolean; 
           if (run.hasRelic('peace_pipe')) acts.push('toke');
           if (run.hasRelic('shovel')) acts.push('dig');
           if (acts.length) {
-            const a = run.hp < run.maxHp * 0.5 && acts.includes('rest') ? 'rest' : rng.pick(acts);
+            const a =
+              run.hp < run.maxHp * (opts.smart ? 0.65 : 0.5) && acts.includes('rest')
+                ? 'rest'
+                : opts.smart && acts.includes('smith')
+                  ? 'smith'
+                  : rng.pick(acts);
             run.restAction(a);
             resolveSelection(run, rng);
           }

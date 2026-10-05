@@ -946,6 +946,21 @@ button {
   margin-left: calc(var(--cw) / -2);
   transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.3, 1), filter 0.16s;
   will-change: transform;
+  animation: drawIn 0.34s cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
+}
+@keyframes drawIn {
+  from {
+    transform: translate(var(--draw-x, -560px), 60px) scale(0.35) rotate(-25deg);
+    opacity: 0;
+  }
+}
+.card-ghost {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+  z-index: 65;
+  transform-origin: 50% 50%;
 }
 .hand .card.hovered {
   z-index: 50 !important;
@@ -1094,6 +1109,11 @@ button {
   gap: 20px;
   width: 100%;
   font-size: 16px;
+}
+
+.combat > .overlay {
+  inset: -130px 0 0 0;
+  padding-top: 150px;
 }
 
 /* 吐司 */

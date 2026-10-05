@@ -3,7 +3,7 @@ import { rectInStage } from './components/Tooltip';
 import { sfx } from './sound';
 
 /** 把战斗引擎产生的特效事件渲染成浮动文字、抖动等 DOM 动画 */
-export function playFx(layer: HTMLElement | null, root: HTMLElement | null, fxs: Fx[], playerUid: number) {
+export function playFx(layer: HTMLElement | null, root: HTMLElement | null, fxs: Fx[], friendly: number[]) {
   if (!layer || !root) return;
   // 同一目标的多个浮动数字错开显示
   const stack: Record<number, number> = {};
@@ -64,7 +64,7 @@ export function playFx(layer: HTMLElement | null, root: HTMLElement | null, fxs:
         float(layer, cx, cy, `召唤 +${f.n}`, 'summon', delay);
         break;
       case 'lunge': {
-        const cls = f.uid === playerUid ? 'lunge-r' : 'lunge-l';
+        const cls = friendly.includes(f.uid) ? 'lunge-r' : 'lunge-l';
         host.classList.add(cls);
         setTimeout(() => host.classList.remove(cls), 170);
         break;

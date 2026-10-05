@@ -20,7 +20,7 @@ defineEnemies([
       bite: atk('啃咬', 11),
       thrash: atkThen('翻滚', 7, 1, 'attackDefend', (e, g) => g.gainBlock(e, 5)),
       bellow: move('咆哮', 'defendBuff', (e, g) => {
-        g.apply(e, 'strength', 3, e);
+        g.apply(e, 'strength', 2, e);
         g.gainBlock(e, 6);
       }),
     },
@@ -253,7 +253,7 @@ defineEnemies([
   },
   // ------------------------------------------------------------------ 首领
   {
-    id: 'ceremonial_beast', name: '祭仪巨兽', art: '🦬', hp: [250, 250], size: 1.7,
+    id: 'ceremonial_beast', name: '祭仪巨兽', art: '🦬', hp: [240, 240], size: 1.7,
     init: (e, g) => void g.apply(e, 'artifact', 1, e),
     moves: {
       roar: move('祭仪咆哮', 'defendBuff', (e, g) => {
@@ -261,7 +261,7 @@ defineEnemies([
         g.apply(e, 'strength', 2, e);
       }),
       stomp: atk('践踏', 6, 3),
-      gore: atk('顶撞', 22),
+      gore: atk('顶撞', 20),
       frenzy: move('狂乱', 'buff', (e, g) => {
         g.apply(e, 'ritual', 2, e);
         g.cleanse(e);
@@ -374,10 +374,10 @@ defineEncounters([
   },
   { id: 'a1_phrog', name: '寄生蛙', act: 1, kind: 'strong', enemies: ['phrog_parasite'] },
   { id: 'a1_wurm', name: '绒毛蠕虫', act: 1, kind: 'strong', enemies: ['fuzzy_wurm'] },
-  { id: 'a1_nibbits', name: '啃咬兽群', act: 1, kind: 'strong', enemies: ['nibbit', 'nibbit'] },
+  { id: 'a1_nibbits', name: '啃咬兽与墨精', act: 1, kind: 'strong', enemies: ['nibbit', 'inklet', 'inklet'] },
   { id: 'a1_shroom3', name: '孢子菇丛', act: 1, kind: 'strong', enemies: ['shroomling', 'shroomling', 'shroomling'] },
   { id: 'a1_lashers', name: '藤鞭丛', act: 1, kind: 'strong', enemies: ['vine_lasher', 'vine_lasher', 'inklet'] },
-  { id: 'a1_cult_nibbit', name: '信徒与啃咬兽', act: 1, kind: 'strong', enemies: ['twig_cultist', 'nibbit'] },
+  { id: 'a1_cult_slime', name: '信徒与史莱姆', act: 1, kind: 'strong', enemies: ['acid_slime_s', 'twig_cultist'] },
   // 精英
   { id: 'a1_byrdonis', name: '巨喙鸟母', act: 1, kind: 'elite', enemies: ['byrdonis'] },
   { id: 'a1_effigy', name: '往昔雕像', act: 1, kind: 'elite', enemies: ['bygone_effigy'] },

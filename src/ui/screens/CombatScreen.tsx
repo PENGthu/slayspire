@@ -1,12 +1,12 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { CHARACTERS } from '../../game/characters';
 import type { Combat } from '../../game/combat';
-import { ENEMIES, POTIONS, POWERS } from '../../game/registry';
+import { CARDS, ENEMIES, POTIONS, POWERS } from '../../game/registry';
 import type { Run } from '../../game/run';
 import type { Card, Creature, Enemy } from '../../game/types';
 import { INTENT_DESC, IntentIcon, OstyArt, Portrait } from '../components/Art';
 import { CardView, cardTips } from '../components/CardView';
-import { hideTip, showTip, stageInfo, tipProps, toStage, type TipData } from '../components/Tooltip';
+import { hideTip, rectInStage, showTip, stageInfo, tipProps, toStage, type TipData } from '../components/Tooltip';
 import { playFx } from '../fx';
 import { act, refresh, setOverlay, sleep, speed, state } from '../store';
 import { sfx } from '../sound';
@@ -19,6 +19,8 @@ interface Drag {
   y: number;
   moved: boolean;
 }
+
+const cardDefOf = (c: Card) => CARDS[c.id]?.type ?? 'skill';
 
 function powerTips(c: Creature): TipData[] {
   return Object.entries(c.powers)
@@ -101,7 +103,7 @@ export function CombatScreen({ run }: { run: Run }) {
   // 特效
   useLayoutEffect(() => {
     const fx = g.takeFx();
-    if (fx.length) playFx(fxRef.current, rootRef.current, fx, g.player.uid);
+    if (fx.length) playFx(fxRef.current, rootRef.current, fx, [g.player.uid, g.osty?.uid ?? -1]);
   });
 
   // 回合横幅
@@ -195,6 +197,7 @@ export function CombatScreen({ run }: { run: Run }) {
     setHover(null);
     hideTip();
     sfx('card');
+    flyCard(c, cardDefOf(c));
     act(() => g.playCard(c, target));
   }
 
@@ -424,7 +427,7 @@ export function CombatScreen({ run }: { run: Run }) {
       </button>
 
       {/* 手牌 */}
-      <div class="hand">
+      <div class="hand" style={{ '--draw-x': `${-(stageInfo.w / 2 - 60)}px` } as Record<string, string>}>
         {g.hand.map((c, i) => {
           const pos = handPos(n, i, cw, maxW);
           const isSel = sel === c.uid;
@@ -472,6 +475,7 @@ export function CombatScreen({ run }: { run: Run }) {
               key={c.uid}
               card={c}
               g={g}
+              dataUid
               target={isSel || isDrag ? targetEnemy : null}
               cls={`${playable && !inPick ? 'playable' : ''} ${!playable && !inPick ? 'unplayable-now' : ''} ${inPick && !pickable ? 'dim' : ''} ${picked || isSel ? 'picked' : ''} ${isHover ? 'hovered' : ''} ${isDrag ? 'dragging' : ''}`}
               style={{
@@ -580,6 +584,41 @@ export function CombatScreen({ run }: { run: Run }) {
   );
 }
 
+/** 打出卡牌时的飞行动画：从手牌飞到画面中央，再缩小飞向弃牌堆/消失 */
+function flyCard(c: Card, type: string) {
+  const el = document.querySelector(`.hand [data-card="${c.uid}"]`) as HTMLElement | null;
+  const layer = document.querySelector('.combat .fx-layer') as HTMLElement | null;
+  if (!el || !layer || typeof el.animate !== 'function') return;
+  const r = rectInStage(el);
+  const ghost = el.cloneNode(true) as HTMLElement;
+  ghost.className = el.className.replace(/hovered|dragging|playable|picked/g, '') + ' card-ghost';
+  ghost.style.transform = '';
+  ghost.style.left = '0px';
+  ghost.style.top = '0px';
+  ghost.style.bottom = '';
+  ghost.style.marginLeft = '0px';
+  layer.appendChild(ghost);
+  const w = ghost.offsetWidth;
+  const h = ghost.offsetHeight;
+  const sx = (r.l + r.r) / 2 - w / 2;
+  const sy = (r.t + r.b) / 2 - h / 2;
+  const cx = stageInfo.w / 2 - w / 2;
+  const cy = stageInfo.h * 0.42 - h / 2;
+  const ex = type === 'power' ? cx : stageInfo.w - 60 - w / 2;
+  const ey = type === 'power' ? cy - 60 : stageInfo.h - 50 - h / 2;
+  const anim = ghost.animate(
+    [
+      { transform: `translate(${sx}px, ${sy}px) scale(1.15)`, opacity: 1, offset: 0 },
+      { transform: `translate(${cx}px, ${cy}px) scale(1.1)`, opacity: 1, offset: 0.35 },
+      { transform: `translate(${cx}px, ${cy}px) scale(1.1)`, opacity: 1, offset: 0.55 },
+      { transform: `translate(${ex}px, ${ey}px) scale(${type === 'power' ? 1.4 : 0.25})`, opacity: 0, offset: 1 },
+    ],
+    { duration: 620, easing: 'cubic-bezier(0.3, 0.7, 0.4, 1)' },
+  );
+  anim.onfinish = () => ghost.remove();
+  setTimeout(() => ghost.remove(), 900);
+}
+
 function tipHandlers(c: Card) {
   return {
     onPointerEnter: (e: PointerEvent) => {
@@ -612,7 +651,9 @@ function EnemyView({
   const fontSize = Math.round(118 * e.size);
   const reviving = !!e.powers.revive_pending;
   const enemyTips = (): TipData[] => {
-    const tips: TipData[] = [{ title: e.name, sub: `${Math.max(0, e.hp)}/${e.maxHp}`, body: def.desc ?? '' }];
+    const tips: TipData[] = [
+      { title: e.name + (e.minion ? '（仆从）' : ''), body: `生命 ${Math.max(0, e.hp)}/${e.maxHp}${e.block ? `，格挡 ${e.block}` : ''}${def.desc ? `\n${def.desc}` : ''}` },
+    ];
     if (m) {
       let body = INTENT_DESC[m.intent];
       if (intent) body += `\n将造成 ${intent.dmg} 点伤害${intent.hits > 1 ? ` ×${intent.hits} 次` : ''}。`;
