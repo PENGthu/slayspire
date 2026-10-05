@@ -1,0 +1,15 @@
+// 加载所有游戏内容（注册到 registry）
+import './powers';
+import './enchants';
+import './cards/ironclad';
+import './cards/silent';
+import './cards/regent';
+import './cards/necrobinder';
+import './cards/colorless';
+import './relics';
+import './potions';
+import './enemies/act1';
+import './enemies/act2';
+import './enemies/act3';
+import './events';
+import './ancients';
