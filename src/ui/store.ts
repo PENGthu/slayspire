@@ -17,6 +17,8 @@ export interface Profile {
   runs: number;
   bestScore: number;
   settings: Settings;
+  /** 是否已看过战斗教程 */
+  tutorialSeen?: boolean;
 }
 
 export type Overlay =

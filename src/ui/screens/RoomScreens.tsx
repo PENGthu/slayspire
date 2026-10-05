@@ -5,7 +5,7 @@ import type { Run } from '../../game/run';
 import type { Card } from '../../game/types';
 import { Portrait } from '../components/Art';
 import { CardView, cardTips } from '../components/CardView';
-import { hideTip, showTip, tipProps } from '../components/Tooltip';
+import { hideTip, pointer, showTip, tipProps } from '../components/Tooltip';
 import { act, deleteSave, state, refresh } from '../store';
 
 export function relicTip(id: string) {
@@ -52,7 +52,10 @@ export function RewardScreen({ run }: { run: Run }) {
             return (
               <button key={i} class="reward-item" onClick={() => act(() => run.takeReward(i))} {...tipProps(relicTip(r.id), 'right')}>
                 <span class="ri">{d.art}</span>
-                <span>遗物：{d.name}</span>
+                <span class="rt">
+                  遗物：{d.name}
+                  <small>{d.desc}</small>
+                </span>
               </button>
             );
           }
@@ -66,7 +69,10 @@ export function RewardScreen({ run }: { run: Run }) {
                 {...tipProps([{ title: d.name, body: d.desc }], 'right')}
               >
                 <span class="ri">{d.art}</span>
-                <span>药水：{d.name}</span>
+                <span class="rt">
+                  药水：{d.name}
+                  <small>{d.desc}</small>
+                </span>
                 {run.potionSlotsFree === 0 && <span style={{ color: 'var(--bad)', fontSize: '13px', marginLeft: 'auto' }}>药水栏已满</span>}
               </button>
             );
@@ -123,7 +129,19 @@ export function RewardScreen({ run }: { run: Run }) {
 // ============================================================ 商店
 export function ShopScreen({ run }: { run: Run }) {
   const sc = run.screen;
+  const [armed, setArmed] = useState<number | null>(null);
   if (sc.s !== 'shop') return null;
+  /** 触屏：第一次轻点查看说明，再点一次购买 */
+  const buy = (i: number) => {
+    if (pointer.touch && armed !== i) {
+      setArmed(i);
+      run.toast('再点一次购买');
+      refresh();
+      return;
+    }
+    setArmed(null);
+    act(() => run.buy(i));
+  };
   const shop = sc.shop;
   const cards = shop.items.map((it, i) => ({ it, i })).filter(({ it }) => it.kind === 'card');
   const relics = shop.items.map((it, i) => ({ it, i })).filter(({ it }) => it.kind === 'relic');
@@ -149,7 +167,7 @@ export function ShopScreen({ run }: { run: Run }) {
           {cards.map(({ it, i }) => (
             <div key={i} class={`shop-item ${it.sold ? 'sold' : ''}`}>
               {it.sale && !it.sold && <span class="sale-tag">半价</span>}
-              <CardView card={it.card!} size="sm" onClick={() => act(() => run.buy(i))} {...cardHover(it.card!)} />
+              <CardView card={it.card!} size="sm" cls={armed === i ? 'picked' : ''} onClick={() => buy(i)} {...cardHover(it.card!)} />
               <Price p={it.price} />
             </div>
           ))}
@@ -160,7 +178,7 @@ export function ShopScreen({ run }: { run: Run }) {
             <div class="shop-row">
               {relics.map(({ it, i }) => (
                 <div key={i} class={`shop-item ${it.sold ? 'sold' : ''}`}>
-                  <div class="goods-tile" onClick={() => act(() => run.buy(i))} {...tipProps(relicTip(it.id!), 'top')}>
+                  <div class="goods-tile" style={armed === i ? { outline: '2px solid var(--gold)' } : undefined} onClick={() => buy(i)} {...tipProps(relicTip(it.id!), 'top')}>
                     {RELICS[it.id!].art}
                   </div>
                   <Price p={it.price} />
@@ -175,7 +193,7 @@ export function ShopScreen({ run }: { run: Run }) {
                 const d = POTIONS[it.id!];
                 return (
                   <div key={i} class={`shop-item ${it.sold ? 'sold' : ''}`}>
-                    <div class="goods-tile" onClick={() => act(() => run.buy(i))} {...tipProps([{ title: d.name, body: d.desc }], 'top')}>
+                    <div class="goods-tile" style={armed === i ? { outline: '2px solid var(--gold)' } : undefined} onClick={() => buy(i)} {...tipProps([{ title: d.name, body: d.desc }], 'top')}>
                       {d.art}
                     </div>
                     <Price p={it.price} />

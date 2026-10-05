@@ -664,6 +664,40 @@ button {
   pointer-events: none;
   transform: translateX(200px);
 }
+.enemy {
+  max-width: 420px;
+  transition: transform 0.18s ease, opacity 0.4s, filter 0.3s, max-width 0.35s ease 0.45s, margin 0.35s ease 0.45s;
+}
+.enemy.dead,
+.enemy.escaped {
+  max-width: 0;
+  margin-left: -18px;
+  overflow: hidden;
+}
+.tutorial {
+  position: absolute;
+  left: 50%;
+  top: 16px;
+  transform: translateX(-50%);
+  z-index: 46;
+  width: min(560px, 92%);
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.tutorial h3 {
+  margin: 0;
+  font-family: var(--f-serif);
+  font-size: 17px;
+  color: var(--gold);
+}
+.tutorial ul {
+  margin: 0;
+  padding-left: 18px;
+}
 .creature.lunge-r { transform: translateX(28px); }
 .creature.lunge-l { transform: translateX(-28px); }
 .creature.hurt .sprite {
@@ -1525,6 +1559,17 @@ button {
 }
 .reward-item.taken {
   display: none;
+}
+.reward-item .rt {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.reward-item .rt small {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.4;
 }
 
 /* 商店 */

@@ -9,7 +9,7 @@ import { ORBS } from '../../game/orbs';
 import { CardView, cardTips } from '../components/CardView';
 import { hideTip, rectInStage, showTip, stageInfo, tipProps, toStage, type TipData } from '../components/Tooltip';
 import { playFx } from '../fx';
-import { act, refresh, setOverlay, sleep, speed, state } from '../store';
+import { act, refresh, saveProfile, setOverlay, sleep, speed, state } from '../store';
 import { sfx } from '../sound';
 
 interface Drag {
@@ -591,6 +591,29 @@ export function CombatScreen({ run }: { run: Run }) {
         </div>
       )}
 
+      {!state.profile.tutorialSeen && g.phase === 'player' && !pending && (
+        <div class="tutorial panel">
+          <h3>如何战斗</h3>
+          <ul>
+            <li>把卡牌拖到敌人身上打出；也可以先点卡牌，再点目标。不需要目标的牌点两次即可。</li>
+            <li>敌人头顶的图标是它下回合的<b>意图</b>：剑代表攻击及伤害数值，盾代表格挡。</li>
+            <li>左下角是<b>能量</b>，每回合恢复。格挡只持续到你的下个回合。</li>
+            <li>出完牌后点「结束回合」或按 E。悬停（或长按）任何东西都能看到说明。</li>
+          </ul>
+          <div>
+            <button
+              class="btn small primary"
+              onClick={() => {
+                state.profile.tutorialSeen = true;
+                saveProfile();
+                refresh();
+              }}
+            >
+              知道了
+            </button>
+          </div>
+        </div>
+      )}
       <div class="fx-layer" ref={fxRef} />
       {banner && (
         <div class="turn-banner" key={banner.id}>

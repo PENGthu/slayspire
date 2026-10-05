@@ -79,6 +79,7 @@ export function App() {
   const run = st.run;
   const actBg = run && st.view === 'run' ? `bg-act${run.act}` : 'bg-menu';
   useEffect(() => sfxForScreen(run?.screen.s ?? st.view), [run?.screen.s, st.view]);
+  useEffect(() => hideTip(), [run?.screen.s, st.view, st.overlay, run?.selection]);
 
   return (
     <div class="viewport" ref={vpRef} onContextMenu={(e) => e.preventDefault()}>

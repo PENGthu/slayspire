@@ -184,20 +184,23 @@ defineEnemies([
   // ------------------------------------------------------------------ 精英
   {
     id: 'byrdonis', name: '巨喙鸟母', art: '🦅', hp: [82, 86], size: 1.35,
-    init: (e, g) => void g.apply(e, 'angry', 1, e),
     moves: {
       peck: atk('连啄', 3, 4),
       swoop: atk('俯冲', 16),
       screech: move('尖啸', 'debuff', (e, g) => {
         g.apply(g.player, 'vulnerable', 2, e);
       }),
+      molt: move('换羽', 'defendBuff', (e, g) => {
+        g.gainBlock(e, 10);
+        g.apply(e, 'strength', 2, e);
+      }),
     },
     ai: (e, g) => {
       if (e.turns === 0) return 'screech';
+      if (e.turns % 4 === 3) return 'molt';
       return pickMove(g, [
-        ['peck', 50, lastTwo(e, 'peck')],
-        ['swoop', 40, last(e, 'swoop')],
-        ['screech', 10, e.history.slice(-3).includes('screech')],
+        ['peck', 55, lastTwo(e, 'peck')],
+        ['swoop', 45, last(e, 'swoop')],
       ]);
     },
   },
@@ -260,7 +263,7 @@ defineEnemies([
         g.gainBlock(e, 15);
         g.apply(e, 'strength', 2, e);
       }),
-      stomp: atk('践踏', 6, 3),
+      stomp: atk('践踏', 5, 3),
       gore: atk('顶撞', 20),
       frenzy: move('狂乱', 'buff', (e, g) => {
         g.apply(e, 'ritual', 2, e);
@@ -277,28 +280,28 @@ defineEnemies([
     },
   },
   {
-    id: 'vantom', name: '墨渊幽影', art: '🐙', hp: [210, 210], size: 1.7,
-    init: (e, g) => void g.apply(e, 'slippery', 9, e),
+    id: 'vantom', name: '墨渊幽影', art: '🐙', hp: [200, 200], size: 1.7,
+    init: (e, g) => void g.apply(e, 'slippery', 6, e),
     moves: {
       ink: atkThen('墨渍', 8, 1, 'attackDebuff', (_e, g) => g.addToDiscard('slimed', false, 2)),
       lash: atk('触手鞭笞', 5, 3),
       dismember: atk('撕裂', 27),
       prepare: move('潜入墨中', 'defendBuff', (e, g) => {
-        g.gainBlock(e, 18);
-        g.apply(e, 'slippery', 4, e);
+        g.gainBlock(e, 15);
+        g.apply(e, 'slippery', 3, e);
         g.apply(e, 'strength', 2, e);
       }),
     },
     ai: (e) => cycle(e, ['ink', 'lash', 'prepare', 'dismember']),
   },
   {
-    id: 'kin_priest', name: '亲族祭司', art: '👹', hp: [190, 190], size: 1.6,
+    id: 'kin_priest', name: '亲族祭司', art: '👹', hp: [180, 180], size: 1.6,
     moves: {
       rite: move('血之仪式', 'buff', (e, g) => {
-        for (const x of g.alive) g.apply(x, 'strength', 2, e);
+        for (const x of g.alive) g.apply(x, 'strength', x === e ? 2 : 1, e);
       }),
-      beam: atk('灼目光束', 15),
-      smite: atk('惩击', 8, 2),
+      beam: atk('灼目光束', 12),
+      smite: atk('惩击', 6, 2),
       call: move('召集', 'summon', (_e, g) => summon(g, 'kin_follower', 2 - g.alive.filter((x) => x.defId === 'kin_follower').length, 3)),
     },
     ai: (e, g) => {
@@ -307,25 +310,24 @@ defineEnemies([
         e.mem.called = 1;
         return 'call';
       }
-      return cycle(e, ['beam', 'rite', 'smite', 'beam', 'smite']);
+      return cycle(e, ['rite', 'beam', 'smite', 'beam', 'smite']);
     },
   },
   {
-    id: 'kin_follower', name: '亲族信徒', art: '👺', hp: [56, 60],
+    id: 'kin_follower', name: '亲族信徒', art: '👺', hp: [42, 46],
     moves: {
-      slash: atk('挥砍', 7),
-      boomerang: atk('回旋刃', 4, 2),
+      slash: atk('挥砍', 6),
+      boomerang: atk('回旋刃', 3, 2),
       praise: move('赞颂', 'buff', (e, g) => {
         const priest = g.alive.find((x) => x.defId === 'kin_priest');
         if (priest) g.gainBlock(priest, 10);
         g.apply(e, 'strength', 1, e);
       }),
     },
-    ai: (e, g) => pickMove(g, [
-      ['slash', 40, last(e, 'slash')],
-      ['boomerang', 35, last(e, 'boomerang')],
-      ['praise', 25, last(e, 'praise')],
-    ]),
+    ai: (e, g) => {
+      const idx = g.enemies.filter((x) => x.defId === 'kin_follower').indexOf(e);
+      return cycle(e, ['slash', 'praise', 'boomerang'], idx);
+    },
   },
 ]);
 

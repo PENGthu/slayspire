@@ -49,14 +49,27 @@ export function hideTip() {
   subs.forEach((f) => f());
 }
 
-/** 给元素绑定悬停提示 */
+/** 最近一次指针操作是否来自触摸屏 */
+export const pointer = { touch: false };
+if (typeof window !== 'undefined') {
+  window.addEventListener('pointerdown', (e) => (pointer.touch = e.pointerType === 'touch'), true);
+}
+
+/** 给元素绑定悬停提示（触屏上轻点即可查看） */
 export function tipProps(tips: TipData[] | (() => TipData[]), prefer: TipState['prefer'] = 'right') {
   return {
     onPointerEnter: (e: PointerEvent) => {
       if (e.pointerType === 'touch') return;
       showTip(e.currentTarget as Element, typeof tips === 'function' ? tips() : tips, prefer);
     },
-    onPointerLeave: () => hideTip(),
+    onPointerUp: (e: PointerEvent) => {
+      if (e.pointerType !== 'touch') return;
+      const el = e.currentTarget as Element;
+      setTimeout(() => showTip(el, typeof tips === 'function' ? tips() : tips, prefer), 0);
+    },
+    onPointerLeave: (e: PointerEvent) => {
+      if (e.pointerType !== 'touch') hideTip();
+    },
     onContextMenu: (e: Event) => {
       e.preventDefault();
       showTip(e.currentTarget as Element, typeof tips === 'function' ? tips() : tips, prefer);
