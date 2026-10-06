@@ -70,3 +70,25 @@ export function summon(g: Combat, id: string, n = 1, max = 5) {
     g.spawnEnemy(id, { minion: true, at: 0 });
   }
 }
+
+/** 偷取金币（击败偷窃者后夺回） */
+export function steal(e: Enemy, g: Combat, n: number) {
+  const x = Math.min(n, g.run.gold);
+  if (x <= 0) return;
+  g.run.gold -= x;
+  e.mem.stolen = (e.mem.stolen ?? 0) + x;
+  g.emit('text', g.player.uid, undefined, `-${x} 金币`);
+}
+
+/** 复原到满生命（幻象） */
+export function restore(e: Enemy, g: Combat) {
+  e.hp = e.maxHp;
+  g.removePower(e, 'revive_pending');
+  g.emit('heal', e.uid, e.maxHp, '复原');
+}
+
+/** 逃离战场 */
+export function flee(e: Enemy, g: Combat) {
+  e.escaped = true;
+  g.emit('escape', e.uid);
+}

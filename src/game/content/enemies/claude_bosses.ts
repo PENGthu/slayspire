@@ -285,6 +285,7 @@ defineEnemies([
   },
   {
     id: 'grok_clone', name: 'Grok 分身', art: '✖️', hp: [30, 30], size: 0.8,
+    summonedBy: 'grok',
     desc: 'Heavy 模式召唤出来的分身。',
     moves: { snark: atk('分身吐槽', 6) },
     ai: () => 'snark',
@@ -338,12 +339,14 @@ defineEnemies([
   },
   {
     id: 'codex', name: 'Codex', art: '💻', hp: [35, 35], size: 0.85,
+    summonedBy: 'openai',
     desc: 'OpenAI 的插件。每回合往你的牌组里写一个 Bug。',
     moves: { write: atkThen('写代码', 4, 1, 'attackDebuff', (_e, g) => g.addToDiscard('bug')) },
     ai: () => 'write',
   },
   {
     id: 'operator', name: 'Operator', art: '🖱️', hp: [35, 35], size: 0.85,
+    summonedBy: 'openai',
     desc: 'OpenAI 的插件。替你点了两下。',
     moves: { click: atk('代操作', 6, 2) },
     ai: () => 'click',

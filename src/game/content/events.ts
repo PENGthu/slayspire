@@ -136,10 +136,10 @@ defineEvents([
     view: (run, ev) => {
       if (ev.page === 'done') return doneView(run, ev);
       return {
-        text: '一圈色彩斑斓的蘑菇围成了完美的圆环。圆环中央，几只蘑菇人正盯着你。',
+        text: '一圈色彩斑斓的蘑菇围成了完美的圆环。圆环上空，一只飞行菌菇扇着菌褶，两只史莱姆正在啃食蘑菇。',
         options: [
           { label: '踩踏', hint: '与蘑菇战斗，获胜后获得一件遗物「怪蘑菇」', tone: 'bad', go: () =>
-            run.startEventCombat(['shroomling', 'shroomling', 'shroomling'], { relic: run.hasRelic('odd_mushroom') ? undefined : 'odd_mushroom' }) },
+            run.startEventCombat(['leaf_slime_s', 'flyconid', 'twig_slime_s'], { relic: run.hasRelic('odd_mushroom') ? undefined : 'odd_mushroom' }) },
           { label: '品尝', hint: `回复 ${Math.floor(run.maxHp * 0.25)} 点生命，获得诅咒「寄生虫」`, tone: 'bad', go: () => {
             run.heal(Math.floor(run.maxHp * 0.25));
             run.addCard('parasite');
@@ -361,7 +361,7 @@ defineEvents([
             done(ev, '走私者把东西塞进你怀里，转身消失在雾中。');
           } },
           { label: '揭发他', hint: '与走私者一伙战斗，获胜后获得金币', tone: 'bad', go: () =>
-            run.startEventCombat(['pirate_parrot', 'dock_rat', 'dock_rat'], { gold: 60 }) },
+            run.startEventCombat(['two_tailed_rat', 'gremlin_merc'], { gold: 60 }) },
           leave(run),
         ],
       };
@@ -372,15 +372,15 @@ defineEvents([
     view: (run, ev) => {
       if (ev.page === 'done') return doneView(run, ev);
       return {
-        text: '退潮后留下一汪清澈的潮池。池底的贝壳闪烁着柔和的光，一群泥蟹在旁边虎视眈眈。',
+        text: '退潮后留下一汪清澈的潮池。池底的贝壳闪烁着柔和的光，一只下水道巨蛤和一只蝌蚪蟾在旁边虎视眈眈。',
         options: [
           { label: '静坐冥想', hint: `回复 ${Math.floor(run.maxHp * 0.2)} 点生命，随机升级 1 张牌`, tone: 'good', go: () => {
             run.heal(Math.floor(run.maxHp * 0.2));
             const up = run.upgradeRandom(1);
             done(ev, up[0] ? `潮声让你平静下来。「${cardDef(up[0]).name}」得到了升级。` : '潮声让你平静下来。');
           } },
-          { label: '捡拾发光的贝壳', hint: '与泥蟹战斗，获胜后获得一件遗物', tone: 'bad', go: () =>
-            run.startEventCombat(['mud_crab', 'mud_crab'], { relic: run.randomRelicId() }) },
+          { label: '捡拾发光的贝壳', hint: '与巨蛤和蝌蚪蟾战斗，获胜后获得一件遗物', tone: 'bad', go: () =>
+            run.startEventCombat(['toadpole', 'sewer_clam'], { relic: run.randomRelicId() }) },
           leave(run),
         ],
       };
@@ -399,8 +399,8 @@ defineEvents([
             run.heal(Math.floor(run.maxHp * 0.3));
             done(ev, '蜂蜜甘甜无比。');
           } },
-          { label: '捣毁蜂巢', hint: '与工蜂战斗，获胜后获得一件遗物', tone: 'bad', go: () =>
-            run.startEventCombat(['worker_bee', 'worker_bee', 'worker_bee', 'worker_bee'], { relic: run.randomRelicId() }) },
+          { label: '捣毁蜂巢', hint: '与蜜碗虫战斗，获胜后获得一件遗物', tone: 'bad', go: () =>
+            run.startEventCombat(['bowlbug_nectar', 'bowlbug_egg', 'bowlbug_nectar'], { relic: run.randomRelicId() }) },
           leave(run),
         ],
       };

@@ -105,7 +105,7 @@ export function MenuScreen() {
             refresh();
           }}
         >
-          卡牌图鉴
+          图鉴 · 卡牌与怪物
         </button>
         <button class="btn ghost" onClick={() => setOverlay({ kind: 'settings' })}>
           设置

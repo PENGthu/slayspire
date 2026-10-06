@@ -18,7 +18,7 @@ describe('遗物：拾取并在战斗中生效', () => {
       run.screen = { s: 'map' };
       run.obtainRelic(r.id, true);
       resolveSelection(run, new Rng(1));
-      const g = new Combat(run, ['nibbit', 'shroomling']);
+      const g = new Combat(run, ['nibbit', 'leaf_slime_s']);
       g.start();
       const rng = new Rng(2);
       for (let t = 0; t < 4 && !g.over; t++) {
@@ -37,7 +37,7 @@ describe('药水：战斗中使用', () => {
     it(p.id, () => {
       const run = Run.create(charFor(p.char), 78);
       run.screen = { s: 'map' };
-      const g = new Combat(run, ['nibbit', 'shroomling']);
+      const g = new Combat(run, ['nibbit', 'leaf_slime_s']);
       g.start();
       g.channel('lightning');
       run.potions[0] = p.id;

@@ -342,4 +342,21 @@ defineCards([
     play: () => {},
     onTurnEndInHand: (g, c) => g.exhaustCard(c),
   },
+  {
+    id: 'toxic', name: '毒素', color: ST, type: 'status', rarity: 'status', cost: 1, target: 'self',
+    exhaust: true, noPool: true, text: '消耗。\n回合结束时若在手牌中，失去 3 点生命。', art: '☣️',
+    play: () => {},
+    onTurnEndInHand: (g) => {
+      g.loseHp(g.player, 3);
+    },
+  },
+  {
+    id: 'withered', name: '凋零', color: ST, type: 'status', rarity: 'status', cost: 1, target: 'self',
+    exhaust: true, noPool: true, text: '消耗。\n回合结束时若在手牌中，失去 4 点生命并消耗。', art: '🥀',
+    play: () => {},
+    onTurnEndInHand: (g, c) => {
+      g.loseHp(g.player, 4);
+      g.exhaustCard(c);
+    },
+  },
 ]);

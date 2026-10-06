@@ -318,6 +318,8 @@ const BY_ID: Record<string, ArtSpec> = {
   gen_image: { m: 'eye', bg: 'void' },
   hot_post: { m: 'speech', tint: '#ffd0c0', bg: 'fire' },
   bug: { m: 'germ', bg: 'poison' },
+  toxic: { m: 'biohazard', bg: 'poison' },
+  withered: { m: 'hourglass', tint: '#c8a070', bg: 'void' },
   // Claude
   strike_c: { m: 'feather', tint: '#fbf3e2', fx: 'slash' },
   defend_c: { m: 'shield', tint: '#d97757' },

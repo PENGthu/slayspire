@@ -10,6 +10,8 @@ export interface BotOpts {
   smart?: boolean;
   /** 使用药水的几率 */
   potionRate?: number;
+  /** 无敌：每个敌方回合后回满生命（仅用于遍历内容的测试） */
+  godMode?: boolean;
 }
 
 export function resolvePending(g: Combat, rng: Rng) {
@@ -100,6 +102,7 @@ export function botCombat(g: Combat, rng: Rng, opts: BotOpts = {}, maxTurns = 80
       g.runEnemyPhase();
       resolvePending(g, rng);
     }
+    if (opts.godMode && !g.over) g.player.hp = g.player.maxHp;
     resolvePending(g, rng);
     if (g.phase === 'busy' && !g.pending && !g.over) {
       // 理论上不应出现
@@ -110,7 +113,7 @@ export function botCombat(g: Combat, rng: Rng, opts: BotOpts = {}, maxTurns = 80
 }
 
 /** 机器人完成一整局。godMode 下玩家生命极高，用于遍历全部内容。 */
-export function botRun(run: Run, rng: Rng, opts: BotOpts & { godMode?: boolean; maxSteps?: number } = {}) {
+export function botRun(run: Run, rng: Rng, opts: BotOpts & { maxSteps?: number } = {}) {
   let steps = 0;
   const max = opts.maxSteps ?? 2000;
   while (steps++ < max) {

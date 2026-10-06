@@ -147,6 +147,8 @@ export interface PowerDef {
   negative?: boolean;
   /** 不显示层数 */
   noStack?: boolean;
+  /** 敌人在自己回合施加后，当回合结束时不触发（仪式） */
+  delayed?: boolean;
   hidden?: boolean;
   // ---- 钩子 ----
   onTurnStart?: (g: Combat, o: Creature, n: number) => void;
@@ -296,6 +298,8 @@ export interface EnemyDef {
   ai: (e: Enemy, g: Combat) => string;
   init?: (e: Enemy, g: Combat) => void;
   desc?: string;
+  /** 召唤物：由哪个敌人召唤（用于图鉴归类） */
+  summonedBy?: string;
 }
 
 export type EncounterKind = 'weak' | 'strong' | 'elite' | 'boss';

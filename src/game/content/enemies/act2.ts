@@ -1,16 +1,6 @@
 import { defineEncounters, defineEnemies, definePowers } from '../../registry';
-import type { Combat } from '../../combat';
 import type { Enemy } from '../../types';
-import { atk, atkThen, buffSelf, cycle, last, lastTwo, move, pickMove, roll, summon } from './ai';
-
-/** 偷取金币 */
-function steal(e: Enemy, g: Combat, n: number) {
-  const x = Math.min(n, g.run.gold);
-  if (x <= 0) return;
-  g.run.gold -= x;
-  e.mem.stolen = (e.mem.stolen ?? 0) + x;
-  g.emit('text', g.player.uid, undefined, `-${x} 金币`);
-}
+import { atk, atkThen, buffSelf, cycle, flee, last, lastTwo, move, pickMove, restore, roll, steal, summon } from './ai';
 
 definePowers([
   {
@@ -30,20 +20,160 @@ definePowers([
   },
 ]);
 
-/** 第二幕：嗡鸣蜂巢 */
+/** 第二幕：嗡鸣蜂巢（怪物与数值参照原版） */
 defineEnemies([
   // ------------------------------------------------------------------ 普通
   {
-    id: 'worker_bee', name: '工蜂', art: '🐝', hp: [14, 18], size: 0.75,
-    init: (e, g) => void g.apply(e, 'hive_mind', 1, e),
+    id: 'bowlbug_egg', name: '蛋碗虫', art: '🥚', hp: [21, 22], size: 0.8,
+    desc: '背着一颗蛋的碗虫，每回合边咬边缩进壳里。',
     moves: {
-      sting: atkThen('蜇刺', 4, 1, 'attackDebuff', (e, g) => void g.apply(g.player, 'weak', 1, e)),
-      buzz: atk('嗡鸣冲击', 3, 2),
+      bite: atkThen('啃咬', 7, 1, 'attackDefend', (e, g) => g.gainBlock(e, 7)),
+    },
+    ai: () => 'bite',
+  },
+  {
+    id: 'bowlbug_rock', name: '石碗虫', art: '🪨', hp: [45, 48],
+    desc: '背着石头猛撞。攻击被完全格挡时会失去平衡，下回合无法行动。',
+    init: (e, g) => void g.apply(e, 'imbalanced', 1, e),
+    moves: {
+      headbutt: {
+        name: '头槌',
+        intent: 'attack',
+        dmg: 15,
+        act: (e, g) => {
+          const hpBefore = g.player.hp;
+          g.enemyAttack(e, 15);
+          if (!e.dead && !g.player.dead && g.player.hp >= hpBefore) {
+            e.mem.dizzy = 1;
+            g.emit('text', e.uid, undefined, '失去平衡！');
+          }
+        },
+      },
+      dizzy: move('晕头转向', 'stun', () => {}),
+    },
+    ai: (e) => {
+      if (e.mem.dizzy) {
+        e.mem.dizzy = 0;
+        return 'dizzy';
+      }
+      return 'headbutt';
+    },
+  },
+  {
+    id: 'bowlbug_nectar', name: '蜜碗虫', art: '🍯', hp: [35, 38],
+    desc: '每隔两次乱撞就喝一口花蜜，力量越来越大。',
+    moves: {
+      thrash: atk('乱撞', 3),
+      buff: buffSelf('啜饮花蜜', 'strength', 3),
+    },
+    ai: (e) => cycle(e, ['thrash', 'buff', 'thrash']),
+  },
+  {
+    id: 'bowlbug_silk', name: '丝碗虫', art: '🕸️', hp: [40, 43],
+    moves: {
+      spit: move('毒丝', 'debuff', (e, g) => void g.apply(g.player, 'weak', 1, e)),
+      thrash: atk('乱撞', 4, 2),
+    },
+    ai: (e) => cycle(e, ['spit', 'thrash', 'thrash']),
+  },
+  {
+    id: 'exoskeleton', name: '外骨骼虫', art: '🦗', hp: [24, 28], size: 0.85,
+    desc: '硬壳让它每次至多失去 9 点生命，多段攻击更有效。',
+    init: (e, g) => void g.apply(e, 'hard_to_kill', 9, e),
+    moves: {
+      skitter: atk('疾爬', 1, 3),
+      mandible: atk('上颚', 8),
+      enrage: buffSelf('激怒', 'strength', 2),
     },
     ai: (e, g) => pickMove(g, [
-      ['sting', 40, last(e, 'sting')],
-      ['buzz', 60, lastTwo(e, 'buzz')],
+      ['skitter', 35, last(e, 'skitter')],
+      ['mandible', 40, lastTwo(e, 'mandible')],
+      ['enrage', 25, last(e, 'enrage')],
     ]),
+  },
+  {
+    id: 'louse_progenitor', name: '虱母', art: '🐞', hp: [134, 136], size: 1.4,
+    desc: '固定循环：蛛网炮 → 蜷缩生长 → 猛扑。第一次被攻击时会蜷起来获得格挡。',
+    init: (e, g) => void g.apply(e, 'curl_up', 12, e),
+    moves: {
+      web: atkThen('蛛网炮', 9, 1, 'attackDebuff', (e, g) => void g.apply(g.player, 'frail', 2, e)),
+      grow: move('蜷缩生长', 'defendBuff', (e, g) => {
+        g.gainBlock(e, 14);
+        g.apply(e, 'strength', 5, e);
+      }),
+      pounce: atk('猛扑', 14),
+    },
+    ai: (e) => cycle(e, ['web', 'grow', 'pounce']),
+  },
+  {
+    id: 'myte', name: '螨虫', art: '🕷️', hp: [61, 67], size: 1.1,
+    desc: '往你的牌堆里塞毒素，还会吸血变强。',
+    moves: {
+      cornucopia: move('剧毒丰饶角', 'debuff', (_e, g) => g.addToDiscard('toxic', false, 2)),
+      bite: atk('啃咬', 13),
+      suck: atkThen('吸吮', 4, 1, 'attackBuff', (e, g) => void g.apply(e, 'strength', 2, e)),
+    },
+    ai: (e, g) => {
+      const idx = g.enemies.filter((x) => x.defId === 'myte').indexOf(e);
+      if (e.turns === 0) return idx === 1 ? 'suck' : 'cornucopia';
+      return pickMove(g, [
+        ['cornucopia', 25, e.history.slice(-2).includes('cornucopia')],
+        ['bite', 45, last(e, 'bite')],
+        ['suck', 30, last(e, 'suck')],
+      ]);
+    },
+  },
+  {
+    id: 'spiny_toad', name: '刺蟾', art: '🐸', hp: [116, 119], size: 1.35,
+    desc: '固定循环：竖起尖刺 → 尖刺爆裂 → 舌鞭。竖刺期间攻击它会被扎。',
+    moves: {
+      spikes: buffSelf('竖起尖刺', 'thorns', 5),
+      explode: {
+        name: '尖刺爆裂',
+        intent: 'attack',
+        dmg: 23,
+        act: (e, g) => {
+          g.enemyAttack(e, 23);
+          g.removePower(e, 'thorns');
+        },
+      },
+      lash: atk('舌鞭', 17),
+    },
+    ai: (e) => cycle(e, ['spikes', 'explode', 'lash']),
+  },
+  {
+    id: 'the_obscura', name: '晦影', art: '🌑', hp: [123, 123], size: 1.4,
+    desc: '先放出幻象「惊惧魅影」，再用哀嚎为所有敌人加力量。',
+    moves: {
+      illusion: move('幻象', 'summon', (_e, g) => summon(g, 'parafright', 1, 4)),
+      gaze: atk('穿刺凝视', 10),
+      wail: move('哀嚎', 'buff', (e, g) => {
+        for (const x of g.alive) g.apply(x, 'strength', 3, e);
+      }),
+      strike: atkThen('硬化打击', 6, 1, 'attackDefend', (e, g) => g.gainBlock(e, 6)),
+    },
+    ai: (e, g) => {
+      if (e.turns === 0) return 'illusion';
+      const frights = g.alive.filter((x) => x.defId === 'parafright').length;
+      if (frights === 0 && !e.history.slice(-3).includes('illusion')) return 'illusion';
+      return cycle(e, ['gaze', 'wail', 'strike'], 2);
+    },
+  },
+  {
+    id: 'parafright', name: '惊惧魅影', art: '👻', hp: [18, 20], size: 0.8,
+    summonedBy: 'the_obscura',
+    desc: '晦影召唤的幻象。被打散后下回合会复原，晦影死亡时一同消散。',
+    init: (e, g) => void g.apply(e, 'illusion', 1, e),
+    moves: {
+      scare: atkThen('惊吓', 7, 1, 'attackDebuff', (e, g) => void g.apply(g.player, 'weak', 1, e)),
+      revive: move('复原', 'buff', (e, g) => restore(e, g)),
+      fade: move('消散', 'escape', (e, g) => flee(e, g)),
+    },
+    ai: (e, g) => {
+      if (!g.alive.some((x) => x.defId === 'the_obscura')) return 'fade';
+      if (e.powers.revive_pending) return 'revive';
+      return 'scare';
+    },
   },
   {
     id: 'thieving_hopper', name: '窃贼跳虫', art: '🦗', hp: [45, 49],
@@ -65,53 +195,16 @@ defineEnemies([
     },
   },
   {
-    id: 'larva', name: '蜂巢幼虫', art: '🪱', hp: [30, 34], size: 0.85,
+    id: 'chomper', name: '大颚虫', art: '🐊', hp: [58, 62],
+    init: (e, g) => void g.apply(e, 'artifact', 2, e),
     moves: {
-      nibble: atk('啃食', 7),
-      molt: move('蜕皮', 'defendBuff', (e, g) => {
-        g.gainBlock(e, 8);
-        g.apply(e, 'strength', 2, e);
+      chomp: atk('撕咬', 7, 2),
+      screech: move('尖啸', 'debuff', (e, g) => {
+        g.addToDraw('dazed', false, 2);
+        g.apply(g.player, 'weak', 1, e);
       }),
     },
-    ai: (e, g) => pickMove(g, [
-      ['nibble', 65, lastTwo(e, 'nibble')],
-      ['molt', 35, last(e, 'molt')],
-    ]),
-  },
-  {
-    id: 'byrd', name: '尖嘴鸟', art: '🐦', hp: [25, 31], size: 0.85,
-    init: (e, g) => void g.apply(e, 'flight', 3, e),
-    moves: {
-      peck: atk('啄击', 1, 5),
-      swoop: atk('俯冲', 12),
-      caw: buffSelf('鸣叫', 'strength', 1),
-      grounded: move('坠落', 'stun', () => {}),
-      headbutt: atk('头槌', 3),
-      fly: buffSelf('起飞', 'flight', 3),
-    },
-    ai: (e, g) => {
-      if (!g.has(e, 'flight')) {
-        if (last(e, 'grounded') || e.move === 'grounded') return 'headbutt';
-        if (last(e, 'headbutt')) return 'fly';
-      }
-      if (e.turns === 0) return roll(g) < 37 ? 'caw' : 'peck';
-      return pickMove(g, [
-        ['peck', 50, lastTwo(e, 'peck')],
-        ['swoop', 20, last(e, 'swoop')],
-        ['caw', 30, last(e, 'caw')],
-      ]);
-    },
-  },
-  {
-    id: 'hive_guard', name: '蜂巢卫兵', art: '🐞', hp: [48, 52],
-    moves: {
-      guard: move('结阵', 'defend', (e, g) => {
-        for (const x of g.alive) g.gainBlock(x, 9);
-        void e;
-      }),
-      jab: atk('刺击', 10),
-    },
-    ai: (e) => cycle(e, ['guard', 'jab', 'jab']),
+    ai: (e) => cycle(e, ['chomp', 'chomp', 'screech']),
   },
   {
     id: 'hunter_killer', name: '猎杀者', art: '🦂', hp: [115, 120], size: 1.25,
@@ -130,18 +223,6 @@ defineEnemies([
         ['flurry', 50, last(e, 'flurry')],
       ]);
     },
-  },
-  {
-    id: 'chomper', name: '大颚虫', art: '🐊', hp: [58, 62],
-    init: (e, g) => void g.apply(e, 'artifact', 2, e),
-    moves: {
-      chomp: atk('撕咬', 7, 2),
-      screech: move('尖啸', 'debuff', (e, g) => {
-        g.addToDraw('dazed', false, 2);
-        g.apply(g.player, 'weak', 1, e);
-      }),
-    },
-    ai: (e) => cycle(e, ['chomp', 'chomp', 'screech']),
   },
   {
     id: 'tunneler', name: '掘地者', art: '🦡', hp: [85, 90], size: 1.15,
@@ -167,6 +248,37 @@ defineEnemies([
         ['spray', 50, last(e, 'spray')],
       ]);
     },
+  },
+  // ------------------------------------------------------------------ 召唤物
+  {
+    id: 'worker_bee', name: '工蜂', art: '🐝', hp: [14, 18], size: 0.75,
+    summonedBy: 'entomancer',
+    desc: '驭虫师召来的工蜂。',
+    init: (e, g) => void g.apply(e, 'hive_mind', 1, e),
+    moves: {
+      sting: atkThen('蜇刺', 4, 1, 'attackDebuff', (e, g) => void g.apply(g.player, 'weak', 1, e)),
+      buzz: atk('嗡鸣冲击', 3, 2),
+    },
+    ai: (e, g) => pickMove(g, [
+      ['sting', 40, last(e, 'sting')],
+      ['buzz', 60, lastTwo(e, 'buzz')],
+    ]),
+  },
+  {
+    id: 'larva', name: '蜂巢幼虫', art: '🪱', hp: [30, 34], size: 0.85,
+    summonedBy: 'ovicopter',
+    desc: '产卵母虫孵出的幼虫。',
+    moves: {
+      nibble: atk('啃食', 7),
+      molt: move('蜕皮', 'defendBuff', (e, g) => {
+        g.gainBlock(e, 8);
+        g.apply(e, 'strength', 2, e);
+      }),
+    },
+    ai: (e, g) => pickMove(g, [
+      ['nibble', 65, lastTwo(e, 'nibble')],
+      ['molt', 35, last(e, 'molt')],
+    ]),
   },
   // ------------------------------------------------------------------ 精英
   {
@@ -284,22 +396,31 @@ defineEnemies([
   },
 ]);
 
+const BOWLBUGS = ['bowlbug_egg', 'bowlbug_silk', 'bowlbug_nectar', 'bowlbug_rock'];
+
 defineEncounters([
-  { id: 'a2_bees', name: '工蜂群', act: 2, kind: 'weak', enemies: ['worker_bee', 'worker_bee', 'worker_bee'] },
+  // 弱
+  { id: 'a2_bowlbugs', name: '碗虫', act: 2, kind: 'weak', enemies: (rng) => rng.shuffle(BOWLBUGS.slice(0, 3)) },
   { id: 'a2_hopper', name: '窃贼跳虫', act: 2, kind: 'weak', enemies: ['thieving_hopper'] },
-  { id: 'a2_larvae', name: '幼虫', act: 2, kind: 'weak', enemies: ['larva', 'larva'] },
+  { id: 'a2_exos', name: '外骨骼虫', act: 2, kind: 'weak', enemies: ['exoskeleton', 'exoskeleton'] },
+  { id: 'a2_myte', name: '螨虫', act: 2, kind: 'weak', enemies: ['myte'] },
   { id: 'a2_chomper', name: '大颚虫', act: 2, kind: 'weak', enemies: ['chomper'] },
-  { id: 'a2_guard', name: '蜂巢卫兵', act: 2, kind: 'weak', enemies: ['hive_guard', 'worker_bee', 'worker_bee'] },
+  // 普通
+  { id: 'a2_bowlbug_swarm', name: '碗虫群', act: 2, kind: 'strong', enemies: (rng) => rng.shuffle([...BOWLBUGS]) },
+  { id: 'a2_chompers', name: '一对机关虫', act: 2, kind: 'strong', enemies: ['chomper', 'chomper'] },
   { id: 'a2_hunter', name: '猎杀者', act: 2, kind: 'strong', enemies: ['hunter_killer'] },
-  { id: 'a2_chompers', name: '大颚虫群', act: 2, kind: 'strong', enemies: ['chomper', 'chomper'] },
-  { id: 'a2_tunneler', name: '掘地者', act: 2, kind: 'strong', enemies: ['tunneler', 'worker_bee'] },
+  { id: 'a2_tunneler', name: '掘地者', act: 2, kind: 'strong', enemies: ['exoskeleton', 'tunneler'] },
   { id: 'a2_ovicopter', name: '产卵母虫', act: 2, kind: 'strong', enemies: ['ovicopter'] },
-  { id: 'a2_byrds', name: '尖嘴鸟群', act: 2, kind: 'strong', enemies: ['byrd', 'byrd', 'byrd'] },
-  { id: 'a2_thieves', name: '窃贼与幼虫', act: 2, kind: 'strong', enemies: ['thieving_hopper', 'larva'] },
-  { id: 'a2_guard_chomper', name: '卫兵与大颚虫', act: 2, kind: 'strong', enemies: ['hive_guard', 'chomper'] },
+  { id: 'a2_louse', name: '虱母', act: 2, kind: 'strong', enemies: ['louse_progenitor'] },
+  { id: 'a2_mytes', name: '螨虫', act: 2, kind: 'strong', enemies: ['myte', 'myte'] },
+  { id: 'a2_toad', name: '刺蟾', act: 2, kind: 'strong', enemies: ['spiny_toad'] },
+  { id: 'a2_obscura', name: '晦影', act: 2, kind: 'strong', enemies: ['the_obscura'] },
+  { id: 'a2_thieves', name: '窃贼与外骨骼虫', act: 2, kind: 'strong', enemies: ['exoskeleton', 'thieving_hopper'] },
+  // 精英
   { id: 'a2_prism', name: '感染棱镜', act: 2, kind: 'elite', enemies: ['infested_prism'] },
   { id: 'a2_millipede', name: '千足虫', act: 2, kind: 'elite', enemies: ['decimillipede'] },
   { id: 'a2_entomancer', name: '驭虫师', act: 2, kind: 'elite', enemies: ['entomancer'] },
+  // 首领
   { id: 'a2_insatiable', name: '贪食者', act: 2, kind: 'boss', enemies: ['insatiable'], art: '🐲' },
   { id: 'a2_demon', name: '知识恶魔', act: 2, kind: 'boss', enemies: ['knowledge_demon'], art: '😈' },
   { id: 'a2_crab', name: '帝王蟹', act: 2, kind: 'boss', enemies: ['kaiser_crab'], art: '🦀' },

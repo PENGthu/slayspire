@@ -124,8 +124,11 @@ definePowers([
     name: '仪式',
     art: '🕯️',
     type: 'buff',
+    delayed: true,
     desc: (n) => `回合结束时获得 ${n} 点力量。`,
     onTurnEnd: (g, o, n) => {
+      // 与原版一致：施加仪式的那个回合不生效
+      if (o.justApplied.ritual) return;
       g.apply(o, 'strength', n, o);
     },
   },
@@ -150,8 +153,8 @@ definePowers([
     name: '活力',
     art: '🔥',
     type: 'buff',
-    desc: (n) => `下一张攻击牌额外造成 ${n} 点伤害。`,
-    dmgOutAdd: (_g, _o, n, card) => (card && cardDef(card).type === 'attack' ? n : 0),
+    desc: (n, o) => (o && !o.isPlayer ? `下一次攻击额外造成 ${n} 点伤害。` : `下一张攻击牌额外造成 ${n} 点伤害。`),
+    dmgOutAdd: (_g, o, n, card) => (card ? (cardDef(card).type === 'attack' ? n : 0) : isEnemy(o) ? n : 0),
     afterCardPlayed: (g, o, _n, c) => {
       if (cardDef(c).type === 'attack') g.removePower(o, 'vigor');
     },
@@ -1177,6 +1180,160 @@ definePowers([
     desc: (n) => `回合结束时，所有其他敌人获得 ${n} 点力量。`,
     onTurnEnd: (g, o, n) => {
       for (const e of g.alive) if (e !== o) g.apply(e, 'strength', n, o);
+    },
+  },
+  {
+    id: 'constrict',
+    name: '勒紧',
+    art: '🐍',
+    type: 'debuff',
+    desc: (n) => `回合结束时，失去 ${n} 点生命。施加者死亡后解除。`,
+    onTurnEnd: (g, o, n) => {
+      g.loseHp(o, n);
+    },
+  },
+  {
+    id: 'constrictor',
+    name: '绞杀者',
+    art: '🪢',
+    type: 'buff',
+    noStack: true,
+    desc: () => '死亡时，解除你身上的「勒紧」。',
+    onDeath: (g, o) => {
+      if (!g.alive.some((e) => e !== o && g.has(e, 'constrictor'))) g.removePower(g.player, 'constrict');
+    },
+  },
+  {
+    id: 'territorial',
+    name: '领地意识',
+    art: '🪺',
+    type: 'buff',
+    desc: (n) => `回合结束时获得 ${n} 点力量。`,
+    onTurnEnd: (g, o, n) => {
+      g.apply(o, 'strength', n, o);
+    },
+  },
+  {
+    id: 'hard_to_kill',
+    name: '顽强',
+    art: '🪲',
+    type: 'buff',
+    desc: (n) => `每次受到伤害，至多失去 ${n} 点生命。`,
+    dmgInFinal: (_g, o, n, d) => Math.min(d, o.block + n),
+  },
+  {
+    id: 'hardened_shell',
+    name: '硬化外壳',
+    art: '🐚',
+    type: 'buff',
+    desc: (n) => `每回合至多失去 ${n} 点生命。`,
+    dmgInFinal: (g, o, n, d) => {
+      if (!isEnemy(o)) return d;
+      const lost = o.mem.shellTurn === g.turn ? (o.mem.shellLost ?? 0) : 0;
+      return Math.min(d, o.block + Math.max(0, n - lost));
+    },
+    onHpLost: (g, o, _n, a) => {
+      if (!isEnemy(o)) return;
+      if (o.mem.shellTurn !== g.turn) {
+        o.mem.shellTurn = g.turn;
+        o.mem.shellLost = 0;
+      }
+      o.mem.shellLost = (o.mem.shellLost ?? 0) + a;
+    },
+  },
+  {
+    id: 'skittish',
+    name: '一惊一乍',
+    art: '😱',
+    type: 'buff',
+    desc: (n) => `每回合第一次受到攻击后，获得 ${n} 点格挡。`,
+    onAttacked: (g, o, n) => {
+      if (!isEnemy(o) || o.dead || o.mem.skitTurn === g.turn) return;
+      o.mem.skitTurn = g.turn;
+      g.gainBlock(o, n);
+    },
+  },
+  {
+    id: 'imbalanced',
+    name: '失衡',
+    art: '⚖️',
+    type: 'buff',
+    noStack: true,
+    desc: () => '攻击被完全格挡时，会失去平衡，下回合无法行动。',
+  },
+  {
+    id: 'illusion',
+    name: '幻象',
+    art: '🌫️',
+    type: 'buff',
+    noStack: true,
+    desc: () => '被击败后，下回合以满生命复原。召唤者死亡时一同消散。',
+  },
+  {
+    id: 'ravenous',
+    name: '贪食',
+    art: '🍖',
+    type: 'buff',
+    desc: (n) => `每当另一名敌人死亡，下回合会扑上去吞掉残骸，获得 ${n} 点力量。`,
+    onEnemyDeath: (g, o, _n, dead) => {
+      if (dead === o || !isEnemy(o) || o.dead) return;
+      o.mem.devour = 1;
+      o.move = 'devour';
+    },
+  },
+  {
+    id: 'tangled',
+    name: '藤缠',
+    art: '🌿',
+    type: 'debuff',
+    noStack: true,
+    decay: 'turnEnd',
+    desc: () => '本回合攻击牌费用 +1。',
+  },
+  {
+    id: 'steam',
+    name: '蒸汽',
+    art: '♨️',
+    type: 'buff',
+    desc: (n) => `体内积蓄的高压蒸汽。「高压水枪」造成 ${n} 点伤害。`,
+  },
+  {
+    id: 'soar',
+    name: '翱翔',
+    art: '🦉',
+    type: 'buff',
+    noStack: true,
+    decay: 'start',
+    desc: () => '受到的攻击伤害减半，直到它下次行动。',
+    dmgIn: (_g, _o, _n, d, src) => (src ? d * 0.5 : d),
+  },
+  {
+    id: 'withering_presence',
+    name: '凋零之息',
+    art: '⏳',
+    type: 'buff',
+    desc: (n, o) => {
+      const left = n - ((o && isEnemy(o) ? o.mem.witherCount : 0) ?? 0);
+      return `你每打出 ${n} 张牌，将 1 张「凋零」加入你的手牌。（还差 ${left} 张）`;
+    },
+    onCardPlayed: (g, o, n) => {
+      if (!isEnemy(o)) return;
+      o.mem.witherCount = (o.mem.witherCount ?? 0) + 1;
+      if (o.mem.witherCount >= n) {
+        o.mem.witherCount = 0;
+        g.addToHand('withered');
+      }
+    },
+  },
+  {
+    id: 'infested',
+    name: '寄生',
+    art: '🪱',
+    type: 'buff',
+    desc: (n) => `死亡时，${n} 只蠕虫破体而出。`,
+    onDeath: (g, o, n) => {
+      const at = g.enemies.indexOf(o as Enemy) + 1;
+      for (let i = 0; i < n; i++) g.spawnEnemy('wriggler', { at });
     },
   },
   // ---------------------------------------------------------------------------

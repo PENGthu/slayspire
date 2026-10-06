@@ -754,13 +754,14 @@ export class Combat {
     const e = c as Enemy;
     if (this.has(e, 'revive_pending')) return false;
     // 「重生」类能力：在死亡时拦截
-    if (this.has(e, 'reincarnate') && this.pw(e, 'reincarnate') > 0) {
-      this.reducePower(e, 'reincarnate', 1);
+    const illusion = this.has(e, 'illusion');
+    if (illusion || (this.has(e, 'reincarnate') && this.pw(e, 'reincarnate') > 0)) {
+      if (!illusion) this.reducePower(e, 'reincarnate', 1);
       e.hp = 0;
       e.block = 0;
       e.powers = { ...e.powers, revive_pending: 1 };
       e.move = 'revive';
-      this.emit('text', e.uid, undefined, '濒死');
+      this.emit('text', e.uid, undefined, illusion ? '幻象消散' : '濒死');
       return false;
     }
     e.hp = 0;
@@ -889,7 +890,7 @@ export class Combat {
     } else {
       tgt.powers[id] = def.noStack ? Math.max(1, nv) : nv;
     }
-    if (this.phase === 'enemy' && src && !src.isPlayer && def.decay === 'round') {
+    if (this.phase === 'enemy' && src && !src.isPlayer && (def.decay === 'round' || def.delayed)) {
       tgt.justApplied[id] = true;
     }
     this.emit(isDebuff ? 'debuff' : 'buff', tgt.uid, n, def.name);
@@ -1122,6 +1123,7 @@ export class Combat {
     if (c.afflict === 'heavy') cost += 1;
     // 专属首领施加的临时规则
     if (d.type === 'attack' && this.has(this.player, 'trend_attack_tax')) cost += 1;
+    if (d.type === 'attack' && this.has(this.player, 'tangled')) cost += 1;
     if (this.has(this.player, 'memorized') && this.notes.memorized === c.id) cost += 1;
     return Math.max(0, cost);
   }

@@ -84,7 +84,7 @@ describe('逐张卡牌打出', () => {
         .map((d) => d.id);
       for (const id of ids) {
         for (const up of [false, true]) {
-          const g = new Combat(run, ['nibbit', 'shroomling', 'ceremonial_beast']);
+          const g = new Combat(run, ['nibbit', 'flyconid', 'ceremonial_beast']);
           g.start();
           resolvePending(g, new Rng(1));
           g.summon(10);

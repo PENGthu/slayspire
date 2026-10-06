@@ -1,208 +1,18 @@
+
 /**
  * 敌人立绘。画布 200×200，脚底约在 y=192，面朝左（玩家方向）。
+ * 原版阵容里后补的怪物在 enemyArtLineup.ts。
  */
-import { INK, circle, doc, dot, ellipse, fill, glow, ink, limb, line, memo, mix, place, shade, starPath } from './kit';
+import { INK, circle, doc, dot, ellipse, fill, glow, ink, limb, line, memo, mix, place, starPath } from './kit';
 import { flameBody, swordBody, terminal } from './motifs';
 import { PALS } from './palettes';
 import { M } from './palettes';
+import { bugLegs, dark, eye, hi, knight, robed, shadow, spikes } from './enemyParts';
+import { LINEUP_ART } from './enemyArtLineup';
 
 type Art = () => string;
 
-// ---------------------------------------------------------------- 通用部件
-
-/** 发光的眼睛 */
-function eye(x: number, y: number, r: number, col = '#ffe066', pupil = true): string {
-  return glow(x, y, r * 3, col, 0.55) + circle(x, y, r, col, 2) + (pupil ? dot(x - r * 0.2, y, r * 0.42, INK) : '') + dot(x - r * 0.35, y - r * 0.35, r * 0.25, '#fff', 0.9);
-}
-
-/** 地面阴影 */
-function shadow(w = 70, x = 100): string {
-  return `<ellipse cx="${x}" cy="192" rx="${w}" ry="7" fill="#000" opacity="0.45"/>`;
-}
-
-/** 右下侧的暗部（叠加在形状上） */
-function dark(d: string, o = 0.22): string {
-  return fill(d, '#000', o);
-}
-
-function hi(d: string, w = 2.4, o = 0.55): string {
-  return line(d, '#fff', w, o);
-}
-
-/** 尖刺排列 */
-function spikes(cx: number, cy: number, rx: number, ry: number, n: number, len: number, col: string, from = 200, to = 340): string {
-  let s = '';
-  for (let i = 0; i < n; i++) {
-    const a = ((from + ((to - from) * i) / (n - 1)) * Math.PI) / 180;
-    const x = cx + Math.cos(a) * rx;
-    const y = cy + Math.sin(a) * ry;
-    const tx = cx + Math.cos(a) * (rx + len);
-    const ty = cy + Math.sin(a) * (ry + len);
-    const px = Math.cos(a + Math.PI / 2) * 6;
-    const py = Math.sin(a + Math.PI / 2) * 6;
-    s += ink(`M${(x - px).toFixed(1)} ${(y - py).toFixed(1)} L${tx.toFixed(1)} ${ty.toFixed(1)} L${(x + px).toFixed(1)} ${(y + py).toFixed(1)} Z`, col, 2.2);
-  }
-  return s;
-}
-
-/** 昆虫腿 */
-function bugLegs(xs: number[], y: number, col: string, len = 26): string {
-  return xs.map((x, i) => limb(`M${x} ${y} L${x - 8 + i * 2} ${y + len * 0.55} L${x - 14 + i * 3} ${y + len}`, col, 4)).join('');
-}
-
-// ---------------------------------------------------------------- 人形模板
-
-interface Robed {
-  robe: string;
-  trim: string;
-  head: string;
-  /** 头部（以 (0,0) 为头部中心） */
-  face: string;
-  staff?: string;
-  extra?: string;
-  w?: number;
-}
-
-function robed(o: Robed): string {
-  const w = o.w ?? 1;
-  const rx = 46 * w;
-  return (
-    shadow(60 * w) +
-    // 长袍
-    ink(`M${100 - rx * 0.55} 72 C${100 - rx} 110 ${100 - rx * 1.15} 160 ${100 - rx * 1.2} 190 L${100 + rx * 1.2} 190 C${100 + rx * 1.15} 160 ${100 + rx} 110 ${100 + rx * 0.55} 72 Z`, o.robe) +
-    dark(`M100 72 L${100 + rx * 0.55} 72 C${100 + rx} 110 ${100 + rx * 1.15} 160 ${100 + rx * 1.2} 190 L112 190 C118 150 112 110 100 72 Z`, 0.25) +
-    ink(`M${100 - rx * 1.2} 190 L${100 + rx * 1.2} 190 L${100 + rx * 1.18} 180 L${100 - rx * 1.18} 180 Z`, o.trim, 2.4) +
-    line(`M${100 - rx * 0.4} 90 C${100 - rx * 0.6} 120 ${100 - rx * 0.7} 150 ${100 - rx * 0.75} 178`, mix(o.robe, '#000', 0.4), 2.4, 0.7) +
-    ink(`M${100 - rx * 0.62} 74 C${100 - rx * 0.3} 88 ${100 + rx * 0.3} 88 ${100 + rx * 0.62} 74 L${100 + rx * 0.5} 64 C${100 + rx * 0.2} 72 ${100 - rx * 0.2} 72 ${100 - rx * 0.5} 64 Z`, o.trim, 2.4) +
-    (o.staff ?? '') +
-    // 手臂
-    ink(`M${100 - rx * 0.5} 80 C${100 - rx * 0.95} 100 ${100 - rx * 1.05} 120 ${100 - rx * 0.95} 132 L${100 - rx * 0.7} 136 C${100 - rx * 0.66} 120 ${100 - rx * 0.5} 104 ${100 - rx * 0.3} 92 Z`, shade(o.robe, 0.08), 2.6) +
-    place(o.face, 100, 52, 1) +
-    (o.extra ?? '')
-  );
-}
-
-interface Knight {
-  armor: string;
-  trim: string;
-  helm?: 'great' | 'open' | 'lizard' | 'ghost' | 'mecha' | 'plume';
-  weapon?: string;
-  cape?: string;
-  skin?: string;
-  eyeCol?: string;
-}
-
-function knight(o: Knight): string {
-  const a = o.armor;
-  const helm = o.helm ?? 'great';
-  const eyeCol = o.eyeCol ?? '#ffe28a';
-  let head = '';
-  if (helm === 'great' || helm === 'plume' || helm === 'ghost') {
-    head =
-      ink('M-22 18 C-26 -10 -16 -26 0 -26 C16 -26 26 -10 22 18 Z', a) +
-      dark('M2 -26 C16 -26 26 -10 22 18 L6 18 C12 0 10 -16 2 -26 Z', 0.25) +
-      ink('M-22 -2 L14 -2 L14 6 L-22 6 Z', '#14100e', 2) +
-      glow(-8, 2, 10, eyeCol, 0.8) +
-      line('M-18 2 L8 2', eyeCol, 2, 0.9) +
-      line('M-4 6 L-4 16 M-10 8 L-10 14 M2 8 L2 14', INK, 1.6, 0.7) +
-      hi('M-18 -8 C-16 -18 -8 -22 -2 -22', 2);
-    if (helm === 'plume') head += ink('M4 -24 C10 -46 34 -50 44 -36 C30 -38 20 -30 12 -20 Z', o.trim, 2.4);
-  } else if (helm === 'lizard') {
-    head =
-      ink('M10 -16 C-6 -24 -30 -18 -40 -6 C-44 0 -40 6 -30 8 L-6 10 C6 14 20 10 22 0 C24 -8 20 -14 10 -16 Z', '#5a8a3a') +
-      ink('M-40 0 L-20 4 L-32 8 Z', '#f4ece0', 1.4) +
-      eye(-14, -8, 4, '#ffd040') +
-      ink('M0 -18 C10 -30 22 -28 26 -16', a, 2.6) +
-      ink('M16 -20 L22 -34 L26 -18 Z', o.trim, 2);
-  } else if (helm === 'mecha') {
-    head = ink('M-24 -24 L22 -24 L26 16 L-26 16 Z', a) + ink('M-20 -10 L18 -10 L18 2 L-20 2 Z', '#14100e', 2) + glow(-2, -4, 16, '#ff6a3a', 0.8) + line('M-16 -4 L14 -4', '#ffb04a', 3) + dark('M4 -24 L22 -24 L26 16 L6 16 Z', 0.25);
-  } else {
-    head =
-      ink('M-18 14 C-22 -6 -14 -22 0 -22 C14 -22 22 -6 18 14 Z', o.skin ?? M.skin) +
-      ink('M-24 -2 C-26 -26 -10 -34 2 -34 C16 -34 28 -24 24 -2 L18 -6 L-18 -6 Z', a) +
-      dot(-8, 2, 2.6, INK) +
-      line('M-12 10 L-2 10', INK, 2);
-  }
-  const ghostly = helm === 'ghost';
-  const body =
-    // 披风
-    (o.cape ? ink('M78 62 C60 100 54 150 56 186 L144 186 C146 150 140 100 122 62 Z', o.cape) + dark('M100 62 L122 62 C140 100 146 150 144 186 L104 186 Z', 0.25) : '') +
-    // 腿
-    ink('M84 128 L78 186 L96 186 L98 132 Z', shade(a, -0.12)) +
-    ink('M116 128 L122 186 L104 186 L102 132 Z', shade(a, -0.2)) +
-    ink('M72 182 L98 182 L98 192 L68 192 Z', shade(a, -0.3), 2.4) +
-    ink('M102 182 L128 182 L132 192 L102 192 Z', shade(a, -0.35), 2.4) +
-    // 躯干
-    ink('M74 64 L126 64 L132 120 C118 134 82 134 68 120 Z', a) +
-    dark('M100 64 L126 64 L132 120 C122 130 108 133 100 133 Z', 0.22) +
-    ink('M84 72 L116 72 L114 102 C106 108 94 108 86 102 Z', shade(a, 0.12), 2.4) +
-    ink('M70 116 L130 116 L132 128 L68 128 Z', o.trim, 2.4) +
-    hi('M80 70 L76 112', 2.2) +
-    // 肩甲
-    ellipse(72, 68, 16, 12, shade(a, 0.05)) +
-    ellipse(128, 68, 16, 12, shade(a, -0.15)) +
-    place(head, 100, 40, 1) +
-    (o.weapon ?? '');
-  return shadow(64) + (ghostly ? `<g opacity="0.82">${body}</g>` : body);
-}
-
-// ---------------------------------------------------------------- 史莱姆
-
-/** 史莱姆：size 0/1/2 = 小/中/大。酸液史莱姆头顶长着叶子，尖刺史莱姆背着一圈尖刺；越大越凶 */
-function slime(col: string, opts: { spikes?: boolean; size?: 0 | 1 | 2 } = {}): string {
-  const sz = opts.size ?? 0;
-  const d = 'M22 190 C10 160 26 104 70 88 C88 80 112 80 130 88 C174 104 190 160 178 190 Z';
-  const leaf = (x: number, y: number, rot: number, s = 1) =>
-    place(limb('M0 0 L0 -10', '#4a7a2a', 3) + ink('M0 -8 C-12 -14 -14 -28 -4 -34 C6 -26 8 -14 0 -8 Z', '#5aa83a', 2) + line('M0 -10 L-3 -28', '#3a6a22', 1.2, 0.8), x, y, s, rot);
-  const bubbles = [
-    [150, 122, 8],
-    [62, 116, 6],
-    [128, 160, 5],
-    [82, 168, 4],
-    [160, 156, 4],
-  ]
-    .slice(0, sz * 2 + 1)
-    .map(([x, y, r]) => dot(x, y, r, shade(col, 0.32), 0.7) + dot(x - r * 0.3, y - r * 0.3, r * 0.3, '#fff', 0.6))
-    .join('');
-  return (
-    shadow(82) +
-    (opts.spikes ? spikes(100, 130, 70, 46, 5 + sz * 2, 14 + sz * 7, shade(col, -0.15), 195, 345) : '') +
-    ink(d, col) +
-    dark('M120 84 C170 100 190 160 178 190 L130 190 C150 150 148 110 120 84 Z', 0.25) +
-    fill('M40 150 C60 130 140 128 160 150 C150 170 50 172 40 150 Z', shade(col, 0.18), 0.6) +
-    hi('M42 130 C50 110 66 98 84 94', 4, 0.6) +
-    bubbles +
-    // 酸液史莱姆头顶的叶子
-    (opts.spikes ? '' : leaf(100, 86, -8) + (sz >= 1 ? leaf(88, 90, -40, 0.85) : '') + (sz >= 2 ? leaf(114, 90, 38, 0.9) + leaf(76, 98, -70, 0.75) : '')) +
-    eye(78, 128, 9, '#fff6c8') +
-    eye(112, 128, 9, '#fff6c8') +
-    // 大史莱姆：竖起的怒眉和更大的嘴
-    (sz >= 2
-      ? ink('M64 112 L90 120 L88 114 Z', shade(col, -0.45), 2) + ink('M126 112 L100 120 L102 114 Z', shade(col, -0.45), 2) + ink('M76 150 C88 162 106 162 118 150 C114 168 82 168 76 150 Z', '#1a1010', 2) + ink('M84 153 L88 160 L92 154 Z M104 154 L108 160 L112 153 Z', '#f4ece0', 1)
-      : ink('M80 152 C90 160 104 160 114 152 C108 164 88 164 80 152 Z', '#1a1010', 2)) +
-    (opts.spikes ? '' : dot(30, 170, 6, col, 0.9) + dot(176, 176, 5, col, 0.9) + line('M64 190 L62 198 M140 190 L142 198', col, 4, 0.8))
-  );
-}
-
 // ---------------------------------------------------------------- 第一幕：蔓生密林
-
-const twig_cultist: Art = () =>
-  robed({
-    robe: '#3c5a34',
-    trim: '#7a5a2a',
-    head: 'owl',
-    face:
-      limb('M-14 -20 L-30 -46 M-30 -46 L-40 -50 M-30 -46 L-34 -58', '#6a4a2a', 4) +
-      limb('M14 -20 L28 -48 M28 -48 L40 -54 M28 -48 L26 -62', '#6a4a2a', 4) +
-      ink('M-26 4 C-30 -22 -14 -30 0 -30 C14 -30 30 -22 26 4 C24 22 10 30 0 30 C-10 30 -24 22 -26 4 Z', '#8a6a4a') +
-      dark('M4 -30 C16 -28 30 -20 26 4 C24 22 10 30 2 30 C14 14 16 -10 4 -30 Z', 0.25) +
-      circle(-11, -4, 11, '#efe2c0', 2.4) +
-      circle(11, -4, 11, '#efe2c0', 2.4) +
-      eye(-11, -4, 6, '#ffb030') +
-      eye(11, -4, 6, '#ffb030') +
-      ink('M-6 8 L6 8 L0 22 Z', '#d8a030', 2),
-    staff: limb('M44 50 L36 188', '#5a3a1a', 6) + limb('M44 50 L30 30 M44 50 L58 32 M44 50 L44 26', '#5a3a1a', 4) + glow(44, 36, 16, '#c0f070', 0.6),
-  });
 
 /** 啃咬兽：好斗的小蜥蜴，张嘴嘶叫，背上一排橙色骨刺 */
 const nibbit: Art = () => {
@@ -254,29 +64,6 @@ const nibbit: Art = () => {
   );
 };
 
-const shroomling: Art = () =>
-  shadow(56) +
-  ink('M74 120 C70 150 72 178 80 190 L120 190 C128 178 130 150 126 120 Z', '#efe2c8') +
-  dark('M100 120 L126 120 C130 150 128 178 120 190 L104 190 C110 160 108 136 100 120 Z', 0.2) +
-  eye(88, 150, 6, '#2a1a10', false) +
-  eye(110, 150, 6, '#2a1a10', false) +
-  line('M90 168 C96 172 104 172 110 168', INK, 2.4) +
-  ink('M24 124 C20 74 60 40 100 40 C140 40 180 74 176 124 C150 132 50 132 24 124 Z', '#c8302a') +
-  dark('M110 40 C150 44 180 76 176 124 C160 128 140 130 120 130 C150 100 144 64 110 40 Z', 0.25) +
-  circle(64, 78, 11, '#f4ece0', 2) +
-  circle(104, 60, 9, '#f4ece0', 2) +
-  circle(140, 90, 12, '#f4ece0', 2) +
-  circle(90, 104, 7, '#f4ece0', 2) +
-  hi('M40 100 C46 72 66 54 88 48', 4) +
-  [0, 1, 2, 3].map((i) => dot(40 + i * 40, 24 + (i % 2) * 10, 3, '#e8f0a0', 0.7)).join('');
-
-const acid_slime_s: Art = () => slime('#7ac84a', { size: 0 });
-const acid_slime_m: Art = () => slime('#6ab83a', { size: 1 });
-const acid_slime_l: Art = () => slime('#5aa830', { size: 2 });
-const spike_slime_s: Art = () => slime('#9a6ad0', { spikes: true, size: 0 });
-const spike_slime_m: Art = () => slime('#8a5ac8', { spikes: true, size: 1 });
-const spike_slime_l: Art = () => slime('#7a4ab8', { spikes: true, size: 2 });
-
 /** 墨精：被墨渊幽影变成怪物的小东西，墨色身体上点着白斑 */
 const inklet: Art = () =>
   shadow(54) +
@@ -298,20 +85,6 @@ const inklet: Art = () =>
   dot(114, 110, 4, INK) +
   hi('M62 100 C66 82 80 70 94 66', 3, 0.4) +
   [0, 1, 2].map((i) => dot(30 + i * 14, 120 - i * 18, 5 - i, '#22254a', 0.8)).join('');
-
-const vine_lasher: Art = () =>
-  shadow(70) +
-  limb('M120 192 C140 150 170 130 168 90 C166 70 150 64 140 72', '#3a6a2a', 12) +
-  limb('M90 192 C80 150 40 140 34 104 C30 80 46 70 58 78', '#3a6a2a', 12) +
-  spikes(168, 100, 6, 6, 3, 8, '#c8b060', 0, 120) +
-  limb('M104 192 C104 160 96 130 98 104', '#2f5a24', 16) +
-  ink('M60 104 C56 66 80 44 100 44 C124 44 146 66 140 104 C130 114 70 114 60 104 Z', '#5a8a3a') +
-  ink('M64 96 C80 120 120 120 136 96 C128 86 72 86 64 96 Z', '#7a1a24') +
-  [70, 84, 98, 112, 126].map((x) => ink(`M${x} 92 L${x + 5} 104 L${x + 10} 92 Z`, '#f4ece0', 1.4)).join('') +
-  eye(84, 66, 6, '#ffd040') +
-  eye(110, 64, 6, '#ffd040') +
-  ink('M40 84 C30 70 34 54 46 50 C46 64 50 74 58 82 Z', '#6aa84a', 2) +
-  ink('M150 80 C164 70 166 54 156 46 C152 60 146 70 138 78 Z', '#6aa84a', 2);
 
 const shrinker_beetle: Art = () =>
   shadow(74) +
@@ -453,36 +226,6 @@ const bygone_effigy: Art = () => {
     hi('M50 120 C48 96 54 70 66 52', 3, 0.35)
   );
 };
-
-const rage_treant: Art = () =>
-  shadow(84) +
-  limb('M60 190 C70 170 64 150 74 140 M140 190 C130 170 138 150 126 140 M100 192 L100 160', '#4a3220', 12) +
-  ink('M56 160 C46 110 60 50 100 40 C140 50 154 110 144 160 Z', '#6a4a2c') +
-  dark('M104 40 C140 50 154 110 144 160 L116 160 C130 120 126 70 104 40 Z', 0.28) +
-  line('M76 70 C74 100 78 130 72 154 M120 70 C126 100 120 130 128 154', '#3a2414', 3, 0.7) +
-  limb('M62 90 C40 80 24 60 20 36 M20 36 L8 24 M20 36 L26 18', '#5a3a22', 9) +
-  limb('M138 90 C160 80 176 60 180 36 M180 36 L192 26 M180 36 L174 18', '#5a3a22', 9) +
-  ink('M70 84 L94 92 L90 100 L70 96 Z', '#1a0e08', 2) +
-  ink('M130 84 L106 92 L110 100 L130 96 Z', '#1a0e08', 2) +
-  glow(82, 94, 12, '#ff6a2a', 0.9) +
-  glow(118, 94, 12, '#ff6a2a', 0.9) +
-  ink('M78 116 C88 108 112 108 122 116 L118 130 C108 124 92 124 82 130 Z', '#1a0e08', 2.4) +
-  fill('M50 50 C40 30 60 10 80 18 C90 4 120 6 126 22 C146 14 164 34 150 52 C130 44 70 44 50 50 Z', '#3a6a2a', 0.95) +
-  dot(64, 36, 6, '#5a9a3a', 0.9) +
-  dot(130, 32, 5, '#5a9a3a', 0.9);
-
-const sentinel: Art = () =>
-  shadow(56) +
-  ink('M64 192 L72 60 L100 30 L128 60 L136 192 Z', '#7a7a8a') +
-  dark('M100 30 L128 60 L136 192 L104 192 Z', 0.28) +
-  ink('M76 120 L124 120 L126 140 L74 140 Z', '#5a5a6a', 2.4) +
-  ink('M84 74 L116 74 L116 104 L84 104 Z', '#1a1a24', 2.4) +
-  glow(100, 89, 26, '#7ad8ff', 0.9) +
-  circle(100, 89, 9, '#c8f4ff', 2) +
-  line('M80 60 L120 60 M72 160 L128 160', '#4a4a5a', 2.4) +
-  line('M92 150 L108 150', '#7ad8ff', 2.4, 0.8) +
-  hi('M78 70 L72 180', 2.6) +
-  ink('M56 186 L144 186 L148 194 L52 194 Z', '#5a5a68', 2.4);
 
 /** 祭仪巨兽：披着祭毯、长着巨大鹿角的巨兽，身边飘着长角的幽灵头骨 */
 const ceremonial_beast: Art = () => {
@@ -632,263 +375,6 @@ const kin_follower: Art = () =>
     extra: place(ink('M-30 0 C-20 -20 -4 -30 6 -32 C4 -24 -4 -18 -12 -10 C-4 -6 6 -2 14 8 C4 8 -10 4 -30 0 Z', M.steel, 2.4), 40, 136, 1.1, -20),
   });
 
-// ---------------------------------------------------------------- 第一幕：地下船坞
-
-const dock_rat: Art = () =>
-  shadow(60) +
-  limb('M150 160 C180 150 190 120 176 100', '#c89a8a', 4) +
-  ink('M50 170 C40 130 70 108 110 110 C150 112 166 140 156 176 Z', '#6a6060') +
-  dark('M116 110 C152 114 166 140 156 176 L126 176 C140 150 136 124 116 110 Z', 0.28) +
-  ink('M56 140 C30 136 16 148 20 160 C26 170 50 172 60 162 Z', '#7a7070') +
-  dot(18, 154, 4, '#e88a9a') +
-  eye(44, 144, 5, '#ff4a3a') +
-  ink('M60 120 C52 100 64 92 74 100 C76 110 70 118 62 124 Z', '#e8a0a8', 2.4) +
-  ink('M26 164 L30 172 L34 164 Z', '#f4ece0', 1.4) +
-  limb('M70 176 L66 190 M128 176 L132 190', '#c89a8a', 4) +
-  line('M22 156 L4 150 M22 158 L6 162', '#ddd', 1.2, 0.8);
-
-const mud_crab: Art = () =>
-  shadow(78) +
-  [0, 1, 2].map((i) => limb(`M${70 - i * 8} 160 L${48 - i * 10} 176 L${44 - i * 12} 192`, '#8a4a2a', 5) + limb(`M${130 + i * 8} 160 L${152 + i * 10} 176 L${156 + i * 12} 192`, '#7a3a20', 5)).join('') +
-  ink('M40 160 C36 120 70 100 100 100 C130 100 164 120 160 160 C140 172 60 172 40 160 Z', '#a85a34') +
-  dark('M110 100 C140 104 164 124 160 160 L126 166 C144 140 136 116 110 100 Z', 0.28) +
-  fill('M48 150 C70 160 130 160 152 150 C150 166 50 166 48 150 Z', '#5a4030', 0.8) +
-  limb('M80 104 L76 82 M112 104 L116 82', '#8a4a2a', 4) +
-  eye(76, 78, 6, '#f0e040') +
-  eye(116, 78, 6, '#f0e040') +
-  limb('M44 132 L20 112', '#a85a34', 9) +
-  ink('M22 116 C4 112 0 90 14 80 C18 92 26 98 36 98 C30 86 34 76 44 74 C50 92 40 112 22 116 Z', '#c86a3a') +
-  limb('M156 132 L176 120', '#9a4a2a', 8) +
-  ink('M174 124 C190 124 196 108 188 98 C184 106 178 110 170 110 Z', '#b85a30', 2.4);
-
-const bilge_eel: Art = () =>
-  shadow(70) +
-  limb('M30 186 C60 196 120 196 150 176 C180 156 170 120 140 116 C110 112 96 140 110 150 C124 160 140 140 130 132', '#2a5a6a', 18) +
-  line('M30 186 C60 196 120 196 150 176 C180 156 170 120 140 116', '#7ad8e8', 2, 0.5) +
-  limb('M130 132 C120 100 90 80 70 70', '#2a5a6a', 18) +
-  ink('M74 74 C60 54 30 50 20 64 C14 76 30 88 50 88 C60 88 70 84 74 74 Z', '#2f6a7a') +
-  eye(42, 66, 5, '#f0f040') +
-  ink('M20 70 C28 76 40 78 50 76', 'none', 2.4) +
-  [0, 1, 2, 3].map((i) => ink(`M${80 + i * 24} ${70 + i * 18} L${88 + i * 24} ${60 + i * 18} L${84 + i * 24} ${74 + i * 18} Z`, '#4aa8c0', 1.6)).join('') +
-  glow(60, 40, 22, '#f0f080', 0.6) +
-  place(ink('M10 -60 L-22 4 L-3 4 L-14 60 L26 -10 L5 -10 L20 -60 Z', M.bolt, 2.4), 60, 40, 0.3, 20) +
-  place(ink('M10 -60 L-22 4 L-3 4 L-14 60 L26 -10 L5 -10 L20 -60 Z', M.bolt, 2.4), 170, 100, 0.25, -20);
-
-const pirate_parrot: Art = () =>
-  shadow(54) +
-  limb('M96 170 L92 190 M112 170 L116 190', '#e0a030', 4) +
-  ink('M130 120 C170 130 186 170 176 186 C160 174 140 156 128 144 Z', '#2a6ad0') +
-  ink('M70 140 C64 100 84 70 110 72 C138 74 146 110 134 150 C124 172 84 176 70 140 Z', '#d83a2a') +
-  dark('M112 72 C138 76 146 110 134 150 C130 160 122 166 112 170 C130 130 128 96 112 72 Z', 0.25) +
-  ink('M100 110 C120 100 136 120 132 150 C120 140 108 128 100 110 Z', '#2a6ad0', 2.4) +
-  ink('M74 84 C66 56 84 40 104 44 C120 48 124 70 114 86 Z', '#e04a30') +
-  ink('M72 70 C56 70 46 82 50 96 C58 90 66 86 74 86 Z', '#2a2a30') +
-  ink('M50 96 C52 104 60 104 66 96 Z', '#1a1a1e', 2) +
-  ink('M84 58 L104 56 L104 66 L84 68 Z', '#1a1010', 2) +
-  line('M80 54 L112 50', '#1a1010', 2) +
-  eye(98, 72, 4, '#fff6c8') +
-  ink('M70 44 L120 40 C116 30 96 20 74 30 Z', '#1a1a1e') +
-  ink(starPath(96, 34, 6, 3, 5), '#f4ece0', 1.2);
-
-const barnacle_heap: Art = () => {
-  let s = shadow(80) + ink('M24 192 C20 150 50 110 100 106 C150 102 184 150 178 192 Z', '#6a7a7a') + dark('M110 104 C156 106 184 150 178 192 L130 192 C150 160 140 126 110 104 Z', 0.28);
-  const pts: [number, number, number][] = [
-    [60, 150, 18],
-    [100, 132, 22],
-    [140, 154, 18],
-    [80, 176, 14],
-    [126, 180, 14],
-    [44, 182, 10],
-    [162, 182, 10],
-  ];
-  for (const [x, y, r] of pts) s += ink(`M${x - r} ${y + r * 0.6} L${x - r * 0.5} ${y - r} L${x + r * 0.5} ${y - r} L${x + r} ${y + r * 0.6} Z`, '#c8c0a8', 2.4) + ellipse(x, y - r * 0.8, r * 0.5, r * 0.22, '#1a1a1a', 1.6);
-  s += eye(100, 108, 6, '#ff7a3a') + eye(60, 130, 4, '#ff7a3a') + eye(140, 134, 4, '#ff7a3a');
-  s += fill('M30 186 C40 170 50 176 60 166 C70 160 80 170 90 164', '#3a6a3a', 0.7);
-  return s;
-};
-
-const drowned_diver: Art = () =>
-  shadow(64) +
-  ink('M76 120 L70 188 L94 188 L96 124 Z', '#6a5a3a') +
-  ink('M124 120 L130 188 L106 188 L104 124 Z', '#5a4a2a') +
-  ink('M64 186 L96 186 L96 196 L60 196 Z', '#3a3a3a', 2.4) +
-  ink('M104 186 L136 186 L140 196 L104 196 Z', '#2a2a2a', 2.4) +
-  ink('M66 76 L134 76 L140 128 C120 140 80 140 60 128 Z', '#7a6a44') +
-  dark('M100 76 L134 76 L140 128 C126 136 112 138 100 138 Z', 0.25) +
-  limb('M66 84 C50 110 46 130 54 150', '#7a6a44', 14) +
-  limb('M134 84 C150 110 154 130 148 150', '#6a5a34', 14) +
-  ink('M46 146 L62 146 L64 162 L44 162 Z', '#3a3a3a', 2.4) +
-  circle(100, 50, 34, '#b88a3a') +
-  dark('M112 18 C136 26 140 64 124 78 C132 56 128 34 112 18 Z', 0.3) +
-  circle(94, 52, 18, '#1a3a3a', 3) +
-  glow(94, 52, 18, '#4af0c0', 0.6) +
-  line('M80 52 L108 52 M94 38 L94 66', '#b88a3a', 3) +
-  circle(126, 44, 7, '#8a6a2a', 2) +
-  circle(100, 18, 5, '#8a6a2a', 2) +
-  fill('M70 70 C60 90 64 120 56 140 C52 110 58 86 70 70 Z', '#3a7a3a', 0.85) +
-  fill('M130 72 C142 94 136 120 146 136 C150 110 144 88 130 72 Z', '#3a7a3a', 0.85) +
-  hi('M74 30 C80 22 90 18 100 18', 3);
-
-const net_caster: Art = () =>
-  shadow(64) +
-  knightLike('#5a5a4a', '#8a6a3a', M.skin) +
-  // 渔网
-  `<g opacity="0.85">${[0, 1, 2, 3, 4].map((i) => line(`M${10 + i * 12} ${90 + i * 4} L${30 + i * 8} 170`, '#c8b890', 1.6)).join('')}${[0, 1, 2, 3].map((i) => line(`M10 ${100 + i * 20} L66 ${104 + i * 18}`, '#c8b890', 1.6)).join('')}</g>` +
-  limb('M150 80 L170 30', '#6a4a2a', 4) +
-  line('M170 30 C180 60 176 90 168 110', '#c8c0a8', 1.4) +
-  ink('M164 108 C160 122 176 126 176 112', 'none', 3) +
-  // 渔夫帽
-  ink('M70 30 C74 10 126 10 130 30 L140 36 L60 36 Z', '#c8a83a');
-
-/** 简单的人形（渔夫、居民） */
-function knightLike(body: string, trim: string, skin: string): string {
-  return (
-    ink('M82 126 L78 186 L96 186 L98 130 Z', shade(body, -0.15)) +
-    ink('M118 126 L122 186 L104 186 L102 130 Z', shade(body, -0.25)) +
-    ink('M72 182 L98 182 L98 192 L68 192 Z', '#3a2a1a', 2.4) +
-    ink('M102 182 L128 182 L132 192 L102 192 Z', '#2a1a10', 2.4) +
-    ink('M72 64 L128 64 L134 126 C118 136 82 136 66 126 Z', body) +
-    dark('M100 64 L128 64 L134 126 C124 132 110 134 100 134 Z', 0.25) +
-    ink('M68 116 L132 116 L134 126 L66 126 Z', trim, 2.4) +
-    limb('M72 72 C56 96 54 116 60 132', body, 13) +
-    limb('M128 72 C144 90 150 86 152 80', shade(body, -0.1), 12) +
-    circle(60, 136, 8, skin) +
-    circle(152, 78, 8, skin) +
-    ink('M80 50 C78 26 90 18 100 18 C112 18 124 26 120 50 C118 64 108 70 100 70 C92 70 82 64 80 50 Z', skin) +
-    dark('M104 18 C116 20 124 30 120 50 C118 62 110 68 104 70 C114 54 114 32 104 18 Z', 0.2) +
-    dot(90, 44, 3, INK) +
-    line('M84 58 C92 62 100 62 106 58', INK, 2) +
-    fill('M80 52 C82 68 94 76 104 74 C116 72 122 62 120 52 C114 60 90 62 80 52 Z', '#5a4a3a', 0.9)
-  );
-}
-
-const lantern_fish: Art = () =>
-  shadow(76) +
-  limb('M70 60 C60 30 30 20 20 36', '#3a3a5a', 4) +
-  glow(20, 42, 26, '#c8ff8a', 0.9) +
-  circle(20, 42, 8, '#efffc0', 2) +
-  ink('M150 110 C176 86 196 96 192 120 C196 144 176 154 150 130 Z', '#2a3a5a') +
-  ink('M30 120 C30 80 80 60 120 70 C156 80 164 120 150 146 C130 176 60 176 40 150 Z', '#3a4a6a') +
-  dark('M120 70 C156 80 164 120 150 146 C140 160 124 168 106 170 C140 130 140 90 120 70 Z', 0.3) +
-  ink('M30 118 C50 140 90 146 110 130 C100 160 50 170 34 146 Z', '#1a0a10') +
-  [0, 1, 2, 3, 4, 5].map((i) => ink(`M${38 + i * 12} ${126 + i * 2} L${43 + i * 12} ${142 + i * 1.5} L${48 + i * 12} ${128 + i * 2} Z`, '#f4ece0', 1.2)).join('') +
-  eye(70, 100, 9, '#f0f0a0') +
-  [0, 1, 2].map((i) => dot(100 + i * 14, 100 + (i % 2) * 12, 3, '#8af0ff', 0.7)).join('') +
-  ink('M90 70 C100 50 120 50 130 70', 'none', 2.4);
-
-const drowned_captain: Art = () =>
-  shadow(70) +
-  knight({ armor: '#3a3a4a', trim: '#c8a040', helm: 'open', skin: M.bone, cape: '#5a1a1a', weapon: place(swordBody('#c8ccd4', M.gold), 40, 120, 0.8, -40) }) +
-  // 骷髅脸 + 三角帽
-  place(
-    ink('M-18 10 C-22 -10 -14 -22 0 -22 C14 -22 22 -10 18 10 C16 20 8 24 0 24 C-8 24 -16 20 -18 10 Z', M.bone) +
-      ink('M-12 -6 C-12 -12 -4 -12 -4 -4 C-6 0 -12 0 -12 -6 Z', INK, 1.6) +
-      ink('M12 -6 C12 -12 4 -12 4 -4 C6 0 12 0 12 -6 Z', INK, 1.6) +
-      glow(-8, -5, 8, '#4af0c0', 0.8) +
-      line('M-8 14 L-8 20 M-2 15 L-2 21 M4 15 L4 21', INK, 1.4) +
-      ink('M-40 -18 C-20 -24 20 -24 40 -18 C30 -34 18 -46 0 -46 C-18 -46 -30 -34 -40 -18 Z', '#1a1a20') +
-      ink(starPath(0, -32, 6, 2.6, 5), M.bone, 1.2),
-    100,
-    40,
-    1,
-  ) +
-  fill('M80 120 C70 140 76 160 70 180', '#3a6a3a', 0.8);
-
-const tide_golem: Art = () =>
-  shadow(86) +
-  ink('M60 130 L50 192 L84 192 L86 136 Z', '#2a6a8a') +
-  ink('M140 130 L150 192 L116 192 L114 136 Z', '#1f5a7a') +
-  ink('M40 130 C30 80 60 44 100 44 C140 44 170 80 160 130 C140 150 60 150 40 130 Z', '#3a8ab0') +
-  dark('M110 44 C146 50 170 80 160 130 C150 138 136 142 120 144 C146 110 140 70 110 44 Z', 0.28) +
-  ink('M52 70 C40 50 60 30 76 40 C64 50 64 60 70 70 Z', '#e8fbff', 2) +
-  ink('M148 70 C160 50 140 30 124 40 C136 50 136 60 130 70 Z', '#e8fbff', 2) +
-  limb('M44 90 C20 110 14 140 24 160', '#2a7aa0', 18) +
-  limb('M156 90 C180 110 186 140 176 160', '#1f6a90', 18) +
-  ink('M8 156 L36 150 L40 172 L14 176 Z', M.stoneDark) +
-  ink('M164 150 L192 156 L188 178 L160 172 Z', M.stoneDark) +
-  eye(84, 88, 8, '#e8fbff') +
-  eye(118, 88, 8, '#e8fbff') +
-  line('M56 110 C80 120 120 120 144 110', '#e8fbff', 2.4, 0.7) +
-  [0, 1, 2, 3].map((i) => dot(60 + i * 26, 54 + (i % 2) * 8, 4, '#e8fbff', 0.8)).join('');
-
-const hermit_titan: Art = () =>
-  shadow(84) +
-  ink('M20 150 C20 110 60 90 100 90 C140 90 180 110 180 150 C160 170 40 170 20 150 Z', '#7a6a7a') +
-  [0, 1, 2, 3, 4].map((i) => line(`M${40 + i * 30} 150 C${44 + i * 28} 120 ${60 + i * 20} 100 ${80 + i * 10} 94`, '#5a4a5a', 2.4, 0.8)).join('') +
-  ink('M20 150 C40 176 160 176 180 150 C170 192 30 192 20 150 Z', '#6a5a6a') +
-  ink('M36 146 C60 120 140 120 164 146 C140 156 60 156 36 146 Z', '#e0a0a8') +
-  glow(100, 136, 24, '#fff6f0', 0.9) +
-  circle(100, 136, 12, '#f8f0ec', 2.4) +
-  dot(96, 132, 4, '#fff') +
-  eye(60, 136, 5, '#ffd040') +
-  eye(140, 136, 5, '#ffd040') +
-  hi('M30 130 C40 110 60 98 80 94', 3);
-
-const shipwreck_shark: Art = () =>
-  shadow(96) +
-  ink('M150 110 C176 80 196 70 198 70 C194 100 190 120 176 140 C190 150 196 170 198 180 C176 172 160 160 148 146 Z', '#4a5a6a') +
-  ink('M90 60 C100 30 120 20 128 22 C122 40 120 56 122 70 Z', '#4a5a6a') +
-  ink('M10 120 C20 80 70 60 120 66 C160 72 170 120 150 150 C120 180 50 176 20 150 Z', '#5a6a7a') +
-  dark('M120 66 C160 72 170 120 150 150 C140 160 126 168 110 172 C140 140 140 90 120 66 Z', 0.3) +
-  fill('M14 140 C40 160 100 170 140 156 C120 178 50 178 18 152 Z', '#e8e8e0', 0.95) +
-  ink('M10 122 C24 132 50 140 74 138 C60 154 30 156 12 140 Z', '#5a0a10') +
-  [0, 1, 2, 3, 4, 5].map((i) => ink(`M${16 + i * 10} ${128 + i * 2} L${20 + i * 10} ${142 + i * 1.5} L${24 + i * 10} ${130 + i * 2} Z`, '#f4ece0', 1.2)).join('') +
-  eye(54, 104, 7, '#1a0a0a', false) +
-  dot(54, 104, 3, '#ff3a2a') +
-  line('M80 100 C82 110 82 118 78 126 M90 98 C92 108 92 116 88 124 M100 96 C102 106 102 114 98 122', INK, 2, 0.7) +
-  ink('M96 140 C110 150 112 170 100 180 C96 168 90 156 86 148 Z', '#4a5a6a') +
-  // 船骸碎片
-  ink('M140 60 L176 50 L178 58 L142 68 Z', '#6a4a2a', 2) +
-  line('M150 56 L152 64 M162 53 L164 61', INK, 1.4);
-
-const anchor_wraith: Art = () =>
-  shadow(84) +
-  `<g opacity="0.88">` +
-  ink('M50 190 C40 140 50 70 100 40 C150 70 160 140 150 190 L130 176 L116 192 L100 176 L84 192 L70 176 Z', '#3a5a6a') +
-  dark('M104 42 C150 72 160 140 150 190 L130 176 L118 186 C130 130 128 80 104 42 Z', 0.3) +
-  `</g>` +
-  ink('M70 70 C70 50 130 50 130 70 C132 90 116 104 100 104 C84 104 68 90 70 70 Z', '#c8d8e0') +
-  glow(86, 76, 12, '#4af0e0', 0.9) +
-  glow(114, 76, 12, '#4af0e0', 0.9) +
-  ellipse(86, 76, 6, 8, '#0a1a1a', 0) +
-  ellipse(114, 76, 6, 8, '#0a1a1a', 0) +
-  ink('M90 92 C96 98 104 98 110 92 L106 100 L94 100 Z', '#0a1a1a', 1.6) +
-  // 锁链与锚
-  [0, 1, 2, 3, 4, 5].map((i) => `<ellipse cx="${60 - i * 4}" cy="${110 + i * 12}" rx="6" ry="9" fill="none" stroke="${INK}" stroke-width="6"/><ellipse cx="${60 - i * 4}" cy="${110 + i * 12}" rx="6" ry="9" fill="none" stroke="${M.steelDark}" stroke-width="3"/>`).join('') +
-  place(
-    `<circle cx="0" cy="-46" r="9" fill="none" stroke="${INK}" stroke-width="9"/><circle cx="0" cy="-46" r="9" fill="none" stroke="#7a6a5a" stroke-width="4.5"/>` +
-      limb('M0 -36 L0 44', '#7a6a5a', 8) +
-      limb('M-22 -22 L22 -22', '#7a6a5a', 7) +
-      limb('M-40 18 C-36 40 -16 50 0 50 C16 50 36 40 40 18', '#7a6a5a', 7) +
-      ink('M-46 10 L-34 14 L-42 26 Z', '#7a6a5a', 2) +
-      ink('M46 10 L34 14 L42 26 Z', '#7a6a5a', 2),
-    36,
-    178,
-    0.55,
-    -10,
-  ) +
-  [0, 1, 2].map((i) => dot(130 + i * 12, 120 + i * 20, 4, '#4af0e0', 0.6)).join('');
-
-const siren_queen: Art = () =>
-  shadow(80) +
-  ink('M100 120 C130 140 150 170 176 172 C190 170 196 160 190 150 C180 170 160 160 150 150 C140 160 120 186 90 190 C70 192 60 180 70 160 C80 140 90 130 100 120 Z', '#2a8a8a') +
-  [0, 1, 2, 3].map((i) => line(`M${80 + i * 18} ${150 + i * 6} C${84 + i * 18} ${158 + i * 6} ${92 + i * 18} ${160 + i * 6} ${96 + i * 18} ${156 + i * 6}`, '#7af0e0', 1.6, 0.7)).join('') +
-  ink('M80 80 C74 100 80 120 100 126 C120 120 126 100 120 80 Z', M.skin) +
-  ink('M78 78 C84 70 116 70 122 78 L120 94 C110 98 90 98 80 94 Z', '#3aa0a0') +
-  limb('M82 84 C60 96 54 110 50 120', M.skin, 9) +
-  limb('M118 84 C130 70 138 56 140 44', M.skin, 9) +
-  ink('M80 44 C78 22 92 14 100 14 C110 14 122 22 120 44 C118 58 108 66 100 66 C92 66 82 58 80 44 Z', M.skin) +
-  fill('M76 40 C70 70 60 100 40 120 C60 116 74 96 82 70 Z', '#1a6a6a', 0.95) +
-  fill('M124 40 C130 70 128 100 140 120 C130 112 122 90 118 66 Z', '#1a6a6a', 0.95) +
-  ink('M76 30 C80 10 120 10 124 30 C110 24 90 24 76 30 Z', '#1a6a6a') +
-  ink('M80 22 L84 4 L92 16 L100 0 L108 16 L116 4 L120 22 Z', M.gold, 2) +
-  eye(92, 40, 4, '#4af0e0') +
-  eye(108, 40, 4, '#4af0e0') +
-  line('M94 54 C98 56 102 56 106 54', INK, 1.6) +
-  limb('M140 44 L156 190', M.gold, 4) +
-  ink('M146 30 L150 4 L156 24 L162 4 L166 30 Z', M.gold, 2) +
-  glow(50, 116, 20, '#4af0e0', 0.6);
-
 // ---------------------------------------------------------------- 第二幕：嗡鸣蜂巢
 
 const bee = (body: string, stripe: string, w = 1): string =>
@@ -931,38 +417,6 @@ const larva: Art = () => {
   s += [0, 1, 2, 3].map((i) => line(`M${140 - i * 22} ${152 - i * 8} L${142 - i * 22} ${188 - i * 8}`, '#c8b080', 1.6, 0.7)).join('');
   return s;
 };
-
-const byrd: Art = () =>
-  shadow(54) +
-  limb('M94 160 L90 190 M110 160 L114 190', '#e0a030', 4) +
-  ink('M130 110 C160 100 180 120 176 130 C160 130 146 130 132 132 Z', '#4a4a5a') +
-  ink('M60 130 C56 100 80 80 104 82 C130 84 140 110 132 140 C122 166 76 166 60 130 Z', '#6a6a7a') +
-  dark('M106 82 C130 86 140 110 132 140 C128 150 120 158 110 162 C126 130 124 100 106 82 Z', 0.25) +
-  ink('M64 92 C56 64 76 50 94 54 C110 58 112 80 104 94 Z', '#7a7a8a') +
-  ink('M66 76 C44 74 26 82 18 92 C34 94 50 92 66 88 Z', '#e8b030') +
-  eye(84, 72, 6, '#ff5a3a') +
-  ink('M90 110 C110 100 130 120 126 140 C114 132 100 124 90 110 Z', '#5a5a6a', 2.4) +
-  ink('M80 52 L84 36 L90 52 Z M90 52 L98 38 L98 56 Z', '#5a5a6a', 1.8);
-
-const hive_guard: Art = () =>
-  shadow(64) +
-  bugLegs([80, 100, 120], 160, '#1a1010', 28) +
-  ink('M50 150 C46 100 76 74 110 76 C146 78 164 110 156 150 C140 170 66 170 50 150 Z', '#c03a2a') +
-  dark('M112 76 C146 80 164 110 156 150 C146 160 132 164 118 166 C140 130 136 96 112 76 Z', 0.3) +
-  line('M106 78 L104 166', INK, 2.4) +
-  [
-    [76, 104],
-    [80, 136],
-    [130, 100],
-    [134, 138],
-  ]
-    .map(([x, y]) => circle(x, y, 8, '#1a1010', 0))
-    .join('') +
-  ink('M60 104 C40 98 26 108 28 124 C32 138 52 140 62 130 Z', '#1a1010') +
-  eye(42, 116, 5, '#ffd040') +
-  limb('M30 160 L24 40', '#6a4a2a', 4) +
-  ink('M18 46 L24 16 L30 46 Z', M.steel, 2) +
-  hi('M64 110 C70 92 84 82 100 80', 3);
 
 const hunter_killer: Art = () =>
   shadow(84) +
@@ -1158,85 +612,6 @@ const axebot: Art = () =>
   place(limb('M0 -50 L0 56', '#5a4a3a', 6) + ink('M2 -46 C26 -58 40 -40 38 -14 C36 -4 26 -2 2 -12 Z', M.steel) + ink('M-2 -46 C-26 -58 -40 -40 -38 -14 C-36 -4 -26 -2 -2 -12 Z', M.steel), 30, 120, 0.75, -30) +
   limb('M136 80 L156 110 L160 130', '#5a606c', 10);
 
-const sword_knight: Art = () => knight({ armor: '#9aa4b4', trim: '#c8a040', helm: 'plume', cape: '#3a4a8a', weapon: place(swordBody(), 46, 112, 0.95, -30) });
-
-const shield_knight: Art = () =>
-  knight({ armor: '#8a94a4', trim: '#c8a040', helm: 'great', cape: '#7a2a2a' }) +
-  place(
-    ink('M-40 -54 L40 -54 L40 0 C40 30 20 50 0 60 C-20 50 -40 30 -40 0 Z', '#c8a040') +
-      ink('M-32 -46 L32 -46 L32 0 C32 24 16 40 0 50 C-16 40 -32 24 -32 0 Z', '#3a4a8a', 2.4) +
-      ink(starPath(0, -4, 18, 8, 5), '#e8d8a0', 2) +
-      dark('M0 -46 L32 -46 L32 0 C32 24 16 40 0 50 Z', 0.2),
-    56,
-    120,
-    1,
-  );
-
-const chanter: Art = () =>
-  robed({
-    robe: '#e8e0d0',
-    trim: '#d8a840',
-    head: 'halo',
-    face:
-      `<ellipse cx="0" cy="-34" rx="24" ry="7" fill="none" stroke="${INK}" stroke-width="8"/><ellipse cx="0" cy="-34" rx="24" ry="7" fill="none" stroke="#ffe48a" stroke-width="4"/>` +
-      glow(0, -34, 30, '#fff1a8', 0.6) +
-      ink('M-20 0 C-22 -22 -10 -28 0 -28 C10 -28 22 -22 20 0 C18 16 8 22 0 22 C-8 22 -18 16 -20 0 Z', '#f4e8d8') +
-      line('M-12 -4 C-8 -8 -4 -8 -2 -4 M12 -4 C8 -8 4 -8 2 -4', INK, 2) +
-      ellipse(0, 10, 4, 6, '#3a1a1a', 1.6),
-    extra:
-      ink('M60 70 C30 50 14 70 20 100 C34 92 46 90 60 92 Z', '#fbf6ea', 2.4) +
-      ink('M140 70 C170 50 186 70 180 100 C166 92 154 90 140 92 Z', '#fbf6ea', 2.4) +
-      place(ink('M0 -14 C-10 -20 -24 -20 -32 -16 L-32 16 C-24 12 -10 12 0 18 Z', '#5a2a1a') + ink('M0 -14 C10 -20 24 -20 32 -16 L32 16 C24 12 10 12 0 18 Z', '#4a2010'), 68, 128, 0.7),
-  });
-
-const glory_colossus: Art = () =>
-  shadow(90) +
-  ink('M70 130 L60 192 L94 192 L96 136 Z', '#a88a3a') +
-  ink('M130 130 L140 192 L106 192 L104 136 Z', '#98782a') +
-  ink('M50 60 L150 60 L160 136 C130 150 70 150 40 136 Z', '#d8b04a') +
-  dark('M100 60 L150 60 L160 136 C140 144 120 147 100 148 Z', 0.28) +
-  ink('M70 72 L130 72 L126 110 C112 118 88 118 74 110 Z', '#e8c860', 2.4) +
-  ink(starPath(100, 92, 14, 6, 5), '#fff2b0', 2) +
-  ellipse(46, 66, 22, 16, '#c8a040') +
-  ellipse(154, 66, 22, 16, '#b8902a') +
-  limb('M40 76 C24 110 20 130 26 150', '#c8a040', 18) +
-  limb('M160 76 C176 110 180 130 174 150', '#b8902a', 18) +
-  ink('M14 146 L40 146 L40 170 L14 170 Z', '#a8802a') +
-  ink('M160 146 L186 146 L186 170 L160 170 Z', '#987020') +
-  ink('M74 16 L126 16 L130 58 L70 58 Z', '#d8b04a') +
-  ink('M80 30 L120 30 L120 40 L80 40 Z', '#2a1e0a', 2) +
-  glow(100, 35, 20, '#fff6c0', 0.8) +
-  line('M84 35 L116 35', '#fff6c0', 3) +
-  ink('M70 16 L76 0 L86 12 L100 -4 L114 12 L124 0 L130 16 Z', '#f0d060', 2.4) +
-  hi('M56 70 L48 130', 3);
-
-const inquisitor: Art = () =>
-  robed({
-    robe: '#2a2a3a',
-    trim: '#c8302a',
-    head: 'judge',
-    w: 1.05,
-    face:
-      ink('M-20 0 C-22 -24 -10 -30 0 -30 C10 -30 22 -24 20 0 C18 16 8 22 0 22 C-8 22 -18 16 -20 0 Z', '#e8dcd0') +
-      ink('M-24 -4 C-30 -30 -14 -44 0 -44 C14 -44 30 -30 24 -4 C24 20 20 36 24 46 L14 40 L14 0 L-14 0 L-14 40 L-24 46 C-20 36 -24 20 -24 -4 Z', '#efe8dc') +
-      ink('M-14 -8 L-4 -6 L-12 0 Z', INK, 1.4) +
-      ink('M14 -8 L4 -6 L12 0 Z', INK, 1.4) +
-      glow(-8, -5, 7, '#ff5a3a', 0.7) +
-      glow(8, -5, 7, '#ff5a3a', 0.7) +
-      line('M-8 10 L8 10', INK, 2) +
-      ink('M-14 -40 L14 -40 L18 -52 L-18 -52 Z', '#1a1a20', 2),
-    extra: place(ink('M-20 -12 L20 -12 L20 12 L-20 12 Z', '#6a4a2a') + limb('M0 12 L0 60', '#5a3a1a', 6) + line('M-20 -4 L20 -4 M-20 4 L20 4', '#c8a040', 2), 50, 104, 1, -30),
-  });
-
-const lizard_knight: Art = () =>
-  knight({
-    armor: '#6a7a5a',
-    trim: '#c8a040',
-    helm: 'lizard',
-    cape: '#5a2a2a',
-    weapon: place(limb('M0 -80 L0 70', '#6a4a2a', 6) + ink('M-10 -76 L0 -112 L10 -76 Z', M.steel, 2.4) + ink('M-16 -60 L16 -60 L10 -50 L-10 -50 Z', M.gold, 2), 40, 110, 1, -35),
-  }) + limb('M150 160 C176 170 190 150 194 130', '#5a8a3a', 10);
-
 const flail_knight: Art = () =>
   knight({ armor: '#7a6a5a', trim: '#a8302a', helm: 'great', cape: '#4a3a2a' }) +
   limb('M70 110 L44 92', '#5a4a3a', 5) +
@@ -1280,29 +655,6 @@ const soul_nexus: Art = () => {
   return s;
 };
 
-const seraph: Art = () =>
-  shadow(70) +
-  glow(100, 90, 100, '#fff1a8', 0.55) +
-  [
-    ['M80 90 C40 60 10 70 4 100 C30 96 56 100 78 110 Z', '#fbf3e0'],
-    ['M120 90 C160 60 190 70 196 100 C170 96 144 100 122 110 Z', '#efe6d0'],
-    ['M84 70 C60 30 30 20 16 36 C40 44 60 58 80 80 Z', '#fbf3e0'],
-    ['M116 70 C140 30 170 20 184 36 C160 44 140 58 120 80 Z', '#efe6d0'],
-    ['M84 120 C56 140 40 170 50 186 C64 166 78 150 90 136 Z', '#fbf3e0'],
-    ['M116 120 C144 140 160 170 150 186 C136 166 122 150 110 136 Z', '#efe6d0'],
-  ]
-    .map(([d, c]) => ink(d, c, 2.4))
-    .join('') +
-  ink('M76 70 C70 120 80 170 100 186 C120 170 130 120 124 70 C110 60 90 60 76 70 Z', '#f8f0dc') +
-  dark('M100 62 C114 62 124 70 124 70 C130 120 120 170 100 186 C110 140 112 90 100 62 Z', 0.15) +
-  `<ellipse cx="100" cy="20" rx="22" ry="6" fill="none" stroke="${INK}" stroke-width="8"/><ellipse cx="100" cy="20" rx="22" ry="6" fill="none" stroke="#ffe48a" stroke-width="4"/>` +
-  ink('M84 50 C82 30 92 26 100 26 C108 26 118 30 116 50 C114 62 106 66 100 66 C94 66 86 62 84 50 Z', '#fbf6ea') +
-  glow(92, 46, 10, '#fff1a8', 0.9) +
-  glow(108, 46, 10, '#fff1a8', 0.9) +
-  ellipse(92, 46, 3, 5, '#fff', 0) +
-  ellipse(108, 46, 3, 5, '#fff', 0) +
-  [0, 1, 2, 3, 4, 5].map((i) => eye(36 + (i % 3) * 64, 74 + Math.floor(i / 3) * 70, 4, '#ffd040')).join('');
-
 const test_subject: Art = () =>
   shadow(92) +
   ink('M70 140 L60 192 L90 192 L94 146 Z', '#7a8a6a') +
@@ -1322,19 +674,6 @@ const test_subject: Art = () =>
   ink('M128 20 L148 6 L146 20 Z', M.steelDark, 1.6) +
   limb('M150 50 L172 30', '#3a3a44', 4) +
   glow(172, 28, 12, '#8af0ff', 0.8);
-
-const doormaker: Art = () =>
-  shadow(90) +
-  glow(100, 100, 90, '#c08aff', 0.4) +
-  ink('M30 192 L30 60 C30 10 170 10 170 60 L170 192 Z', '#4a3a2a') +
-  ink('M48 192 L48 66 C48 30 152 30 152 66 L152 192 Z', '#1a0e24', 2.4) +
-  glow(100, 120, 60, '#8a4aff', 0.85) +
-  `<path d="M60 192 C70 150 60 110 100 80 C140 110 130 150 140 192 Z" fill="#c08aff" opacity="0.45"/>` +
-  eye(100, 120, 16, '#f4e8ff') +
-  [0, 1, 2, 3, 4, 5].map((i) => ink(`M${36 + (i % 2) * 128} ${70 + Math.floor(i / 2) * 40} L${42 + (i % 2) * 116} ${70 + Math.floor(i / 2) * 40} L${42 + (i % 2) * 116} ${82 + Math.floor(i / 2) * 40} L${36 + (i % 2) * 128} ${82 + Math.floor(i / 2) * 40} Z`, M.steelDark, 2)).join('') +
-  line('M40 40 C70 20 130 20 160 40', '#c8a040', 3, 0.8) +
-  ink(starPath(100, 24, 8, 3, 6), M.gold, 1.6) +
-  limb('M30 120 C10 110 4 90 10 70 M170 120 C190 110 196 90 190 70', '#4a3a2a', 8);
 
 const queen: Art = () =>
   shadow(80) +
@@ -1532,6 +871,7 @@ const operator: Art = () =>
   hi('M70 60 L70 140', 2.4, 0.6);
 
 const ART: Record<string, Art> = {
+  ...LINEUP_ART,
   gemini_pro,
   gemini_flash,
   grok,
@@ -1539,47 +879,20 @@ const ART: Record<string, Art> = {
   openai,
   codex,
   operator,
-  twig_cultist,
   nibbit,
-  shroomling,
-  acid_slime_s,
-  acid_slime_m,
-  acid_slime_l,
-  spike_slime_s,
-  spike_slime_m,
-  spike_slime_l,
   inklet,
-  vine_lasher,
   shrinker_beetle,
   fuzzy_wurm,
   phrog_parasite,
   byrdonis,
   bygone_effigy,
-  rage_treant,
-  sentinel,
   ceremonial_beast,
   vantom,
   kin_priest,
   kin_follower,
-  dock_rat,
-  mud_crab,
-  bilge_eel,
-  pirate_parrot,
-  barnacle_heap,
-  drowned_diver,
-  net_caster,
-  lantern_fish,
-  drowned_captain,
-  tide_golem,
-  hermit_titan,
-  shipwreck_shark,
-  anchor_wraith,
-  siren_queen,
   worker_bee,
   thieving_hopper,
   larva,
-  byrd,
-  hive_guard,
   hunter_killer,
   chomper,
   tunneler,
@@ -1591,20 +904,12 @@ const ART: Record<string, Art> = {
   knowledge_demon,
   kaiser_crab,
   axebot,
-  sword_knight,
-  shield_knight,
-  chanter,
-  glory_colossus,
-  inquisitor,
-  lizard_knight,
   flail_knight,
   spectral_knight,
   magi_knight,
   mecha_knight,
   soul_nexus,
-  seraph,
   test_subject,
-  doormaker,
   queen,
   queen_guard,
 };

@@ -225,17 +225,6 @@ describe('机巧与苦难', () => {
 });
 
 describe('敌人机制', () => {
-  it('巨型史莱姆在生命减半后分裂成两只', () => {
-    const { g, e } = setup('ironclad', ['acid_slime_l']);
-    g.dealDamage(e, Math.ceil(e.maxHp / 2) + 1, g.player);
-    expect(e.move).toBe('split');
-    g.endTurn();
-    g.runEnemyPhase();
-    const mids = g.alive.filter((x) => x.defId === 'acid_slime_m');
-    expect(mids.length).toBe(2);
-    expect(mids[0].hp).toBe(e.maxHp - Math.ceil(e.maxHp / 2) - 1);
-  });
-
   it('试验体会复活两次', () => {
     const { g, e } = setup('ironclad', ['test_subject']);
     for (let phase = 1; phase <= 3; phase++) {

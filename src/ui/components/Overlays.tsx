@@ -12,6 +12,7 @@ import { hideTip, showTip, tipProps } from './Tooltip';
 import { RelicIcon } from './Art';
 import { AccountOverlay, ConflictOverlay, LoginOverlay } from './Account';
 import { cloud } from '../../cloud/sync';
+import { Bestiary } from './Bestiary';
 
 const TYPE_ORDER: Record<string, number> = { attack: 0, skill: 1, power: 2, status: 3, curse: 4 };
 
@@ -283,7 +284,7 @@ export function SelectionOverlay({ run }: { run: Run }) {
   );
 }
 
-/** 卡牌图鉴 */
+/** 图鉴：卡牌、遗物与怪物 */
 export function Compendium() {
   const tabs = [
     { id: 'ironclad', name: '铁甲战士' },
@@ -295,12 +296,13 @@ export function Compendium() {
     { id: 'colorless', name: '无色' },
     { id: 'curse', name: '诅咒' },
     { id: 'relics', name: '遗物' },
+    { id: 'monsters', name: '怪物' },
   ];
   const [tab, setTab] = useState('ironclad');
   const [up, setUp] = useState(false);
   const rarityOrder: Record<string, number> = { basic: 0, special: 1, common: 2, uncommon: 3, rare: 4, curse: 5, status: 6 };
   const cards =
-    tab === 'relics'
+    tab === 'relics' || tab === 'monsters'
       ? []
       : Object.values(CARDS)
           .filter((d) => d.color === tab || (tab === 'curse' && d.color === 'status'))
@@ -318,14 +320,16 @@ export function Compendium() {
             {t.name}
           </button>
         ))}
-        {tab !== 'relics' && (
+        {tab !== 'relics' && tab !== 'monsters' && (
           <label style={{ marginLeft: '12px', display: 'flex', gap: '6px', alignItems: 'center' }} for="opt-up">
             <input id="opt-up" type="checkbox" checked={up} onChange={(e) => setUp((e.target as HTMLInputElement).checked)} />
             显示升级后
           </label>
         )}
       </div>
-      {tab === 'relics' ? (
+      {tab === 'monsters' ? (
+        <Bestiary />
+      ) : tab === 'relics' ? (
         <div class="card-grid" style={{ gap: '10px' }}>
           {Object.values(RELICS)
             .filter((r) => r.tier !== 'event' || r.id !== 'circlet')
