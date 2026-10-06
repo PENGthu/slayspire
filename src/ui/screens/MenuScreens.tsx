@@ -10,6 +10,7 @@ import { confirm, deleteSave, loadRun, refresh, setOverlay, startNewRun, state }
 import { AccountChip } from '../components/Account';
 import { cloud } from '../../cloud/sync';
 import { ACHIEVEMENTS } from '../../game/achievements';
+import { FullscreenButton } from '../components/FullscreenButton';
 
 export const ASC_DESC = [
   '标准难度。',
@@ -63,6 +64,7 @@ export function MenuScreen() {
     <div class="menu">
       <SpireBackdrop />
       <div class="menu-account">
+        <FullscreenButton cls="tb-btn menu-fs" />
         <AccountChip />
       </div>
       <div style={{ position: 'relative', textAlign: 'center' }}>

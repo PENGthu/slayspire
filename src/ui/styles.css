@@ -51,6 +51,8 @@ body {
 
 #app {
   height: 100%;
+  /* 刘海、圆角和底部横条（横屏、全屏或主屏幕应用时）不遮挡舞台 */
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
 }
 
 * {
@@ -2605,6 +2607,19 @@ button {
   top: 18px;
   right: 20px;
   z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.fs-btn {
+  color: var(--parchment);
+  justify-content: center;
+}
+.fs-hint {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: left;
 }
 .account-chip {
   display: flex;

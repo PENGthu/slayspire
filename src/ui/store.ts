@@ -11,6 +11,8 @@ const PROFILE_KEY = 'spire-reforged/profile';
 export interface Settings {
   fast: boolean;
   sound: boolean;
+  /** 打开游戏后第一次点击时自动进入全屏 */
+  autoFullscreen: boolean;
 }
 
 export interface Profile {
@@ -91,7 +93,7 @@ export function safeDel(key: string) {
 }
 
 function loadProfile(): Profile {
-  const def: Profile = { maxAsc: {}, wins: 0, runs: 0, bestScore: 0, settings: { fast: false, sound: true }, ach: newAchState() };
+  const def: Profile = { maxAsc: {}, wins: 0, runs: 0, bestScore: 0, settings: { fast: false, sound: true, autoFullscreen: false }, ach: newAchState() };
   const raw = safeGet(PROFILE_KEY);
   if (!raw) return def;
   try {

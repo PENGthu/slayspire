@@ -24,7 +24,7 @@ const head = html.match(/<head>([\s\S]*?)<\/head>/)[1];
 const body = html.match(/<body>([\s\S]*?)<\/body>/)[1];
 const keepHead = head
   .split('\n')
-  .filter((l) => !/<meta charset|<meta name="viewport"/.test(l))
+  .filter((l) => !/<meta charset|<meta name="viewport"|mobile-web-app|theme-color|apple-touch-icon|rel="manifest"|添加到主屏幕/.test(l))
   .join('\n');
 writeFileSync(join(dist, 'artifact.html'), `${keepHead.trim()}\n${body.trim()}\n`);
 

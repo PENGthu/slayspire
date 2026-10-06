@@ -5,6 +5,7 @@ import { App } from './ui/App';
 import { installArtStyles } from './ui/art/frames';
 import { initCloud } from './cloud/sync';
 import { act, loadRun, refresh, state } from './ui/store';
+import { installFullscreen } from './ui/fullscreen';
 
 interface HotData {
   view?: string;
@@ -27,6 +28,7 @@ function start(data: HotData) {
     state.view = data.view;
   }
   installArtStyles();
+  installFullscreen();
   initCloud();
   render(<App />, document.getElementById('app')!);
 }

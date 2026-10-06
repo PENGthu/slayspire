@@ -15,6 +15,7 @@ import { cloud } from '../../cloud/sync';
 import { Bestiary } from './Bestiary';
 import { AchievementsOverlay } from './Achievements';
 import { SlotsOverlay } from './SaveSlots';
+import { enterFullscreen, exitFullscreen, isFullscreen, needsHomeScreen, showFullscreenButton } from '../fullscreen';
 
 const TYPE_ORDER: Record<string, number> = { attack: 0, skill: 1, power: 2, status: 3, curse: 4 };
 
@@ -153,6 +154,37 @@ function Settings() {
             }}
           />
         </label>
+        {showFullscreenButton() && (
+          <>
+            <label class="toggle-row" for="opt-fs">
+              <span>全屏（按 F 切换）</span>
+              <input
+                id="opt-fs"
+                type="checkbox"
+                checked={isFullscreen()}
+                onChange={(e) => void ((e.target as HTMLInputElement).checked ? enterFullscreen() : exitFullscreen()).then(refresh)}
+              />
+            </label>
+            <label class="toggle-row" for="opt-autofs">
+              <span>打开游戏后自动全屏</span>
+              <input
+                id="opt-autofs"
+                type="checkbox"
+                checked={s.autoFullscreen}
+                onChange={(e) => {
+                  s.autoFullscreen = (e.target as HTMLInputElement).checked;
+                  saveProfile();
+                  refresh();
+                }}
+              />
+            </label>
+          </>
+        )}
+        {needsHomeScreen() && (
+          <div class="fs-hint">
+            iPhone 的浏览器不支持网页全屏：在 Safari 里点「分享」→「添加到主屏幕」，之后从主屏幕的图标打开，就是全屏的。
+          </div>
+        )}
         {cloud.available && (
           <div class="toggle-row">
             <span>

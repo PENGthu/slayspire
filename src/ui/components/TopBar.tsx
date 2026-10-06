@@ -5,6 +5,7 @@ import { ZONE_NAMES } from '../../game/map';
 import { act, refresh, setOverlay, state } from '../store';
 import { tipProps } from './Tooltip';
 import { PotionIcon, RelicIcon } from './Art';
+import { FullscreenButton } from './FullscreenButton';
 
 export const TIER_NAMES: Record<string, string> = {
   starter: '初始遗物',
@@ -71,6 +72,7 @@ export function TopBar({ run }: { run: Run }) {
           <span>第 {run.floor} 层</span>
           {run.ascension > 0 && <span> · 进阶 {run.ascension}</span>}
         </div>
+        <FullscreenButton />
         <button
           class="tb-btn"
           aria-label="查看地图"
