@@ -1,6 +1,7 @@
 import { defineCards } from '../../registry';
-import { cardDef, uv } from '../../cards';
-import { B, M, N, hit, hitAll, hitRandom } from './helpers';
+import { canUpgrade, cardDef, upgradeCard, uv } from '../../cards';
+import { B, M, N, hit, hitAll, hitRandom, isType } from './helpers';
+import type { Card } from '../../types';
 
 const C = 'claude' as const;
 
@@ -352,5 +353,203 @@ defineCards([
     id: 'multi_agent', name: '多智能体', color: C, type: 'attack', rarity: 'rare', cost: 2, target: 'enemy',
     dmg: [6, 8], text: '造成 {D} 点伤害 2 次。\n本场战斗中你每压缩过 1 次，再多造成 1 次。', art: '🕸️',
     play: (g, c, t) => hit(g, c, t, 2 + g.compacts),
+  },
+]);
+
+// ---------------------------------------------------------------- 扩充：让三条流派各有更多选择
+const isTool = (c: Card) => !!cardDef(c).tags?.includes('tool');
+
+defineCards([
+  // ---------------------------------------------------------------- 普通
+  {
+    id: 'scratchpad', name: '草稿纸', color: C, type: 'skill', rarity: 'common', cost: 1, target: 'self',
+    blk: [4, 6], mag: [2, 3], text: '获得 {B} 点格挡。\n思考 3，每弃掉 1 张牌，再获得 {M} 点格挡。', art: '📋',
+    play: (g, c) => {
+      g.block(B(g, c));
+      g.think(3, (d) => {
+        if (d.length) g.block(M(c) * d.length);
+      });
+    },
+  },
+  {
+    id: 'fact_check', name: '事实核查', color: C, type: 'attack', rarity: 'common', cost: 1, target: 'enemy',
+    dmg: [7, 10], text: '造成 {D} 点伤害。\n若本回合你思考过，再造成 1 次。', art: '✅',
+    play: (g, c, t) => hit(g, c, t, g.t.thinks > 0 ? 2 : 1),
+  },
+  {
+    id: 'token_stream', name: '流式输出', color: C, type: 'attack', rarity: 'common', cost: 1, target: 'enemy',
+    dmg: [4, 5], text: '造成 {D} 点伤害 2 次。\n记录 1。', art: '🌊',
+    play: (g, c, t) => {
+      hit(g, c, t, 2);
+      g.note(1);
+    },
+  },
+  {
+    id: 'fine_tuning', name: '微调', color: C, type: 'skill', rarity: 'common', cost: 1, target: 'self',
+    blk: [5, 7], text: ['获得 {B} 点格挡。\n升级手牌中的 1 张牌。\n记录 1。', '获得 {B} 点格挡。\n升级手牌中的所有牌。\n记录 1。'], art: '🎚️',
+    play: (g, c) => {
+      g.block(B(g, c));
+      if (c.up) g.hand.forEach(upgradeCard);
+      else g.chooseHand({ title: '选择 1 张牌升级', min: 1, max: 1, filter: canUpgrade }, (s) => s.forEach(upgradeCard));
+      g.note(1);
+    },
+  },
+  // ---------------------------------------------------------------- 罕见：思考
+  {
+    id: 'counterfactual', name: '反事实推理', color: C, type: 'skill', rarity: 'uncommon', cost: 1, target: 'self',
+    mag: [3, 4], text: '思考 {M}。\n从这次弃掉的牌中选择 1 张放入手牌。', art: '🔄',
+    play: (g, c) =>
+      g.think(M(c), (d) => {
+        const back = d.filter((x) => g.discardPile.includes(x));
+        g.chooseCards({ title: '选择 1 张牌放入手牌', cards: back, min: 1, max: 1 }, (s) => s.forEach((x) => g.moveTo(x, 'hand')));
+      }),
+  },
+  {
+    id: 'tree_of_thoughts', name: '思维树', color: C, type: 'attack', rarity: 'uncommon', cost: 2, target: 'enemy',
+    dmg: [6, 8], text: '思考 3。\n造成 {D} 点伤害，这次每弃掉 1 张牌，多造成 1 次。', art: '🌳',
+    play: (g, c, t) => g.think(3, (d) => hit(g, c, t && !t.dead ? t : g.randomEnemy(), 1 + d.length)),
+  },
+  // ---------------------------------------------------------------- 罕见：上下文
+  {
+    id: 'context_budget', name: '上下文预算', color: C, type: 'skill', rarity: 'uncommon', cost: 0, target: 'self',
+    text: ['花费 3 点上下文。\n获得 1 点能量。', '花费 3 点上下文。\n获得 1 点能量，抽 1 张牌。'], art: '💰',
+    canPlay: (g) => (g.context >= 3 ? true : '上下文不足 3 点'),
+    play: (g, c) => {
+      g.spendContext(3);
+      g.gainEnergy(1);
+      if (c.up) g.draw(1);
+    },
+  },
+  {
+    id: 'long_term_memory', name: '长期记忆', color: C, type: 'power', rarity: 'uncommon', cost: 1, target: 'self',
+    mag: [1, 2], text: '每当你压缩时，抽 {M} 张牌。', art: '🧾',
+    play: (g, c) => g.apply(g.player, 'long_term_memory', M(c)),
+  },
+  {
+    id: 'sliding_window', name: '滑动窗口', color: C, type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy',
+    dmg: [6, 9], text: '造成 {D} 点伤害。\n本回合每打出过 1 张其他牌，记录 1。', art: '🪟',
+    play: (g, c, t) => {
+      hit(g, c, t);
+      g.note(g.t.cards - 1);
+    },
+  },
+  {
+    id: 'knowledge_base', name: '知识库', color: C, type: 'skill', rarity: 'uncommon', cost: 1, target: 'self',
+    blk: [5, 8], text: ['获得 {B} 点格挡。\n（5 点，每有 1 点上下文再 +1）', '获得 {B} 点格挡。\n（8 点，每有 1 点上下文再 +1）'], art: '🏛️',
+    blkFn: (g, c) => (c.up ? 8 : 5) + (g?.context ?? 0),
+    play: (g, c) => g.block(B(g, c)),
+  },
+  {
+    id: 'scaling_up', name: '规模扩展', color: C, type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy',
+    dmg: 7, mag: [3, 4], text: '造成 {D} 点伤害。\n记录 2。\n本场战斗中这张牌的伤害提高 {M}。', art: '📈',
+    play: (g, c, t) => {
+      hit(g, c, t);
+      g.note(2);
+      c.tmpDmg = (c.tmpDmg ?? 0) + M(c);
+    },
+  },
+  // ---------------------------------------------------------------- 罕见：工具
+  {
+    id: 'cache_hit', name: '缓存命中', color: C, type: 'power', rarity: 'uncommon', cost: [1, 0], target: 'self',
+    text: '每回合你第一次打出工具牌时，获得 1 点能量。', art: '⚡',
+    play: (g) => g.apply(g.player, 'cache_hit', 1),
+  },
+  {
+    id: 'mcp_server', name: 'MCP 服务器', color: C, type: 'power', rarity: 'uncommon', cost: 1, target: 'self',
+    mag: [3, 4], text: '每当你打出工具牌，对随机敌人造成 {M} 点伤害。', art: '🛰️',
+    play: (g, c) => g.apply(g.player, 'mcp_server', M(c)),
+  },
+  {
+    id: 'sandbox', name: '沙箱', color: C, type: 'skill', rarity: 'uncommon', cost: 1, target: 'self',
+    blk: [7, 10], text: '获得 {B} 点格挡。\n本回合你打出的下一张工具牌额外打出 1 次。', art: '🧪',
+    play: (g, c) => {
+      g.block(B(g, c));
+      g.apply(g.player, 'tool_echo', 1);
+    },
+  },
+  {
+    id: 'computer_use', name: '计算机操作', color: C, type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy',
+    dmg: [5, 7], text: '造成 {D} 点伤害。\n手牌中每有 1 张工具牌，额外造成 1 次。', art: '🖱️',
+    play: (g, c, t) => hit(g, c, t, 1 + g.hand.filter(isTool).length),
+  },
+  // ---------------------------------------------------------------- 罕见：通用
+  {
+    id: 'few_shot', name: '少样本示例', color: C, type: 'skill', rarity: 'uncommon', cost: [1, 0], target: 'self',
+    text: '选择手牌中 1 张攻击牌或技能牌，将它的 1 张复制品加入手牌。', art: '🧬',
+    play: (g) =>
+      g.chooseHand({ title: '选择 1 张牌复制', min: 1, max: 1, filter: (x) => isType(x, 'attack') || isType(x, 'skill') }, (s) =>
+        s.forEach((x) => g.addToHand(x.id, x.up)),
+      ),
+  },
+  {
+    id: 'distillation', name: '蒸馏', color: C, type: 'skill', rarity: 'uncommon', cost: [1, 0], target: 'self',
+    text: '消耗手牌中所有状态牌和诅咒牌。\n每消耗 1 张，抽 1 张牌并记录 1。', art: '⚗️',
+    play: (g) => {
+      const junk = g.hand.filter((x) => isType(x, 'status') || isType(x, 'curse'));
+      for (const x of junk) g.exhaustCard(x);
+      if (junk.length) {
+        g.draw(junk.length);
+        g.note(junk.length);
+      }
+    },
+  },
+  {
+    id: 'context_switch', name: '切换话题', color: C, type: 'skill', rarity: 'uncommon', cost: [1, 0], target: 'self',
+    text: '弃掉所有手牌，然后抽同样数量的牌。\n每弃掉 1 张，记录 1。', art: '🧭',
+    play: (g) => {
+      const n = g.hand.length;
+      for (const x of [...g.hand]) g.discardCard(x);
+      g.draw(n);
+      g.note(n);
+    },
+  },
+  {
+    id: 'alignment', name: '对齐', color: C, type: 'skill', rarity: 'uncommon', cost: 1, target: 'self',
+    blk: [8, 12], exhaust: true, text: '移除你身上的所有负面效果。\n获得 {B} 点格挡。', art: '⚖️',
+    play: (g, c) => {
+      g.cleanse(g.player);
+      g.block(B(g, c));
+    },
+  },
+  // ---------------------------------------------------------------- 稀有
+  {
+    id: 'slow_thinking', name: '慢思考', color: C, type: 'power', rarity: 'rare', cost: [2, 1], target: 'self',
+    text: '每当你思考时，每弃掉 1 张牌，抽 1 张牌。', art: '🐢',
+    play: (g) => g.apply(g.player, 'slow_thinking', 1),
+  },
+  {
+    id: 'multi_head_attention', name: '多头注意力', color: C, type: 'power', rarity: 'rare', cost: [2, 1], target: 'self',
+    text: '每次记录时，额外记录 1。', art: '👁️',
+    play: (g) => g.apply(g.player, 'multi_head_attention', 1),
+  },
+  {
+    id: 'lossless_compression', name: '无损压缩', color: C, type: 'power', rarity: 'rare', cost: [2, 1], target: 'self',
+    text: '每当你压缩时，获得 1 点能量。', art: '💎',
+    play: (g) => g.apply(g.player, 'lossless_compression', 1),
+  },
+  {
+    id: 'background_task', name: '后台任务', color: C, type: 'power', rarity: 'rare', cost: 2, target: 'self',
+    mag: [6, 8], text: '回合结束时，对所有敌人造成 {M} 点伤害，并记录 1。', art: '⚙️',
+    play: (g, c) => g.apply(g.player, 'background_task', M(c)),
+  },
+  {
+    id: 'human_feedback', name: '人类反馈', color: C, type: 'skill', rarity: 'rare', cost: 1, target: 'self',
+    mag: [2, 3], exhaust: true, text: '从弃牌堆中选择至多 {M} 张牌放入手牌。', art: '👍',
+    play: (g, c) =>
+      g.chooseCards({ title: `选择至多 ${M(c)} 张牌放入手牌`, cards: [...g.discardPile], min: 0, max: M(c) }, (s) => s.forEach((x) => g.moveTo(x, 'hand'))),
+  },
+  {
+    id: 'orchestrator', name: '智能体编排', color: C, type: 'skill', rarity: 'rare', cost: 2, target: 'self',
+    mag: [3, 5], exhaust: true, text: '将 {M} 张随机工具牌加入手牌。\n本回合工具牌额外打出 1 次。', art: '🎼',
+    play: (g, c) => {
+      g.addTools(M(c));
+      g.apply(g.player, 'orchestrate', 1);
+    },
+  },
+  {
+    id: 'frontier_model', name: '前沿模型', color: C, type: 'attack', rarity: 'rare', cost: 4, target: 'enemy',
+    dmg: [26, 34], text: '造成 {D} 点伤害。\n本场战斗中你每压缩过 1 次，这张牌的费用 -1。', art: '🚀',
+    costFn: (g, _c, cost) => Math.max(0, cost - g.compacts),
+    play: (g, c, t) => hit(g, c, t),
   },
 ]);

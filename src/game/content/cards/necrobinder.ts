@@ -358,3 +358,219 @@ defineCards([
     play: (g, c) => g.attackAll(D(g, c), c),
   },
 ]);
+
+/** 灾厄已不低于当前生命的敌人立即死亡（与灾厄在回合开始时的结算相同） */
+function reap(g: Combat, e: Enemy) {
+  if (e.dead || g.pw(e, 'doom') < e.hp) return;
+  g.emit('text', e.uid, undefined, '灾厄降临');
+  g.loseHp(e, e.hp + e.block, g.player);
+}
+
+// ---------------------------------------------------------------- 扩充：奥斯提、灾厄与灵魂各有更多选择
+defineCards([
+  // ---------------------------------------------------------------- 普通
+  {
+    id: 'grave_robber', name: '盗墓', color: NB, type: 'attack', rarity: 'common', cost: 1, target: 'enemy',
+    dmg: [7, 10], text: '造成 {D} 点伤害。\n若目标带有灾厄，将 1 张灵魂加入手牌。', art: '⛏️',
+    play: (g, c, t) => {
+      const doomed = !!t && g.has(t, 'doom');
+      hit(g, c, t);
+      if (doomed) g.addToHand('soul');
+    },
+  },
+  {
+    id: 'bone_toss', name: '掷骨', color: NB, type: 'attack', rarity: 'common', cost: 1, target: 'enemy',
+    dmg: [5, 7], text: '奥斯提造成 {D} 点伤害两次。', art: '🦴', tags: ['osty'],
+    canPlay: needOsty,
+    play: (g, c, t) => osty(g, c, t, 2),
+  },
+  {
+    id: 'last_rites', name: '临终祷告', color: NB, type: 'skill', rarity: 'common', cost: 0, target: 'enemy',
+    mag: [3, 5], text: '给予 {M} 层灾厄。\n若该敌人的灾厄已不低于其生命，抽 2 张牌。', art: '🙏',
+    play: (g, c, t) => {
+      g.apply(t, 'doom', M(c));
+      if (t && !t.dead && g.pw(t, 'doom') >= t.hp) g.draw(2);
+    },
+  },
+  {
+    id: 'carrion_crows', name: '腐鸦', color: NB, type: 'attack', rarity: 'common', cost: 1, target: 'all',
+    dmg: [3, 4], mag: [1, 2], text: '随机对敌人造成 {D} 点伤害 3 次，\n每次给予 {M} 层灾厄。', art: '🐦‍⬛',
+    play: (g, c) => {
+      for (let i = 0; i < 3; i++) {
+        const e = g.randomEnemy();
+        if (!e) break;
+        g.attack(e, D(g, c), c);
+        if (!e.dead) g.apply(e, 'doom', M(c));
+      }
+    },
+  },
+  {
+    id: 'skeletal_hand', name: '骷髅之手', color: NB, type: 'attack', rarity: 'common', cost: 1, target: 'enemy',
+    dmg: [6, 9], mag: [2, 3], text: '奥斯提造成 {D} 点伤害。\n召唤 {M}。', art: '🖐️', tags: ['osty'],
+    canPlay: needOsty,
+    play: (g, c, t) => {
+      osty(g, c, t);
+      g.summon(M(c));
+    },
+  },
+  {
+    id: 'funeral_veil', name: '送葬面纱', color: NB, type: 'skill', rarity: 'common', cost: 1, target: 'self',
+    blk: [8, 11], mag: [4, 6], text: '获得 {B} 点格挡。\n若奥斯提不在场，召唤 {M}。', art: '🖤',
+    play: (g, c) => {
+      g.block(B(g, c));
+      if (!g.ostyAlive) g.summon(M(c));
+    },
+  },
+  // ---------------------------------------------------------------- 罕见
+  {
+    id: 'marrow_infusion', name: '骨髓灌注', color: NB, type: 'skill', rarity: 'uncommon', cost: 1, target: 'self',
+    mag: [2, 3], text: '奥斯提获得 {M} 点力量。\n（奥斯提死亡后失去）', art: '💉',
+    canPlay: needOsty,
+    play: (g, c) => {
+      if (g.osty) g.apply(g.osty, 'strength', M(c));
+    },
+  },
+  {
+    id: 'soul_well', name: '灵魂之井', color: NB, type: 'power', rarity: 'uncommon', cost: 1, target: 'self',
+    mag: [3, 4], text: '每当你打出灵魂，获得 {M} 点格挡。', art: '⛲',
+    play: (g, c) => g.apply(g.player, 'soul_well', M(c)),
+  },
+  {
+    id: 'doom_blade', name: '宿命之刃', color: NB, type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy',
+    dmg: [6, 9], text: '造成 {D} 点伤害，\n外加目标灾厄层数一半的伤害。', art: '🗡️',
+    play: (g, c, t) => {
+      if (t) g.attack(t, D(g, c) + Math.floor(g.pw(t, 'doom') / 2), c);
+    },
+  },
+  {
+    id: 'contagion', name: '传染', color: NB, type: 'skill', rarity: 'uncommon', cost: [1, 0], target: 'enemy',
+    text: '其他所有敌人获得与目标等量的灾厄。', art: '🦠',
+    play: (g, _c, t) => {
+      const d = t ? g.pw(t, 'doom') : 0;
+      if (d > 0) for (const e of g.alive) if (e !== t) g.apply(e, 'doom', d);
+    },
+  },
+  {
+    id: 'phylactery', name: '命匣', color: NB, type: 'power', rarity: 'uncommon', cost: 1, target: 'self',
+    mag: [2, 3], text: '奥斯提死亡时，将 {M} 张灵魂加入手牌。', art: '🏺',
+    play: (g, c) => g.apply(g.player, 'phylactery', M(c)),
+  },
+  {
+    id: 'necrotic_touch', name: '坏死之触', color: NB, type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy',
+    dmg: [7, 10], text: '造成 {D} 点伤害。\n给予等同于失去生命值的灾厄。', art: '🫳',
+    play: (g, c, t) => {
+      if (!t) return;
+      const r = g.attack(t, D(g, c), c);
+      if (r.dealt > 0 && !t.dead) g.apply(t, 'doom', r.dealt);
+    },
+  },
+  {
+    id: 'bone_resolve', name: '骸骨意志', color: NB, type: 'power', rarity: 'uncommon', cost: 1, target: 'self',
+    mag: [2, 3], text: '每当你召唤，获得 {M} 点格挡。', art: '🦴',
+    play: (g, c) => g.apply(g.player, 'bone_resolve', M(c)),
+  },
+  {
+    id: 'mass_grave', name: '万人坑', color: NB, type: 'attack', rarity: 'uncommon', cost: 2, target: 'all',
+    dmg: [9, 12], mag: [5, 7], text: '对所有敌人造成 {D} 点伤害。\n每击杀 1 名敌人，召唤 {M}。', art: '🪦',
+    play: (g, c) => {
+      let kills = 0;
+      for (const e of g.alive) if (g.attack(e, D(g, c), c).killed) kills++;
+      if (kills) g.summon(kills * M(c));
+    },
+  },
+  {
+    id: 'disinter', name: '掘尸', color: NB, type: 'skill', rarity: 'uncommon', cost: 1, target: 'self',
+    mag: [4, 7], exhaust: true, text: '将消耗堆中的所有灵魂洗入抽牌堆。\n召唤 {M}。', art: '⚰️',
+    play: (g, c) => {
+      for (const x of g.exhaustPile.filter((y) => y.id === 'soul')) g.moveTo(x, 'draw');
+      g.summon(M(c));
+    },
+  },
+  {
+    id: 'undertaker', name: '送葬人', color: NB, type: 'power', rarity: 'uncommon', cost: 1, target: 'self',
+    mag: [1, 2], text: '每当一名敌人死亡，将 {M} 张灵魂加入手牌。', art: '🎩',
+    play: (g, c) => g.apply(g.player, 'undertaker', M(c)),
+  },
+  {
+    id: 'death_coil', name: '死亡缠绕', color: NB, type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy',
+    dmg: [9, 12], mag: [3, 4], text: '造成 {D} 点伤害。\n若目标带有灾厄，召唤 {M}。', art: '🌀',
+    play: (g, c, t) => {
+      const doomed = !!t && g.has(t, 'doom');
+      hit(g, c, t);
+      if (doomed) g.summon(M(c));
+    },
+  },
+  {
+    id: 'bone_spear', name: '骨矛', color: NB, type: 'attack', rarity: 'uncommon', cost: 2, target: 'enemy',
+    dmg: [15, 20], text: '奥斯提造成 {D} 点伤害。\n若击杀敌人，召唤 5。', art: '🔱', tags: ['osty'],
+    canPlay: needOsty,
+    play: (g, c, t) => {
+      if (osty(g, c, t)) g.summon(5);
+    },
+  },
+  {
+    id: 'cull', name: '剔除', color: NB, type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy',
+    dmg: [7, 10], text: '造成 {D} 点伤害。\n然后若目标的灾厄不低于其生命，立即将其击杀。', art: '✂️',
+    play: (g, c, t) => {
+      hit(g, c, t);
+      if (t) reap(g, t);
+    },
+  },
+  {
+    id: 'spectral_shield', name: '幽冥护盾', color: NB, type: 'skill', rarity: 'uncommon', cost: 1, target: 'self',
+    text: ['获得 {B} 点格挡。\n（5 点，本场战斗中每打出过 1 张灵魂再 +2）', '获得 {B} 点格挡。\n（8 点，本场战斗中每打出过 1 张灵魂再 +2）'], art: '🛡️',
+    blkFn: (g, c) => (c.up ? 8 : 5) + 2 * (g?.flags.souls ?? 0),
+    play: (g, c) => g.block(B(g, c)),
+  },
+  {
+    id: 'grave_offering', name: '死者供奉', color: NB, type: 'skill', rarity: 'uncommon', cost: 1, target: 'self',
+    mag: [3, 4], text: '召唤 {M}。\n每有 1 名带有灾厄的敌人，再召唤 {M}。', art: '🕯️',
+    play: (g, c) => g.summon(M(c) * (1 + g.alive.filter((e) => g.has(e, 'doom')).length)),
+  },
+  // ---------------------------------------------------------------- 稀有
+  {
+    id: 'army_of_the_dead', name: '亡者大军', color: NB, type: 'skill', rarity: 'rare', cost: 2, target: 'self',
+    mag: [3, 4], exhaust: true, text: '将 {M} 张灵魂加入手牌。\n召唤 6。', art: '🧟',
+    play: (g, c) => {
+      g.addToHand('soul', false, M(c));
+      g.summon(6);
+    },
+  },
+  {
+    id: 'bone_colossus', name: '骸骨巨像', color: NB, type: 'power', rarity: 'rare', cost: [3, 2], target: 'self',
+    text: '回合开始时，若奥斯提在场，奥斯提获得 1 点力量。', art: '🗿',
+    play: (g) => g.apply(g.player, 'bone_colossus', 1),
+  },
+  {
+    id: 'grim_reaper', name: '死神降临', color: NB, type: 'attack', rarity: 'rare', cost: 3, target: 'all',
+    dmg: [12, 16], exhaust: true, text: '对所有敌人造成 {D} 点伤害。\n然后灾厄不低于其生命的敌人立即死亡。', art: '💀',
+    play: (g, c) => {
+      g.attackAll(D(g, c), c);
+      for (const e of [...g.alive]) reap(g, e);
+    },
+  },
+  {
+    id: 'book_of_the_dead', name: '亡者之书', color: NB, type: 'power', rarity: 'rare', cost: [2, 1], target: 'self',
+    mag: 3, text: '每当你打出灵魂，召唤 {M}。', art: '📖',
+    play: (g, c) => g.apply(g.player, 'book_of_the_dead', M(c)),
+  },
+  {
+    id: 'undead_horde', name: '尸潮', color: NB, type: 'power', rarity: 'rare', cost: 2, target: 'self',
+    mag: [10, 14], text: '奥斯提死亡时，对所有敌人造成 {M} 点伤害。', art: '🌊',
+    play: (g, c) => g.apply(g.player, 'undead_horde', M(c)),
+  },
+  {
+    id: 'pale_rider', name: '苍白骑士', color: NB, type: 'attack', rarity: 'rare', cost: 2, target: 'all',
+    dmg: [7, 9], text: '奥斯提对所有敌人造成 {D} 点伤害两次。', art: '🐎', tags: ['osty'],
+    canPlay: needOsty,
+    play: (g, c) => {
+      ostyAll(g, c);
+      ostyAll(g, c);
+    },
+  },
+  {
+    id: 'eternal_night', name: '永夜', color: NB, type: 'power', rarity: 'rare', cost: [3, 2], target: 'self',
+    text: '回合结束时，所有敌人的灾厄增加一半。', art: '🌑',
+    play: (g) => g.apply(g.player, 'eternal_night', 1),
+  },
+]);

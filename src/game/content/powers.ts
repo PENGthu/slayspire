@@ -689,6 +689,76 @@ definePowers([
       if (c.id === 'sovereign_blade') g.gainStars(n);
     },
   },
+  {
+    id: 'star_next',
+    name: '星辰预兆',
+    art: '🌟',
+    type: 'buff',
+    desc: (n) => `下回合开始时获得 ${n} 颗星辰。`,
+    onTurnStartPostDraw: (g, o, n) => {
+      g.gainStars(n);
+      g.removePower(o, 'star_next');
+    },
+  },
+  {
+    id: 'crown_jewels',
+    name: '王冠宝石',
+    art: '💎',
+    type: 'buff',
+    desc: (n) => `每回合第一次花费星辰时，抽 ${n} 张牌。`,
+    // spendStars 先累计本回合花费再触发，所以两者相等说明这是本回合第一次花费
+    onStarsSpent: (g, _o, n, spent) => {
+      if (g.t.starsSpent === spent) g.draw(n);
+    },
+  },
+  {
+    id: 'forge_master',
+    name: '锻造大师',
+    art: '🔨',
+    type: 'buff',
+    desc: (n) => `回合结束时铸造 ${n}。`,
+    onTurnEnd: (g, _o, n) => g.forge(n),
+  },
+  {
+    id: 'fealty',
+    name: '效忠',
+    art: '🤝',
+    type: 'buff',
+    desc: (n) => `每当你打出君王之刃，获得 ${n} 点格挡。`,
+    afterCardPlayed: (g, o, n, c) => {
+      if (c.id === 'sovereign_blade') g.gainBlock(o, n);
+    },
+  },
+  {
+    id: 'blade_discount',
+    name: '砺刃',
+    art: '🪨',
+    type: 'buff',
+    decay: 'clear',
+    desc: (n) => `本回合君王之刃的费用减少 ${n}。`,
+  },
+  {
+    id: 'eternal_reign',
+    name: '永恒统治',
+    art: '♾️',
+    type: 'buff',
+    desc: (n) => `每回合你打出的前 ${n} 张花费星辰的牌会被打出两次。`,
+    onTurnStartPostDraw: (g, o, n) => {
+      const have = g.pw(o, 'twin_stars');
+      if (have < n) g.apply(o, 'twin_stars', n - have);
+    },
+  },
+  {
+    id: 'celestial_globe',
+    name: '天球仪',
+    art: '🌐',
+    type: 'buff',
+    desc: (n) => `回合开始时抽 ${n} 张牌并获得 ${n} 颗星辰。`,
+    onTurnStartPostDraw: (g, _o, n) => {
+      g.draw(n);
+      g.gainStars(n);
+    },
+  },
 
   // ---------------------------------------------------------------------------
   // 亡灵契约师
@@ -810,6 +880,84 @@ definePowers([
     desc: (n) => `每当你打出灵魂，奥斯提对随机敌人造成 ${n} 点伤害。`,
     afterCardPlayed: (g, _o, n, c) => {
       if (c.id === 'soul') g.ostyAttack(g.randomEnemy(), n, null);
+    },
+  },
+  {
+    id: 'soul_well',
+    name: '灵魂之井',
+    art: '⛲',
+    type: 'buff',
+    desc: (n) => `每当你打出灵魂，获得 ${n} 点格挡。`,
+    afterCardPlayed: (g, o, n, c) => {
+      if (c.id === 'soul') g.gainBlock(o, n);
+    },
+  },
+  {
+    id: 'phylactery',
+    name: '命匣',
+    art: '🏺',
+    type: 'buff',
+    desc: (n) => `奥斯提死亡时，将 ${n} 张灵魂加入手牌。`,
+    onOstyDeath: (g, _o, n) => g.addToHand('soul', false, n),
+  },
+  {
+    id: 'bone_resolve',
+    name: '骸骨意志',
+    art: '🦴',
+    type: 'buff',
+    desc: (n) => `每当你召唤，获得 ${n} 点格挡。`,
+    onSummon: (g, o, n) => g.gainBlock(o, n),
+  },
+  {
+    id: 'undertaker',
+    name: '送葬人',
+    art: '🎩',
+    type: 'buff',
+    desc: (n) => `每当一名敌人死亡，将 ${n} 张灵魂加入手牌。`,
+    onEnemyDeath: (g, _o, n) => g.addToHand('soul', false, n),
+  },
+  {
+    id: 'bone_colossus',
+    name: '骸骨巨像',
+    art: '🗿',
+    type: 'buff',
+    desc: (n) => `回合开始时，若奥斯提在场，奥斯提获得 ${n} 点力量。`,
+    onTurnStartPostDraw: (g, _o, n) => {
+      if (g.ostyAlive && g.osty) g.apply(g.osty, 'strength', n);
+    },
+  },
+  {
+    id: 'book_of_the_dead',
+    name: '亡者之书',
+    art: '📖',
+    type: 'buff',
+    desc: (n) => `每当你打出灵魂，召唤 ${n}。`,
+    afterCardPlayed: (g, _o, n, c) => {
+      if (c.id === 'soul') g.summon(n);
+    },
+  },
+  {
+    id: 'undead_horde',
+    name: '尸潮',
+    art: '🌊',
+    type: 'buff',
+    desc: (n) => `奥斯提死亡时，对所有敌人造成 ${n} 点伤害。`,
+    onOstyDeath: (g, o, n) => {
+      for (const e of g.alive) g.thorns(e, n, o);
+    },
+  },
+  {
+    id: 'eternal_night',
+    name: '永夜',
+    art: '🌑',
+    type: 'buff',
+    noStack: true,
+    desc: () => '回合结束时，所有敌人的灾厄增加一半。',
+    onTurnEnd: (g, o) => {
+      for (const e of g.alive) {
+        const d = Math.floor(g.pw(e, 'doom') / 2);
+        if (d > 0) g.apply(e, 'doom', d, o);
+      }
     },
   },
 
@@ -1426,6 +1574,89 @@ definePowers([
     desc: () => '每当你压缩时，升级手牌中的所有牌（本场战斗）。',
     onCompact: (g) => {
       for (const c of g.hand) upgradeCard(c);
+    },
+  },
+  {
+    id: 'long_term_memory',
+    name: '长期记忆',
+    art: '🧾',
+    type: 'buff',
+    desc: (n) => `每当你压缩时，抽 ${n} 张牌。`,
+    onCompact: (g, _o, n) => g.draw(n),
+  },
+  {
+    id: 'cache_hit',
+    name: '缓存命中',
+    art: '⚡',
+    type: 'buff',
+    desc: (n) => `每回合你第一次打出工具牌时，获得 ${n} 点能量。`,
+    onCardPlayed: (g, _o, n, c) => {
+      if (cardDef(c).tags?.includes('tool') && g.t.tools === 1) g.gainEnergy(n);
+    },
+  },
+  {
+    id: 'mcp_server',
+    name: 'MCP 服务器',
+    art: '🛰️',
+    type: 'buff',
+    desc: (n) => `每当你打出工具牌，对随机敌人造成 ${n} 点伤害。`,
+    onCardPlayed: (g, o, n, c) => {
+      if (!cardDef(c).tags?.includes('tool')) return;
+      const e = g.randomEnemy();
+      if (e) g.thorns(e, n, o);
+    },
+  },
+  {
+    id: 'tool_echo',
+    name: '沙箱',
+    art: '🧪',
+    type: 'buff',
+    decay: 'clear',
+    desc: (n) => `本回合你打出的下 ${n} 张工具牌会额外打出 1 次。`,
+  },
+  {
+    id: 'orchestrate',
+    name: '智能体编排',
+    art: '🎼',
+    type: 'buff',
+    noStack: true,
+    decay: 'clear',
+    desc: () => '本回合你打出的工具牌都会额外打出 1 次。',
+  },
+  {
+    id: 'slow_thinking',
+    name: '慢思考',
+    art: '🐢',
+    type: 'buff',
+    desc: (n) => `每当你思考时，每弃掉 1 张牌，抽 ${n} 张牌。`,
+    onThink: (g, _o, n, discarded) => {
+      if (discarded > 0) g.draw(discarded * n);
+    },
+  },
+  {
+    id: 'multi_head_attention',
+    name: '多头注意力',
+    art: '👁️',
+    type: 'buff',
+    desc: (n) => `每次记录时，额外记录 ${n}。`,
+  },
+  {
+    id: 'lossless_compression',
+    name: '无损压缩',
+    art: '💎',
+    type: 'buff',
+    desc: (n) => `每当你压缩时，获得 ${n} 点能量。`,
+    onCompact: (g, _o, n) => g.gainEnergy(n),
+  },
+  {
+    id: 'background_task',
+    name: '后台任务',
+    art: '⚙️',
+    type: 'buff',
+    desc: (n) => `回合结束时，对所有敌人造成 ${n} 点伤害，并记录 1。`,
+    onTurnEnd: (g, o, n) => {
+      for (const e of g.alive) g.thorns(e, n, o);
+      g.note(1);
     },
   },
 ]);

@@ -94,6 +94,10 @@ interface TurnStats {
   starsSpent: number;
   /** 本回合对敌人造成的生命损失 */
   dmg: number;
+  /** 本回合思考的次数（Claude） */
+  thinks: number;
+  /** 本回合打出的工具牌数（Claude） */
+  tools: number;
 }
 
 const newTurnStats = (): TurnStats => ({
@@ -106,6 +110,8 @@ const newTurnStats = (): TurnStats => ({
   hpLost: 0,
   starsSpent: 0,
   dmg: 0,
+  thinks: 0,
+  tools: 0,
 });
 
 export interface CombatOpts {
@@ -1003,7 +1009,7 @@ export class Combat {
   }
 
   private takeFromPiles(c: Card) {
-    remove(this.hand, c) || remove(this.drawPile, c) || remove(this.discardPile, c) || remove(this.limbo, c);
+    remove(this.hand, c) || remove(this.drawPile, c) || remove(this.discardPile, c) || remove(this.limbo, c) || remove(this.exhaustPile, c);
   }
 
   exhaustCard(c: Card) {
@@ -1245,7 +1251,10 @@ export class Combat {
         this.t.powers++;
         this.total.powers++;
       }
-      if (d.tags?.includes('tool')) this.total.tools++;
+      if (d.tags?.includes('tool')) {
+        this.total.tools++;
+        this.t.tools++;
+      }
       this.firePowers(this.player, 'onCardPlayed', c);
       for (const e of this.alive) this.firePowers(e, 'onCardPlayed', c);
       for (const r of this.run.relics) RELICS[r.id]?.onCardPlayed?.(this, r, c);
@@ -1274,7 +1283,15 @@ export class Combat {
       this.reducePower(this.player, 'twin_stars', 1);
       plays++;
     }
-    if (d.tags?.includes('tool')) plays += this.pw(this.player, 'agentic_loop');
+    if (d.tags?.includes('tool')) {
+      plays += this.pw(this.player, 'agentic_loop');
+      // 「沙箱」：下一张工具牌额外打出；「智能体编排」：本回合所有工具牌额外打出
+      if (this.pw(this.player, 'tool_echo') > 0) {
+        this.reducePower(this.player, 'tool_echo', 1);
+        plays++;
+      }
+      if (this.has(this.player, 'orchestrate')) plays++;
+    }
     const ench = c.ench && ENCHANTS[c.ench.id];
     if (ench?.id === 'echo' && !this.enchFirstPlayed.has(c.uid)) plays++;
     for (let i = 0; i < plays; i++) {
@@ -1407,6 +1424,8 @@ export class Combat {
   /** 记录：获得上下文；达到窗口上限时压缩（溢出的部分保留） */
   note(n: number) {
     if (n <= 0 || this.over) return;
+    // 「多头注意力」：每次记录时额外记录
+    n += this.pw(this.player, 'multi_head_attention');
     this.context += n;
     this.overflow();
   }
@@ -1458,9 +1477,9 @@ export class Combat {
 
   /**
    * 思考：查看抽牌堆顶部 n 张牌，弃掉其中任意张。
-   * then 会在玩家做出选择之后执行（思考后面的效果都应该放在这里）。
+   * then 会在玩家做出选择之后执行（思考后面的效果都应该放在这里），参数是这次弃掉的牌。
    */
-  think(n: number, then?: () => void) {
+  think(n: number, then?: (discarded: Card[]) => void) {
     // 已有待选择的效果时（例如回合开始时多个思考同时触发），排在它之后
     if (this.pending) {
       this.next(() => this.think(n, then));
@@ -1468,11 +1487,12 @@ export class Combat {
     }
     const top = n > 0 ? this.drawPile.slice(-n).reverse() : [];
     this.chooseCards({ title: `思考 ${top.length}：选择要弃掉的牌（可以不选，最左边是牌堆顶）`, cards: top, min: 0, max: top.length, mode: 'grid' }, (sel) => {
+      this.t.thinks++;
       for (const c of sel) this.discardCard(c);
       // 「灵光」：每当你思考时，从弃牌堆回到手牌
       for (const c of [...this.discardPile]) if (cardDef(c).tags?.includes('thinkReturn')) this.moveTo(c, 'hand');
       this.firePowers(this.player, 'onThink', sel.length);
-      then?.();
+      then?.(sel);
     });
   }
 

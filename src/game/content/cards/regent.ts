@@ -1,5 +1,6 @@
 import { defineCards } from '../../registry';
-import { cardDef, uv } from '../../cards';
+import { canUpgrade, cardDef, upgradeCard, uv } from '../../cards';
+import { COST_X } from '../../types';
 import { B, M, hit, hitAll, hitRandom } from './helpers';
 
 const O = 'regent' as const;
@@ -37,6 +38,8 @@ defineCards([
     dmg: [10, 14], retain: true, noPool: true, text: '造成 {D} 点伤害。\n（铸造可提高伤害）', art: '🗡️',
     tags: ['blade'],
     dmgFn: (g, c) => (c.up ? 14 : 10) + (g?.forged ?? 0),
+    // 「砺刃」：本回合君王之刃费用降低
+    costFn: (g, _c, cost) => cost - g.pw(g.player, 'blade_discount'),
     play: (g, c, t) => hit(g, c, t),
   },
   // ---------------------------------------------------------------- 普通
@@ -338,6 +341,189 @@ defineCards([
       hit(g, c, t);
       const blade = g.hand.find((x) => x.id === 'sovereign_blade');
       if (blade) g.autoPlay(blade, t);
+    },
+  },
+]);
+
+// ---------------------------------------------------------------- 扩充：星辰、铸造与王权各有更多选择
+defineCards([
+  // ---------------------------------------------------------------- 普通
+  {
+    id: 'scepter_bash', name: '权杖重击', color: O, type: 'attack', rarity: 'common', cost: 1, target: 'enemy',
+    dmg: [8, 11], mag: [1, 2], text: '造成 {D} 点伤害。\n若你至少有 2 颗星辰，给予 {M} 层虚弱。', art: '🪄',
+    play: (g, c, t) => {
+      hit(g, c, t);
+      if (t && !t.dead && g.stars >= 2) g.apply(t, 'weak', M(c));
+    },
+  },
+  {
+    id: 'stargazing', name: '观星', color: O, type: 'skill', rarity: 'common', cost: 1, target: 'self',
+    mag: [2, 3], text: '抽 {M} 张牌。\n获得 1 颗星辰。', art: '🔭',
+    play: (g, c) => {
+      g.draw(M(c));
+      g.gainStars(1);
+    },
+  },
+  {
+    id: 'tempered_edge', name: '回火', color: O, type: 'attack', rarity: 'common', cost: 0, target: 'enemy',
+    text: ['造成 {D} 点伤害。\n（2 点，加上铸造值的一半）', '造成 {D} 点伤害。\n（4 点，加上铸造值的一半）'], art: '🔥',
+    dmgFn: (g, c) => (c.up ? 4 : 2) + Math.floor((g?.forged ?? 0) / 2),
+    play: (g, c, t) => hit(g, c, t),
+  },
+  {
+    id: 'noble_stance', name: '王者之姿', color: O, type: 'skill', rarity: 'common', cost: 1, target: 'self',
+    blk: [7, 10], text: '获得 {B} 点格挡。\n下回合开始时获得 1 颗星辰。', art: '🧍',
+    play: (g, c) => {
+      g.block(B(g, c));
+      g.apply(g.player, 'star_next', 1);
+    },
+  },
+  // ---------------------------------------------------------------- 罕见
+  {
+    id: 'astral_projection', name: '星界投影', color: O, type: 'skill', rarity: 'uncommon', cost: [1, 0], star: 1, target: 'self',
+    text: '从弃牌堆中选择 1 张牌放入手牌。', art: '👻',
+    play: (g) =>
+      g.chooseCards({ title: '选择 1 张牌放入手牌', cards: [...g.discardPile].reverse(), min: 1, max: 1 }, (s) => {
+        for (const x of s) g.moveTo(x, 'hand');
+      }),
+  },
+  {
+    id: 'crown_jewels', name: '王冠宝石', color: O, type: 'power', rarity: 'uncommon', cost: 1, target: 'self',
+    mag: [1, 2], text: '每回合你第一次花费星辰时，抽 {M} 张牌。', art: '💎',
+    play: (g, c) => g.apply(g.player, 'crown_jewels', M(c)),
+  },
+  {
+    id: 'forge_master', name: '锻造大师', color: O, type: 'power', rarity: 'uncommon', cost: 1, target: 'self',
+    mag: [2, 3], text: '回合结束时，铸造 {M}。', art: '🧑‍🏭',
+    play: (g, c) => g.apply(g.player, 'forge_master', M(c)),
+  },
+  {
+    id: 'royal_flourish', name: '王室剑花', color: O, type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy',
+    dmg: [3, 4], mag: [2, 3], text: '造成 {D} 点伤害 3 次。\n铸造 {M}。', art: '🤺',
+    play: (g, c, t) => {
+      hit(g, c, t, 3);
+      g.forge(M(c));
+    },
+  },
+  {
+    id: 'shooting_stars', name: '群星坠落', color: O, type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy',
+    dmg: [3, 4], text: '造成 {D} 点伤害，次数等于你的星辰数。\n（不花费星辰）', art: '🌠',
+    play: (g, c, t) => hit(g, c, t, g.stars),
+  },
+  {
+    id: 'knighting', name: '册封', color: O, type: 'skill', rarity: 'uncommon', cost: 1, target: 'self',
+    mag: [1, 2], text: '升级手牌中的 1 张牌。\n获得 {M} 颗星辰。', art: '🎖️',
+    play: (g, c) => {
+      g.chooseHand({ title: '选择 1 张牌升级', min: 1, max: 1, filter: canUpgrade }, (s) => s.forEach(upgradeCard));
+      g.gainStars(M(c));
+    },
+  },
+  {
+    id: 'aegis_of_stars', name: '星辰庇护', color: O, type: 'skill', rarity: 'uncommon', cost: 1, star: 2, target: 'self',
+    blk: [11, 15], text: '获得 {B} 点格挡。\n下回合开始时格挡不会消失。', art: '🛡️',
+    play: (g, c) => {
+      g.block(B(g, c));
+      g.apply(g.player, 'blur', 1);
+    },
+  },
+  {
+    id: 'cosmic_ray', name: '宇宙射线', color: O, type: 'attack', rarity: 'uncommon', cost: 0, star: 1, target: 'enemy',
+    dmg: [7, 10], text: '造成 {D} 点伤害。\n抽 1 张牌。', art: '⚡',
+    play: (g, c, t) => {
+      hit(g, c, t);
+      g.draw(1);
+    },
+  },
+  {
+    id: 'tribute', name: '纳贡', color: O, type: 'attack', rarity: 'uncommon', cost: 1, target: 'enemy',
+    dmg: [8, 11], mag: [12, 16], text: '造成 {D} 点伤害。\n若击杀敌人（召唤物除外），获得 {M} 金币。', art: '💰',
+    play: (g, c, t) => {
+      if (hit(g, c, t) && t && !t.minion) g.run.gainGold(M(c));
+    },
+  },
+  {
+    id: 'fealty', name: '效忠', color: O, type: 'power', rarity: 'uncommon', cost: 1, target: 'self',
+    mag: [5, 7], text: '每当你打出君王之刃，获得 {M} 点格挡。', art: '🤝',
+    play: (g, c) => g.apply(g.player, 'fealty', M(c)),
+  },
+  {
+    id: 'celestial_alignment', name: '星象连珠', color: O, type: 'skill', rarity: 'uncommon', cost: 0, star: [3, 2], target: 'self',
+    text: '获得 2 点能量。', art: '🪐',
+    play: (g) => g.gainEnergy(2),
+  },
+  {
+    id: 'hone_blade', name: '砺刃', color: O, type: 'skill', rarity: 'uncommon', cost: 0, target: 'self',
+    mag: [3, 5], text: '铸造 {M}。\n本回合君王之刃的费用减少 1。', art: '🪨',
+    play: (g, c) => {
+      g.forge(M(c));
+      g.apply(g.player, 'blade_discount', 1);
+    },
+  },
+  {
+    id: 'royal_hunt', name: '王家狩猎', color: O, type: 'attack', rarity: 'uncommon', cost: 2, target: 'enemy',
+    text: ['造成 {D} 点伤害。\n（12 点，精英战与首领战中翻倍）', '造成 {D} 点伤害。\n（16 点，精英战与首领战中翻倍）'], art: '🏹',
+    dmgFn: (g, c) => (c.up ? 16 : 12) * (g && (g.elite || g.boss) ? 2 : 1),
+    play: (g, c, t) => hit(g, c, t),
+  },
+  {
+    id: 'nebula', name: '星云', color: O, type: 'skill', rarity: 'uncommon', cost: 1, target: 'self',
+    mag: [2, 3], text: ['获得 {B} 点格挡。\n（6 点，本回合每花费过 1 颗星辰再 +{M}）', '获得 {B} 点格挡。\n（8 点，本回合每花费过 1 颗星辰再 +{M}）'], art: '🌫️',
+    blkFn: (g, c) => (c.up ? 8 : 6) + (g ? g.t.starsSpent * (uv(cardDef(c).mag, c.up) ?? 0) : 0),
+    play: (g, c) => g.block(B(g, c)),
+  },
+  {
+    id: 'twin_suns', name: '双日', color: O, type: 'attack', rarity: 'uncommon', cost: 1, star: 2, target: 'enemy',
+    dmg: [9, 12], text: '造成 {D} 点伤害 2 次。', art: '🌞',
+    play: (g, c, t) => hit(g, c, t, 2),
+  },
+  // ---------------------------------------------------------------- 稀有
+  {
+    id: 'excalibur', name: '王者之剑', color: O, type: 'attack', rarity: 'rare', cost: 2, target: 'enemy',
+    exhaust: true, text: ['造成 {D} 点伤害。\n（10 点，加上 2 倍铸造值）', '造成 {D} 点伤害。\n（14 点，加上 2 倍铸造值）'], art: '🗡️',
+    dmgFn: (g, c) => (c.up ? 14 : 10) + 2 * (g?.forged ?? 0),
+    play: (g, c, t) => hit(g, c, t),
+  },
+  {
+    id: 'eternal_reign', name: '永恒统治', color: O, type: 'power', rarity: 'rare', cost: [3, 2], target: 'self',
+    text: '每回合你打出的第一张花费星辰的牌会被打出两次。', art: '♾️',
+    play: (g) => g.apply(g.player, 'eternal_reign', 1),
+  },
+  {
+    id: 'stellar_collapse', name: '星辰坍缩', color: O, type: 'attack', rarity: 'rare', cost: COST_X, target: 'enemy',
+    dmg: [6, 8], text: '花费所有星辰。\n造成 {D} 点伤害 X 次，每花费 1 颗星辰再多 1 次。', art: '🌀',
+    play: (g, c, t) => {
+      const s = g.stars;
+      g.spendStars(s);
+      hit(g, c, t, g.x + s);
+    },
+  },
+  {
+    id: 'royal_treasury', name: '王室宝库', color: O, type: 'skill', rarity: 'rare', cost: 0, target: 'self',
+    mag: [2, 3], exhaust: true, text: '获得 1 点能量和 {M} 颗星辰。\n抽 1 张牌。', art: '🏦',
+    play: (g, c) => {
+      g.gainEnergy(1);
+      g.gainStars(M(c));
+      g.draw(1);
+    },
+  },
+  {
+    id: 'masterwork', name: '杰作', color: O, type: 'skill', rarity: 'rare', cost: [1, 0], target: 'self',
+    mag: 5, exhaust: true, text: '铸造值翻倍（至少铸造 {M}）。', art: '🏆',
+    play: (g, c) => g.forge(Math.max(M(c), g.forged)),
+  },
+  {
+    id: 'celestial_globe', name: '天球仪', color: O, type: 'power', rarity: 'rare', cost: [2, 1], target: 'self',
+    text: '回合开始时，抽 1 张牌并获得 1 颗星辰。', art: '🌐',
+    play: (g) => g.apply(g.player, 'celestial_globe', 1),
+  },
+  {
+    id: 'dethrone', name: '废黜', color: O, type: 'attack', rarity: 'rare', cost: 2, target: 'enemy',
+    dmg: [16, 22], text: '移除目标的格挡，然后造成 {D} 点伤害。\n对精英和首领先给予 2 层易伤。', art: '🪓',
+    play: (g, c, t) => {
+      if (!t) return;
+      t.block = 0;
+      if (g.elite || g.boss) g.apply(t, 'vulnerable', 2);
+      hit(g, c, t);
     },
   },
 ]);
