@@ -51,16 +51,30 @@ export function authErrorText(e: unknown): string {
   switch (code) {
     case 'auth/invalid-email':
       return '邮箱格式不正确。';
+    case 'app/invalid-username':
+      return '用户名需要 3 到 20 位，只能用英文字母、数字、下划线、点和短横线。';
+    case 'app/username-reset':
+      return '用户名账号没有绑定邮箱，无法通过邮件重置密码。';
+    case 'app/not-signed-in':
+      return '请先登录。';
+    case 'app/slot-too-big':
+      return '这份存档太大，无法保存到云端。';
+    case 'app/bad-save':
+      return '存档已损坏，无法保存。';
+    case 'permission-denied':
+      return '云端拒绝了这次写入（权限不足）。';
+    case 'unavailable':
+      return '暂时连不上云端，请检查网络后重试。';
     case 'auth/missing-password':
     case 'auth/weak-password':
       return '密码至少需要 6 位。';
     case 'auth/email-already-in-use':
-      return '这个邮箱已经注册过了，请直接登录。';
+      return '这个邮箱或用户名已经注册过了，请直接登录。';
     case 'auth/invalid-credential':
     case 'auth/invalid-login-credentials':
     case 'auth/wrong-password':
     case 'auth/user-not-found':
-      return '邮箱或密码不正确。';
+      return '账号或密码不正确。';
     case 'auth/user-disabled':
       return '这个账号已被停用。';
     case 'auth/too-many-requests':

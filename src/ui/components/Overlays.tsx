@@ -13,6 +13,8 @@ import { RelicIcon } from './Art';
 import { AccountOverlay, ConflictOverlay, LoginOverlay } from './Account';
 import { cloud } from '../../cloud/sync';
 import { Bestiary } from './Bestiary';
+import { AchievementsOverlay } from './Achievements';
+import { SlotsOverlay } from './SaveSlots';
 
 const TYPE_ORDER: Record<string, number> = { attack: 0, skill: 1, power: 2, status: 3, curse: 4 };
 
@@ -88,6 +90,8 @@ export function Overlays() {
   if (o.kind === 'login') return <LoginOverlay />;
   if (o.kind === 'account') return <AccountOverlay />;
   if (o.kind === 'syncConflict') return <ConflictOverlay />;
+  if (o.kind === 'achievements') return <AchievementsOverlay />;
+  if (o.kind === 'slots') return <SlotsOverlay />;
   if (o.kind === 'confirm') {
     return (
       <div class="overlay">
@@ -182,6 +186,11 @@ function Settings() {
             >
               保存并返回主菜单
             </button>
+            {cloud.user && (
+              <button class="btn" onClick={() => setOverlay({ kind: 'slots' })}>
+                存档位
+              </button>
+            )}
             {!confirmAbandon ? (
               <button class="btn danger" onClick={() => setConfirmAbandon(true)}>
                 放弃本局

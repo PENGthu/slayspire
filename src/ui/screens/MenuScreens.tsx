@@ -9,6 +9,7 @@ import { tipProps } from '../components/Tooltip';
 import { confirm, deleteSave, loadRun, refresh, setOverlay, startNewRun, state } from '../store';
 import { AccountChip } from '../components/Account';
 import { cloud } from '../../cloud/sync';
+import { ACHIEVEMENTS } from '../../game/achievements';
 
 export const ASC_DESC = [
   '标准难度。',
@@ -107,6 +108,14 @@ export function MenuScreen() {
         >
           图鉴 · 卡牌与怪物
         </button>
+        {cloud.user && (
+          <button class="btn ghost" onClick={() => setOverlay({ kind: 'slots' })}>
+            存档位
+          </button>
+        )}
+        <button class="btn ghost" onClick={() => setOverlay({ kind: 'achievements' })}>
+          成就 <span class="menu-badge">{ACHIEVEMENTS.filter((a) => p.ach.unlocked[a.id]).length}/{ACHIEVEMENTS.length}</span>
+        </button>
         <button class="btn ghost" onClick={() => setOverlay({ kind: 'settings' })}>
           设置
         </button>
@@ -118,7 +127,7 @@ export function MenuScreen() {
           </div>
         )}
         致敬《杀戮尖塔 2》的同人卡牌构筑游戏 ·{' '}
-        {cloud.user ? '进度已同步到你的账号' : cloud.available ? '未登录时进度只保存在这台设备上' : '进度只保存在这台设备的浏览器里'}
+        {cloud.user ? '进度已同步到你的账号' : cloud.available ? '未登录时进度只保存在这台设备上；登录后可使用 3 个云端存档位' : '进度只保存在这台设备的浏览器里'}
       </div>
     </div>
   );

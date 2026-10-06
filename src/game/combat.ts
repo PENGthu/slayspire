@@ -92,6 +92,8 @@ interface TurnStats {
   drawn: number;
   hpLost: number;
   starsSpent: number;
+  /** 本回合对敌人造成的生命损失 */
+  dmg: number;
 }
 
 const newTurnStats = (): TurnStats => ({
@@ -103,6 +105,7 @@ const newTurnStats = (): TurnStats => ({
   drawn: 0,
   hpLost: 0,
   starsSpent: 0,
+  dmg: 0,
 });
 
 export interface CombatOpts {
@@ -150,7 +153,9 @@ export class Combat {
   x = 0;
   t: TurnStats = newTurnStats();
   /** 整场战斗计数 */
-  total = { cards: 0, attacks: 0, hpLossTimes: 0, shuffles: 0, summons: 0, ostyDeaths: 0, lightning: 0, frost: 0, powers: 0, tools: 0 };
+  total = { cards: 0, attacks: 0, hpLossTimes: 0, shuffles: 0, summons: 0, ostyDeaths: 0, lightning: 0, frost: 0, powers: 0, tools: 0, potions: 0, hpLost: 0 };
+  /** 本场战斗的纪录（成就用）：单次攻击最高伤害、单回合最高伤害、单回合最多出牌 */
+  best = { hit: 0, turnDmg: 0, turnCards: 0 };
   firstTurnDrawBonus = 0;
   drawPerTurnBonus = 0;
   /** 战斗结束奖励的额外金币（偷窃被夺回等） */
@@ -708,8 +713,13 @@ export class Combat {
       dealt = Math.min(d, tgt.hp);
       tgt.hp -= d;
       this.emit(kind === 'hploss' ? 'hploss' : 'dmg', tgt.uid, d);
+      if (!tgt.isPlayer && tgt !== this.osty && this.phase !== 'enemy') {
+        this.t.dmg += dealt;
+        this.best.turnDmg = Math.max(this.best.turnDmg, this.t.dmg);
+      }
       if (tgt.isPlayer) {
         this.t.hpLost += d;
+        this.total.hpLost += d;
         this.total.hpLossTimes++;
         this.run.stats.damageTaken += d;
         for (const r of this.run.relics) RELICS[r.id]?.onPlayerHpLoss?.(this, r, d);
@@ -783,6 +793,7 @@ export class Combat {
     if (!target || target.dead || (target as Enemy).escaped) return { dealt: 0, killed: false };
     const d = this.calcAttack(s, target, base, card);
     if (s) this.emit('lunge', s.uid);
+    if ((s?.isPlayer || (s && s === this.osty)) && !target.isPlayer) this.best.hit = Math.max(this.best.hit, d);
     const r = this.dealDamage(target, d, s, 'attack');
     if (s?.isPlayer && card && cardDef(card).type === 'attack') {
       this.firePowers(s, 'onDealAttack', target, r.dealt);
@@ -1224,6 +1235,7 @@ export class Combat {
       if (c.afflict === 'sapping') this.loseHp(this.player, 2);
       this.t.cards++;
       this.total.cards++;
+      this.best.turnCards = Math.max(this.best.turnCards, this.t.cards);
       c.played = (c.played ?? 0) + 1;
       if (d.type === 'attack') {
         this.t.attacks++;
@@ -1534,6 +1546,7 @@ export class Combat {
     const def = POTIONS[id];
     if (def.target === 'enemy' && (!target || target.dead)) target = this.alive[0] ?? null;
     this.run.potions[slot] = null;
+    this.total.potions++;
     this.queue.push(() => {
       def.use({ run: this.run, g: this, t: target, potency: this.run.potionPotency() });
       for (const r of this.run.relics) RELICS[r.id]?.onPotionUsed?.(this.run, r, this);

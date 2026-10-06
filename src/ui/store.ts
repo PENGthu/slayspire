@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
+import { type AchEvent, type AchState, backfill, newAchState, processEvent } from '../game/achievements';
+import type { Combat } from '../game/combat';
 import { Run } from '../game/run';
 import type { CharId } from '../game/types';
 
@@ -20,6 +22,8 @@ export interface Profile {
   settings: Settings;
   /** 是否已看过战斗教程 */
   tutorialSeen?: boolean;
+  /** 成就与累计计数 */
+  ach: AchState;
 }
 
 export type Overlay =
@@ -30,7 +34,9 @@ export type Overlay =
   | { kind: 'confirm'; text: string; yes: string; onYes: () => void }
   | { kind: 'login' }
   | { kind: 'account' }
-  | { kind: 'syncConflict' };
+  | { kind: 'syncConflict' }
+  | { kind: 'achievements' }
+  | { kind: 'slots' };
 
 export interface UiState {
   /** 打开操作菜单的药水栏位 */
@@ -46,6 +52,8 @@ export interface AppState {
   profile: Profile;
   hasSave: boolean;
   ui: UiState;
+  /** 刚解锁、正在提示的成就 */
+  achToasts: { id: string; key: number }[];
 }
 
 /** 本地存档变化时的回调（云存档用它来同步） */
@@ -83,12 +91,16 @@ export function safeDel(key: string) {
 }
 
 function loadProfile(): Profile {
-  const def: Profile = { maxAsc: {}, wins: 0, runs: 0, bestScore: 0, settings: { fast: false, sound: true } };
+  const def: Profile = { maxAsc: {}, wins: 0, runs: 0, bestScore: 0, settings: { fast: false, sound: true }, ach: newAchState() };
   const raw = safeGet(PROFILE_KEY);
   if (!raw) return def;
   try {
     const p = JSON.parse(raw);
-    return { ...def, ...p, settings: { ...def.settings, ...(p.settings ?? {}) } };
+    const prof: Profile = { ...def, ...p, settings: { ...def.settings, ...(p.settings ?? {}) } };
+    prof.ach = { ...newAchState(), ...(p.ach ?? {}) };
+    // 加入成就之前的老存档：按已有战绩补发
+    backfill(prof.ach, prof);
+    return prof;
   } catch {
     return def;
   }
@@ -101,7 +113,26 @@ export const state: AppState = {
   profile: loadProfile(),
   hasSave: !!safeGet(SAVE_KEY),
   ui: { potionMenu: null, potionTarget: null },
+  achToasts: [],
 };
+
+let toastKey = 0;
+
+/** 处理一个成就事件；有新解锁时弹出提示并存档 */
+export function achieve(ev: AchEvent) {
+  const a = state.profile.ach;
+  const before = JSON.stringify(a.counters) + a.seen.length;
+  const fresh = processEvent(a, ev);
+  for (const id of fresh) {
+    const key = ++toastKey;
+    state.achToasts.push({ id, key });
+    setTimeout(() => {
+      state.achToasts = state.achToasts.filter((t) => t.key !== key);
+      refresh();
+    }, 5200);
+  }
+  if (fresh.length || JSON.stringify(a.counters) + a.seen.length !== before) saveProfile();
+}
 
 const listeners = new Set<() => void>();
 
@@ -191,6 +222,21 @@ export function loadRun(): Run | null {
   }
 }
 
+/** 读取一份存档（来自存档位）：成为当前进度并开始游戏。存档损坏时返回 false */
+export function resumeFromRaw(raw: string): boolean {
+  let run: Run;
+  try {
+    run = Run.fromJSON(JSON.parse(raw));
+  } catch (e) {
+    console.warn('读档失败', e);
+    return false;
+  }
+  writeLocalRun(raw, Date.now());
+  persistHooks.onChange?.('run');
+  startNewRun(run);
+  return true;
+}
+
 export function deleteSave() {
   safeDel(SAVE_KEY);
   safeDel(SAVE_TIME_KEY);
@@ -199,9 +245,11 @@ export function deleteSave() {
 }
 
 let recorded = new WeakSet<Run>();
+const reportedCombats = new WeakSet<Combat>();
 
 /** 执行一个改变游戏状态的操作：存档并刷新界面 */
 export function act(fn: () => void) {
+  const g0 = state.run?.combat ?? null;
   try {
     fn();
   } catch (e) {
@@ -210,6 +258,12 @@ export function act(fn: () => void) {
   }
   const run = state.run;
   if (run) {
+    // 战斗结束（可能发生在这次操作里，也可能在之前的敌方回合里）
+    const g = g0 && g0.over ? g0 : run.combat?.over ? run.combat : null;
+    if (g && !reportedCombats.has(g)) {
+      reportedCombats.add(g);
+      achieve({ t: 'combat', g, run, win: g.result === 'win' });
+    }
     if (run.screen.s === 'gameover' && !recorded.has(run)) {
       recorded.add(run);
       const p = state.profile;
@@ -220,7 +274,9 @@ export function act(fn: () => void) {
         p.maxAsc[run.char] = Math.max(p.maxAsc[run.char] ?? 0, Math.min(10, run.ascension + 1));
       }
       saveProfile();
+      achieve({ t: 'runEnd', run, win: !!run.screen.win });
     }
+    achieve({ t: 'tick', run });
     saveRun();
   }
   refresh();

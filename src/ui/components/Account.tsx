@@ -117,13 +117,13 @@ export function LoginOverlay() {
     <div class="overlay" onClick={(e) => e.target === e.currentTarget && !busy && close()}>
       <div class="modal panel login-panel">
         <h2>{tab === 'login' ? '登录' : '创建账号'}</h2>
-        <div class="login-lead">登录后，解锁的进阶、战绩和进行中的攀登会保存到云端，换一台设备也能继续。</div>
+        <div class="login-lead">登录后，解锁的进阶、成就和进行中的攀登会保存到云端，换一台设备也能继续；还能使用 3 个云端存档位。</div>
         <button class="btn google-btn" disabled={busy || cloud.phase === 'loading'} onClick={() => void run(signInWithGoogle)}>
           <GoogleLogo />
           {cloud.phase === 'loading' ? '正在连接登录服务…' : `使用 Google 账号${tab === 'login' ? '登录' : '注册'}`}
         </button>
         <div class="login-or">
-          <span>或使用邮箱</span>
+          <span>或使用邮箱 / 用户名</span>
         </div>
         <div class="login-tabs" role="tablist">
           <button role="tab" aria-selected={tab === 'login'} class={tab === 'login' ? 'on' : ''} onClick={() => (setTab('login'), setErr(''), setInfo(''))}>
@@ -141,8 +141,19 @@ export function LoginOverlay() {
             </label>
           )}
           <label>
-            <span>邮箱</span>
-            <input id="acc-email" type="email" required value={email} autocomplete="email" placeholder="you@example.com" onInput={(e) => setEmail((e.target as HTMLInputElement).value)} />
+            <span>邮箱或用户名</span>
+            <input
+              id="acc-email"
+              type="text"
+              required
+              value={email}
+              autocapitalize="off"
+              autocorrect="off"
+              spellcheck={false}
+              autocomplete="username"
+              placeholder={tab === 'login' ? 'you@example.com 或用户名' : '邮箱，或 3–20 位英文用户名'}
+              onInput={(e) => setEmail((e.target as HTMLInputElement).value)}
+            />
           </label>
           <label>
             <span>密码</span>
@@ -177,6 +188,10 @@ export function LoginOverlay() {
               onClick={() => {
                 if (!email.trim()) {
                   setErr('请先在上面填写邮箱。');
+                  return;
+                }
+                if (!email.includes('@')) {
+                  setErr('用户名账号没有绑定邮箱，无法通过邮件重置密码。');
                   return;
                 }
                 void run(async () => {
@@ -219,8 +234,8 @@ export function AccountOverlay() {
           <Avatar size={56} />
           <div>
             <div class="acc-name">{u.name}</div>
-            <div class="acc-mail">{u.email ?? ''}</div>
-            <div class="acc-mail">{u.provider === 'google' ? '通过 Google 登录' : u.provider === 'password' ? '邮箱账号' : '已登录'}</div>
+            <div class="acc-mail">{u.email ?? (u.username ? `用户名：${u.username}` : '')}</div>
+            <div class="acc-mail">{u.provider === 'google' ? '通过 Google 登录' : u.username ? '用户名账号' : u.provider === 'password' ? '邮箱账号' : '已登录'}</div>
           </div>
         </div>
         <div class={`acc-sync sync-${cloud.sync}`}>
@@ -230,6 +245,9 @@ export function AccountOverlay() {
         </div>
         <div class="login-lead">进度会在每次离开战斗、进入新房间时自动保存到云端。在其他设备上登录同一个账号即可继续攀登。</div>
         <div class="overlay-actions">
+          <button class="btn" disabled={busy} onClick={() => setOverlay({ kind: 'slots' })}>
+            存档位
+          </button>
           <button
             class="btn"
             disabled={busy}

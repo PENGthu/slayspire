@@ -21,6 +21,7 @@ import { refresh, state, useStore } from './store';
 import { sfxForScreen } from './sound';
 import { SCENE_GROUND, sceneUrl } from './art/sceneArt';
 import { CardReveal } from './components/CardReveal';
+import { AchievementToasts } from './components/Achievements';
 
 /** 让场景的地面线对齐到人物站立的高度 */
 function sceneOffset(d: Dims): number {
@@ -128,6 +129,7 @@ export function App() {
         {run && run.selection && <SelectionOverlay run={run} />}
         {st.view === 'run' && run && <CardReveal run={run} />}
         <Toasts run={run} />
+        <AchievementToasts />
         <TooltipLayer />
       </div>
     </div>
