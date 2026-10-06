@@ -578,8 +578,10 @@ export class Run {
     this.path = [];
     this.zone = act === 1 ? this.rng('map').pick(['overgrowth', 'underdocks']) : act === 2 ? 'hive' : 'glory';
     this.map = generateMap(this.rng(`map${act}`), act, this.ascension);
-    const bosses = Object.values(ENCOUNTERS).filter((e) => this.encInZone(e) && e.kind === 'boss');
-    this.boss = this.rng('enc').pick(bosses).id;
+    // 角色专属首领（例如小克的 Gemini / Grok / OpenAI）优先，否则在本区域的首领中随机
+    const own = Object.values(ENCOUNTERS).filter((e) => e.kind === 'boss' && e.char === this.char && e.act === act);
+    const bosses = Object.values(ENCOUNTERS).filter((e) => this.encInZone(e) && e.kind === 'boss' && !e.char);
+    this.boss = own.length ? own[0].id : this.rng('enc').pick(bosses).id;
     // 先古之民
     const ancients = Object.values(ANCIENTS).filter((a) => a.acts.includes(act));
     const anc = this.rng('event').pick(ancients);
@@ -699,7 +701,7 @@ export class Run {
 
   pickEncounter(kind: 'weak' | 'strong' | 'elite'): EncounterDef {
     const rng = this.rng('enc');
-    let pool = Object.values(ENCOUNTERS).filter((e) => this.encInZone(e) && e.kind === kind);
+    let pool = Object.values(ENCOUNTERS).filter((e) => this.encInZone(e) && e.kind === kind && (!e.char || e.char === this.char));
     const hist = kind === 'elite' ? this.eliteHistory : this.encHistory;
     const fresh = pool.filter((e) => !hist.slice(-2).includes(e.id));
     if (fresh.length) pool = fresh;
@@ -772,6 +774,12 @@ export class Run {
       if (this.hasRelic('black_star')) rewards.push({ type: 'relic', id: this.randomRelicId() });
     }
     if (sc.extra?.relic) rewards.push({ type: 'relic', id: sc.extra.relic });
+    // 专属首领：获胜台词与纪念遗物
+    const enc = ENCOUNTERS[sc.enc];
+    if (kind === 'boss' && enc?.char === this.char) {
+      if (enc.winLine) this.toast(`${enc.winLine[0]}：${enc.winLine[1]}`);
+      if (enc.keepsake && !this.hasRelic(enc.keepsake)) rewards.push({ type: 'relic', id: enc.keepsake });
+    }
     // 药水
     const potionRoll = this.rng('potion').int(0, 99);
     const chance = this.hasRelic('white_beast_statue') ? 100 : this.potionChance;

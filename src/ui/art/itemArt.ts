@@ -252,6 +252,8 @@ function potionArtBody(id: string): string {
 
 const R: Record<string, Draw> = {
   // Claude
+  twin_mirror: () => mo('mirror', 0.6, { color: 'claude' }) + ink(starPath(-10, -6, 9, 3.4, 4), '#9fb4ff', 1.8) + ink(starPath(10, 6, 7, 2.8, 4), '#ffe08a', 1.6),
+  trending_list: () => mo('chart', 0.6, { color: 'claude' }) + `<text x="-22" y="-14" font-size="22" font-weight="900" fill="#141416" stroke="#fff" stroke-width="1">#</text>`,
   the_spark: () => glow(0, 0, 46, '#ffb48a', 0.6) + Mo.sparkBody('#d97757', 40, 12, 6),
   blazing_spark: () => place(Mo.flameBody(), 0, -6, 0.62) + place(Mo.sparkBody('#e8845f', 26, 12, 6), 0, 12, 1),
   sticky_note: () =>

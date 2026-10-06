@@ -1386,6 +1386,41 @@ button {
 }
 
 /* 吐司 */
+/* 专属首领的开场对话 */
+.boss-intro {
+  position: absolute;
+  left: 50%;
+  top: 76px;
+  transform: translateX(-50%);
+  z-index: 120;
+  width: min(620px, 92%);
+  padding: 14px 18px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: pointer;
+  animation: fadein 0.3s ease;
+}
+.boss-intro .bi-line {
+  display: flex;
+  gap: 10px;
+  font-size: 16px;
+  line-height: 1.5;
+}
+.boss-intro .bi-line b {
+  flex: none;
+  min-width: 74px;
+  color: #9ec8ff;
+  font-family: var(--f-serif);
+}
+.boss-intro .bi-line.me b {
+  color: #f0a07e;
+}
+.boss-intro .bi-hint {
+  align-self: flex-end;
+  font-size: 12px;
+  color: var(--muted);
+}
 /* 获得 / 修改卡牌时的展示 */
 .card-reveal {
   position: absolute;

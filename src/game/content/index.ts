@@ -12,6 +12,7 @@ import './relics';
 import './potions';
 import './enemies/act1';
 import './enemies/underdocks';
+import './enemies/claude_bosses';
 import './enemies/act2';
 import './enemies/act3';
 import './events';

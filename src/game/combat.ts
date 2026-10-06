@@ -157,6 +157,8 @@ export class Combat {
   bonusGold = 0;
   /** 因卡牌效果（如狂宴）获得的额外奖励标记 */
   flags: Record<string, number> = {};
+  /** 战斗内的文字备注（例如 OpenAI「记住」的那张牌） */
+  notes: Record<string, string> = {};
   private processing = false;
   private enemySteps: (() => void)[] = [];
   /** 已经打出过的附魔首效 */
@@ -1118,6 +1120,9 @@ export class Combat {
     if (c.freeOnce) cost = 0;
     if (this.has(this.player, 'free_attacks') && d.type === 'attack') cost = 0;
     if (c.afflict === 'heavy') cost += 1;
+    // 专属首领施加的临时规则
+    if (d.type === 'attack' && this.has(this.player, 'trend_attack_tax')) cost += 1;
+    if (this.has(this.player, 'memorized') && this.notes.memorized === c.id) cost += 1;
     return Math.max(0, cost);
   }
 
@@ -1139,6 +1144,7 @@ export class Combat {
     if (this.costOf(c) > this.energy) return '能量不足';
     if (this.starCostOf(c) > this.stars) return '星辰不足';
     if (d.type === 'attack' && this.has(this.player, 'entangled')) return '你被缠绕了，无法打出攻击牌';
+    if (d.tags?.includes('tool') && this.has(this.player, 'trend_tool_strike')) return '#工具罢工：本回合不能打出工具牌';
     if (this.t.cards >= 3 && this.hand.some((h) => h.id === 'normality')) return '凡庸：本回合已无法打出更多卡牌';
     if (this.run.hasRelic('velvet_choker') && this.t.cards >= 6) return '本回合已打出 6 张牌';
     if (d.canPlay) {
@@ -1420,6 +1426,7 @@ export class Combat {
     this.addToHand('summary');
     this.firePowers(this.player, 'onCompact');
     this.fireRelics('onCompact');
+    for (const e of this.alive) this.firePowers(e, 'onCompact');
   }
 
   /** 花费上下文，返回实际花费的数量 */

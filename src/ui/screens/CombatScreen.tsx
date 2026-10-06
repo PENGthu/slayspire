@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { CHARACTERS } from '../../game/characters';
 import type { Combat } from '../../game/combat';
-import { CARDS, ENEMIES, POTIONS, POWERS } from '../../game/registry';
+import { CARDS, ENCOUNTERS, ENEMIES, POTIONS, POWERS } from '../../game/registry';
 import type { Run } from '../../game/run';
 import type { Card, Creature, Enemy } from '../../game/types';
 import { INTENT_DESC, IntentIcon, OrbArt, OstyArt, Portrait, RelicIcon } from '../components/Art';
@@ -136,6 +136,14 @@ export function CombatScreen({ run }: { run: Run }) {
   const [aimEnemy, setAimEnemy] = useState<number | null>(null);
   const [picks, setPicks] = useState<number[]>([]);
   const [banner, setBanner] = useState<{ text: string; id: number } | null>(null);
+  // 专属首领的开场对话
+  const intro = run.screen.s === 'combat' && g.turn <= 1 ? ENCOUNTERS[run.screen.enc]?.intro : undefined;
+  const [introOpen, setIntroOpen] = useState(true);
+  useEffect(() => {
+    if (!intro) return;
+    const t = setTimeout(() => setIntroOpen(false), 9000);
+    return () => clearTimeout(t);
+  }, [!!intro]);
   const rootRef = useRef<HTMLDivElement>(null);
   const fxRef = useRef<HTMLDivElement>(null);
   const running = useRef(false);
@@ -588,6 +596,18 @@ export function CombatScreen({ run }: { run: Run }) {
           to={arrowTo}
           hot={targetEnemyUid !== null}
         />
+      )}
+
+      {intro && introOpen && (
+        <div class="boss-intro panel" onClick={() => setIntroOpen(false)}>
+          {intro.map(([who, text], i) => (
+            <div key={i} class={`bi-line ${who === '小克' ? 'me' : ''}`}>
+              <b>{who}</b>
+              <span>{text}</span>
+            </div>
+          ))}
+          <div class="bi-hint">点击关闭</div>
+        </div>
       )}
 
       {/* 手牌选择栏 */}

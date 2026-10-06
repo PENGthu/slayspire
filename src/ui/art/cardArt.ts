@@ -315,6 +315,9 @@ const BY_ID: Record<string, ArtSpec> = {
   sly_dagger: { m: 'dagger', fx: 'slash' },
   sovereign_blade: { m: 'sword', tint: '#ffe8a8', bg: 'gold', s: 1.1, fx: 'slash' },
   osty_strike: { m: 'boneHand', fx: 'impact' },
+  gen_image: { m: 'eye', bg: 'void' },
+  hot_post: { m: 'speech', tint: '#ffd0c0', bg: 'fire' },
+  bug: { m: 'germ', bg: 'poison' },
   // Claude
   strike_c: { m: 'feather', tint: '#fbf3e2', fx: 'slash' },
   defend_c: { m: 'shield', tint: '#d97757' },

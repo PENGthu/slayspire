@@ -2,7 +2,8 @@
  * 敌人立绘。画布 200×200，脚底约在 y=192，面朝左（玩家方向）。
  */
 import { INK, circle, doc, dot, ellipse, fill, glow, ink, limb, line, memo, mix, place, shade, starPath } from './kit';
-import { flameBody, swordBody } from './motifs';
+import { flameBody, swordBody, terminal } from './motifs';
+import { PALS } from './palettes';
 import { M } from './palettes';
 
 type Art = () => string;
@@ -1369,7 +1370,175 @@ const queen_guard: Art = () =>
 
 // ---------------------------------------------------------------- 登记
 
+
+// ---------------------------------------------------------------- 小克专属首领
+
+/** Gemini 双子：星辰人形，头是一颗四角星 */
+function geminiBody(top: string, bot: string, glowCol: string, extra = '', s = 1): string {
+  const gid = `gm${top.slice(1)}`;
+  return (
+    shadow(56 * s) +
+    glow(100, 100, 90, glowCol, 0.4) +
+    `<linearGradient id="${gid}" x1="0" y1="0" x2="0.3" y2="1"><stop offset="0" stop-color="${top}"/><stop offset="1" stop-color="${bot}"/></linearGradient>` +
+    // 星光长袍
+    ink('M74 96 C62 128 52 160 44 190 L156 190 C148 160 138 128 126 96 C116 88 84 88 74 96 Z', `url(#${gid})`) +
+    dark('M108 90 C118 90 124 92 126 96 C138 128 148 160 156 190 L120 190 C128 150 122 116 108 90 Z', 0.2) +
+    [
+      [70, 150],
+      [96, 132],
+      [120, 160],
+      [84, 176],
+      [136, 178],
+    ]
+      .map(([x, y], i) => ink(starPath(x, y, i % 2 ? 3 : 4.5, i % 2 ? 1.2 : 1.8, 4), '#ffffff', 0.8))
+      .join('') +
+    line('M70 150 L96 132 L120 160 M96 132 L84 176', '#ffffff', 1, 0.45) +
+    // 袖子与托着的光
+    ink('M78 102 C64 112 52 124 44 136 C42 142 48 146 54 142 C62 132 72 124 82 118 Z', mix(top, '#ffffff', 0.15), 2.6) +
+    glow(46, 140, 18, '#ffffff', 0.8) +
+    // 四角星的头
+    glow(100, 62, 44, glowCol, 0.7) +
+    ink('M100 20 C104 46 114 56 140 62 C114 68 104 78 100 104 C96 78 86 68 60 62 C86 56 96 46 100 20 Z', mix(top, '#ffffff', 0.55), 3) +
+    fill('M100 20 C104 46 114 56 140 62 C114 68 104 78 100 104 C102 78 102 46 100 20 Z', '#000', 0.08) +
+    ellipse(92, 60, 3.4, 5, '#1a1a40', 0) +
+    ellipse(106, 60, 3.4, 5, '#1a1a40', 0) +
+    dot(91, 58, 1.2, '#fff', 0.9) +
+    dot(105, 58, 1.2, '#fff', 0.9) +
+    hi('M96 36 C96 46 92 54 84 58', 2, 0.6) +
+    extra
+  );
+}
+
+const gemini_pro: Art = () =>
+  geminiBody(
+    '#6a8cff',
+    '#7a3ed0',
+    '#9fb4ff',
+    // 环绕的四种模态：文字、图像、声音、视频
+    [
+      [34, 70, `<text x="0" y="6" text-anchor="middle" font-size="18" font-weight="900" fill="#fff" font-family="serif">A</text>`],
+      [166, 74, ink('M-9 -7 L9 -7 L9 7 L-9 7 Z', '#cfe0ff', 1.6) + ink('M-7 5 L-2 -1 L2 3 L4 1 L7 5 Z', '#4a6ad0', 1)],
+      [160, 128, line('M-8 0 C-6 -8 -2 -8 0 0 C2 8 6 8 8 0', '#fff', 2.4)],
+      [30, 118, ink('M-5 -7 L8 0 L-5 7 Z', '#fff', 1.4)],
+    ]
+      .map(([x, y, body]) => glow(x as number, y as number, 14, '#bfd0ff', 0.6) + place(body as string, x as number, y as number, 1))
+      .join(''),
+  );
+
+const gemini_flash: Art = () =>
+  geminiBody(
+    '#58d8ff',
+    '#f0b43a',
+    '#bff4ff',
+    // 身后的速度线与胸前的闪电
+    line('M150 110 L192 104 M156 128 L196 126 M150 146 L190 150', '#bff4ff', 3, 0.6) +
+      ink('M104 118 L94 140 L102 140 L96 160 L114 132 L106 132 L112 118 Z', '#fff36a', 2),
+  );
+
+/** Grok：黑亮的叛逆者，一道白色斜杠当眼睛，身边绕着信息流 */
+function grokBody(ghost = false): string {
+  const body = ghost ? '#2a2a30' : '#141416';
+  const feed = (d: string) => line(d, '#ffffff', 7, ghost ? 0.12 : 0.18) + line(d, '#ffffff', 1.4, ghost ? 0.4 : 0.7);
+  return (
+    `<g opacity="${ghost ? 0.78 : 1}">` +
+    shadow(72) +
+    // 信息流
+    feed('M10 70 C40 40 160 30 190 80') +
+    feed('M14 150 C60 176 150 176 190 140') +
+    [24, 60, 140, 176].map((x, i) => line(`M${x} ${i % 2 ? 56 : 66} l10 -2`, '#fff', 2, 0.7)).join('') +
+    // 叛逆的尖刺头发
+    ink('M58 70 L52 36 L72 58 L76 22 L92 54 L104 18 L112 52 L130 26 L130 60 L150 44 L142 76 Z', body) +
+    // 身体
+    ink('M40 186 C26 150 34 96 74 72 C104 56 140 66 158 96 C176 128 170 166 156 186 Z', body) +
+    dark('M120 64 C142 70 160 90 166 118 C170 146 164 170 156 186 L130 186 C152 150 150 96 120 64 Z', 0.3) +
+    line('M52 112 C58 92 72 80 92 74', '#6a6a78', 4, 0.6) +
+    // 斜杠眼
+    glow(86, 110, 26, '#ffffff', 0.5) +
+    ink('M56 124 L118 94 L122 102 L60 132 Z', '#ffffff', 2.4) +
+    // 坏笑
+    ink('M60 150 C80 160 108 158 128 144 C120 166 80 172 60 150 Z', '#ffffff', 2.4) +
+    line('M74 152 L76 162 M88 155 L89 166 M102 154 L102 164 M114 149 L113 160', body, 2) +
+    // 漂浮的 # 气泡
+    [
+      [24, 108],
+      [178, 112],
+    ]
+      .map(([x, y]) => ink(`M${x - 12} ${y - 10} L${x + 12} ${y - 10} L${x + 12} ${y + 8} L${x + 2} ${y + 8} L${x - 4} ${y + 14} L${x - 4} ${y + 8} L${x - 12} ${y + 8} Z`, '#f4f4f8', 2) + `<text x="${x}" y="${y + 5}" text-anchor="middle" font-size="14" font-weight="900" fill="#141416">#</text>`)
+      .join('') +
+    '</g>'
+  );
+}
+
+const grok: Art = () => grokBody();
+const grok_clone: Art = () => grokBody(true);
+
+/** OpenAI：一座黑色巨碑，中间是发光的核心，周围绕着轨道环 */
+const openai: Art = () => {
+  const ring = (rx: number, ry: number, rot: number, o: number) => `<ellipse cx="100" cy="96" rx="${rx}" ry="${ry}" fill="none" stroke="#bff6ea" stroke-width="2.4" opacity="${o}" transform="rotate(${rot} 100 96)"/>`;
+  return (
+    shadow(80) +
+    glow(100, 96, 96, '#7ff0d8', 0.35) +
+    // 后半圈轨道
+    ring(92, 26, -18, 0.35) +
+    ring(86, 30, 22, 0.3) +
+    // 底座
+    ink('M44 182 L156 182 L164 192 L36 192 Z', '#2a2c32', 2.6) +
+    // 巨碑
+    ink('M58 184 L56 44 C56 24 72 10 100 10 C128 10 144 24 144 44 L142 184 Z', '#1b1d22') +
+    dark('M112 12 C132 16 144 28 144 44 L142 184 L116 184 C122 130 122 60 112 12 Z', 0.3) +
+    line('M70 60 L70 170 M130 60 L130 170 M70 140 L130 140', '#34373f', 2, 0.9) +
+    hi('M64 46 C64 30 74 20 88 16', 2.4, 0.35) +
+    // 核心
+    glow(100, 82, 40, '#9ff6e6', 0.9) +
+    circle(100, 82, 26, '#0e1a1a', 3) +
+    `<circle cx="100" cy="82" r="18" fill="none" stroke="#9ff6e6" stroke-width="3"/>` +
+    `<circle cx="100" cy="82" r="10" fill="none" stroke="#dffff8" stroke-width="2.4"/>` +
+    dot(100, 82, 4.5, '#ffffff') +
+    // 前半圈轨道与节点
+    `<path d="M10 102 A92 26 -18 0 0 190 90" fill="none" stroke="#bff6ea" stroke-width="2.6" opacity="0.8" transform="rotate(-18 100 96)"/>` +
+    [
+      [22, 118],
+      [176, 62],
+      [150, 140],
+      [40, 52],
+    ]
+      .map(([x, y]) => glow(x, y, 10, '#bff6ea', 0.8) + dot(x, y, 4, '#ffffff'))
+      .join('') +
+    // 漂浮的对话框
+    ink('M150 22 L190 22 L190 46 L172 46 L164 54 L164 46 L150 46 Z', '#f4f6f8', 2) +
+    line('M156 30 L184 30 M156 38 L176 38', '#555a66', 2) +
+    ink('M8 136 L40 136 L40 156 L28 156 L22 164 L22 156 L8 156 Z', '#f4f6f8', 2) +
+    line('M14 144 L34 144', '#555a66', 2)
+  );
+};
+
+/** Codex：长着小手小脚、正在敲代码的终端 */
+const codex: Art = () =>
+  shadow(46) +
+  limb('M80 150 L74 178 L66 190 M120 150 L126 178 L134 190', '#2a3442', 6) +
+  limb('M34 118 L18 138 M166 118 L182 138', '#2a3442', 6) +
+  place(terminal({ pal: PALS.colorless, r: () => 0.5, color: 'colorless', tint: '#6aff9a' }), 100, 112, 1.25) +
+  glow(100, 108, 50, '#6aff9a', 0.25);
+
+/** Operator：一个替你点击的鼠标指针 */
+const operator: Art = () =>
+  shadow(44) +
+  [28, 44].map((r, i) => `<circle cx="70" cy="150" r="${r}" fill="none" stroke="#9fd0ff" stroke-width="2.4" opacity="${0.6 - i * 0.25}"/>`).join('') +
+  ink('M64 40 L64 160 L92 134 L110 176 L130 168 L112 126 L150 124 Z', '#f8f8fa', 3.4) +
+  dark('M64 40 L150 124 L112 126 L130 168 L120 172 L102 128 L64 160 Z', 0.12) +
+  dot(86, 100, 4, INK) +
+  dot(104, 104, 4, INK) +
+  ink('M88 114 C94 120 102 120 106 116', 'none', 2.2) +
+  hi('M70 60 L70 140', 2.4, 0.6);
+
 const ART: Record<string, Art> = {
+  gemini_pro,
+  gemini_flash,
+  grok,
+  grok_clone,
+  openai,
+  codex,
+  operator,
   twig_cultist,
   nibbit,
   shroomling,

@@ -311,6 +311,14 @@ export interface EncounterDef {
   weight?: number;
   /** Boss 地图图标 */
   art?: string;
+  /** 只在使用该角色时出现（专属首领） */
+  char?: CharId;
+  /** 开战前的对话：[说话者, 台词] */
+  intro?: [string, string][];
+  /** 获胜后的台词 */
+  winLine?: [string, string];
+  /** 获胜后额外获得的纪念遗物 */
+  keepsake?: string;
 }
 
 // ---------------------------------------------------------------------------
