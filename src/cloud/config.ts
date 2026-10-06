@@ -20,7 +20,14 @@ export interface CloudConfig {
 }
 
 export const CLOUD_CONFIG: CloudConfig = {
-  firebase: null,
+  firebase: {
+    apiKey: 'AIzaSyCIAizE1YAFSGFOlKQuLD3hkH2GLqihguQ',
+    authDomain: 'blissful-flames-410309.firebaseapp.com',
+    projectId: 'blissful-flames-410309',
+    storageBucket: 'blissful-flames-410309.firebasestorage.app',
+    messagingSenderId: '876719903199',
+    appId: '1:876719903199:web:61964fffdbcef2a68db46a',
+  },
   hosts: ['pengthu.github.io', 'localhost', '127.0.0.1'],
 };
 
