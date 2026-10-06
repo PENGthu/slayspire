@@ -10,6 +10,9 @@ npm run dev        # 本地开发：http://localhost:5173
 npm run build      # 生成 dist/spire-reforged.html（单文件，双击即可游玩）
 ```
 
+在线游玩：<https://pengthu.github.io/games/spire-reforged/>（个人主页 [/games](https://pengthu.github.io/games/) 中的游戏列表）。
+更新线上版本：构建后把 `dist/spire-reforged.html` 复制到 `PENGthu.github.io` 仓库的 `games/spire-reforged/index.html` 并推送到 `master`。
+
 操作方式：
 
 - 拖动卡牌到敌人身上打出，或先点击卡牌、再点击目标

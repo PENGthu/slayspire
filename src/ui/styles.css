@@ -1369,8 +1369,14 @@ button {
   justify-content: center;
   flex-wrap: wrap;
 }
+/* 横屏下五张角色卡保持一行，窄舞台（16:10 屏幕）时等比收窄 */
+.landscape .char-row {
+  flex-wrap: nowrap;
+  max-width: 100%;
+}
 .char-card {
   width: 228px;
+  min-width: 0;
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -1414,7 +1420,9 @@ button {
 }
 .char-card .meta {
   display: flex;
-  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 12px;
   font-size: 14px;
 }
 .char-card .mech {
