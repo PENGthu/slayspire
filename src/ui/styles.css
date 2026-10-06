@@ -51,8 +51,6 @@ body {
 
 #app {
   height: 100%;
-  /* 刘海、圆角和底部横条（横屏、全屏或主屏幕应用时）不遮挡舞台 */
-  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
 }
 
 * {
@@ -251,12 +249,14 @@ button {
 .topbar {
   position: relative;
   z-index: 20;
-  height: 52px;
+  /* 背景延伸到刘海、挖孔一侧的屏幕边缘，内容仍留在安全区内 */
+  height: calc(52px + var(--sa-t, 0px));
+  margin: calc(-1 * var(--sa-t, 0px)) calc(-1 * var(--sa-r, 0px)) 0 calc(-1 * var(--sa-l, 0px));
   flex: none;
   display: flex;
   align-items: center;
   gap: 18px;
-  padding: 0 16px;
+  padding: var(--sa-t, 0px) calc(16px + var(--sa-r, 0px)) 0 calc(16px + var(--sa-l, 0px));
   background: linear-gradient(180deg, rgba(10, 11, 16, 0.95), rgba(18, 20, 28, 0.88));
   border-bottom: 1px solid #000;
   box-shadow: 0 2px 0 rgba(226, 176, 74, 0.12);
@@ -1365,7 +1365,8 @@ button {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 24px 24px 16px;
+  /* 背景铺满全屏，内容避开刘海和挖孔（--sa-* 由 App 根据安全区设置） */
+  padding: calc(24px + var(--sa-t, 0px)) calc(24px + var(--sa-r, 0px)) calc(16px + var(--sa-b, 0px)) calc(24px + var(--sa-l, 0px));
   gap: 14px;
   animation: fadein 0.18s ease;
 }
@@ -2384,8 +2385,7 @@ button {
   --ch: 186px;
 }
 .portrait .topbar {
-  padding: 0 8px;
-  height: 52px;
+  padding: var(--sa-t, 0px) calc(8px + var(--sa-r, 0px)) 0 calc(8px + var(--sa-l, 0px));
 }
 .portrait .tb-floor .lbl,
 .portrait .tb-char span {

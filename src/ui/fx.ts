@@ -7,11 +7,14 @@ export function playFx(layer: HTMLElement | null, root: HTMLElement | null, fxs:
   if (!layer || !root) return;
   // 同一目标的多个浮动数字错开显示
   const stack: Record<number, number> = {};
+  // 特效层在战斗区域内（顶栏下方），舞台坐标要换算成特效层自己的坐标
+  const o = rectInStage(layer);
   for (const f of fxs) {
     const host = root.querySelector(`[data-cuid="${f.uid}"]`) as HTMLElement | null;
     if (!host) continue;
     const sprite = (host.querySelector('.sprite') as HTMLElement | null) ?? host;
-    const r = rectInStage(sprite);
+    const s = rectInStage(sprite);
+    const r = { l: s.l - o.l, r: s.r - o.l, t: s.t - o.t, b: s.b - o.t };
     const cx = (r.l + r.r) / 2;
     const cy = r.t + (r.b - r.t) * 0.45;
     const k = (stack[f.uid] = (stack[f.uid] ?? 0) + 1);

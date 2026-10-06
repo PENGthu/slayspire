@@ -411,6 +411,9 @@ export function CombatScreen({ run }: { run: Run }) {
   const n = g.hand.length;
   // 竖屏时让两端的牌也完整留在屏幕内
   const maxW = portrait ? stageInfo.w - cw - 16 : Math.min(stageInfo.w * 0.6, 900);
+  // 战斗区域在舞台上的位置（顶栏下方；全屏时还要让出刘海和挖孔），瞄准或拖动时才需要
+  const box = (aiming || potionTarget !== null || drag?.moved) && rootRef.current ? rectInStage(rootRef.current) : null;
+  const arrowOrigin = aiming || potionTarget !== null ? box : null;
 
   return (
     <div
@@ -578,8 +581,9 @@ export function CombatScreen({ run }: { run: Run }) {
               rot = 0;
               scale = portrait ? 1.35 : 1.28;
             } else {
-              x = drag!.x - stageInfo.w / 2;
-              y = drag!.y - stageInfo.h + (cw * 1.4) / 2;
+              // 手牌以战斗区域的中线为中心、贴着它的底边排开
+              x = drag!.x - (box ? (box.l + box.r) / 2 : stageInfo.w / 2);
+              y = drag!.y - (box ? box.b : stageInfo.h) + (cw * 1.4) / 2;
               rot = 0;
               scale = 1.1;
             }
@@ -628,9 +632,15 @@ export function CombatScreen({ run }: { run: Run }) {
       </div>
 
       {/* 瞄准箭头 */}
-      {(aiming || potionTarget !== null) && arrowTo && (
+      {arrowOrigin && arrowTo && (
         <TargetArrow
-          from={activeCard ? { x: stageInfo.w / 2 + handPos(n, g.hand.indexOf(activeCard), cw, maxW).x, y: stageInfo.h - (portrait ? 300 : 360) } : { x: stageInfo.w * 0.3, y: 80 }}
+          origin={arrowOrigin}
+          from={
+            activeCard
+              ? // 手牌以战斗区域的中线为中心、贴着它的底边排开
+                { x: (arrowOrigin.l + arrowOrigin.r) / 2 + handPos(n, g.hand.indexOf(activeCard), cw, maxW).x, y: arrowOrigin.b - (portrait ? 260 : 320) }
+              : { x: stageInfo.w * 0.3, y: 80 }
+          }
           to={arrowTo}
           hot={targetEnemyUid !== null}
         />
@@ -743,6 +753,10 @@ function flyCard(c: Card, type: string) {
   const el = document.querySelector(`.hand [data-card="${c.uid}"]`) as HTMLElement | null;
   const layer = document.querySelector('.combat .fx-layer') as HTMLElement | null;
   if (!el || !layer || typeof el.animate !== 'function') return;
+  // 飞行的牌放在战斗区域的特效层里：所有坐标都换算成特效层自己的坐标
+  const o = rectInStage(layer);
+  const lw = o.r - o.l;
+  const lh = o.b - o.t;
   const r = rectInStage(el);
   const ghost = el.cloneNode(true) as HTMLElement;
   ghost.className = el.className.replace(/hovered|dragging|playable|picked/g, '') + ' card-ghost';
@@ -754,12 +768,12 @@ function flyCard(c: Card, type: string) {
   layer.appendChild(ghost);
   const w = ghost.offsetWidth;
   const h = ghost.offsetHeight;
-  const sx = (r.l + r.r) / 2 - w / 2;
-  const sy = (r.t + r.b) / 2 - h / 2;
-  const cx = stageInfo.w / 2 - w / 2;
-  const cy = stageInfo.h * 0.42 - h / 2;
-  const ex = type === 'power' ? cx : stageInfo.w - 60 - w / 2;
-  const ey = type === 'power' ? cy - 60 : stageInfo.h - 50 - h / 2;
+  const sx = (r.l + r.r) / 2 - o.l - w / 2;
+  const sy = (r.t + r.b) / 2 - o.t - h / 2;
+  const cx = lw / 2 - w / 2;
+  const cy = stageInfo.h * 0.42 - o.t - h / 2;
+  const ex = type === 'power' ? cx : lw - 60 - w / 2;
+  const ey = type === 'power' ? cy - 60 : lh - 50 - h / 2;
   const anim = ghost.animate(
     [
       { transform: `translate(${sx}px, ${sy}px) scale(1.15)`, opacity: 1, offset: 0 },
@@ -874,7 +888,20 @@ function EnemyView({
   );
 }
 
-function TargetArrow({ from, to, hot }: { from: { x: number; y: number }; to: { x: number; y: number }; hot: boolean }) {
+/** 瞄准箭头。from / to 是舞台坐标；箭头画在战斗区域里，所以先减去战斗区域在舞台上的位置 */
+function TargetArrow({
+  origin,
+  from: f0,
+  to: t0,
+  hot,
+}: {
+  origin: { l: number; t: number; r: number; b: number };
+  from: { x: number; y: number };
+  to: { x: number; y: number };
+  hot: boolean;
+}) {
+  const from = { x: f0.x - origin.l, y: f0.y - origin.t };
+  const to = { x: t0.x - origin.l, y: t0.y - origin.t };
   const mx = (from.x + to.x) / 2;
   const my = Math.min(from.y, to.y) - 120;
   const color = hot ? '#ff6b5a' : '#e2b04a';
@@ -884,7 +911,7 @@ function TargetArrow({ from, to, hot }: { from: { x: number; y: number }; to: { 
   const p1 = { x: to.x - ah * Math.cos(ang - 0.45), y: to.y - ah * Math.sin(ang - 0.45) };
   const p2 = { x: to.x - ah * Math.cos(ang + 0.45), y: to.y - ah * Math.sin(ang + 0.45) };
   return (
-    <svg class="target-arrow" width={stageInfo.w} height={stageInfo.h}>
+    <svg class="target-arrow" width={origin.r - origin.l} height={origin.b - origin.t}>
       <path
         d={`M${from.x},${from.y} Q${mx},${my} ${to.x},${to.y}`}
         stroke={color}

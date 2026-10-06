@@ -41,6 +41,21 @@ interface Dims {
   ox: number;
   oy: number;
   portrait: boolean;
+  /** 安全区（刘海、挖孔、圆角、底部横条）占据舞台边缘的宽度，单位为舞台像素 */
+  safe: { t: number; r: number; b: number; l: number };
+}
+
+/** 读取系统报告的安全区边距（CSS 像素）；没有刘海或挖孔的设备都是 0 */
+function readSafeArea(): { t: number; r: number; b: number; l: number } {
+  const probe = document.createElement('div');
+  probe.setAttribute('data-safe-probe', '');
+  probe.style.cssText =
+    'position:fixed;left:0;top:0;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)';
+  document.body.appendChild(probe);
+  const cs = getComputedStyle(probe);
+  const v = { t: parseFloat(cs.paddingTop) || 0, r: parseFloat(cs.paddingRight) || 0, b: parseFloat(cs.paddingBottom) || 0, l: parseFloat(cs.paddingLeft) || 0 };
+  probe.remove();
+  return v;
 }
 
 /** 根据视口计算逻辑舞台尺寸：横屏约 1280 宽，竖屏 500 宽 */
@@ -56,7 +71,8 @@ function computeDims(vw: number, vh: number): Dims {
       W = 1180;
       H = Math.round(1180 / aspect);
     }
-    if (W > 1700) W = 1700;
+    // 再宽的屏幕（超过约 2.67:1）才在两侧留边
+    if (W > 1920) W = 1920;
   } else {
     portrait = true;
     W = 500;
@@ -64,7 +80,17 @@ function computeDims(vw: number, vh: number): Dims {
     if (H < 820) H = 820;
   }
   const s = Math.min(vw / W, vh / H);
-  return { W, H, s, ox: (vw - W * s) / 2, oy: (vh - H * s) / 2, portrait };
+  const ox = (vw - W * s) / 2;
+  const oy = (vh - H * s) / 2;
+  // 舞台铺满整个屏幕（场景画到刘海和挖孔底下），只有界面内容避开安全区
+  const ins = typeof document !== 'undefined' ? readSafeArea() : { t: 0, r: 0, b: 0, l: 0 };
+  const safe = {
+    t: Math.max(0, ins.t - oy) / s,
+    r: Math.max(0, ins.r - ox) / s,
+    b: Math.max(0, ins.b - oy) / s,
+    l: Math.max(0, ins.l - ox) / s,
+  };
+  return { W, H, s, ox, oy, portrait, safe };
 }
 
 export function App() {
@@ -106,6 +132,11 @@ export function App() {
         style={{
           width: `${dims.W}px`,
           height: `${dims.H}px`,
+          padding: `${dims.safe.t}px ${dims.safe.r}px ${dims.safe.b}px ${dims.safe.l}px`,
+          '--sa-t': `${dims.safe.t}px`,
+          '--sa-r': `${dims.safe.r}px`,
+          '--sa-b': `${dims.safe.b}px`,
+          '--sa-l': `${dims.safe.l}px`,
           transform: `translate(${dims.ox}px, ${dims.oy}px) scale(${dims.s})`,
         }}
       >
