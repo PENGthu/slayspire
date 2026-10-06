@@ -291,7 +291,7 @@ export function Compendium() {
     { id: 'regent', name: '储君' },
     { id: 'necrobinder', name: '亡灵契约师' },
     { id: 'defect', name: '故障机器人' },
-    { id: 'claude', name: 'Claude' },
+    { id: 'claude', name: 'Claude（小克）' },
     { id: 'colorless', name: '无色' },
     { id: 'curse', name: '诅咒' },
     { id: 'relics', name: '遗物' },

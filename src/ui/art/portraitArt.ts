@@ -2,8 +2,7 @@
  * 角色立绘。画布 150×200，脚底约在 y=196，面朝右（敌人方向）。
  */
 import { INK, circle, doc, dot, ellipse, fill, glow, ink, limb, line, memo, place, starPath } from './kit';
-import { feather, sparkBody, swordBody } from './motifs';
-import { PALS } from './palettes';
+import { clawdBody, swordBody } from './motifs';
 import { M } from './palettes';
 
 const dark = (d: string, o = 0.24) => fill(d, '#000', o);
@@ -230,64 +229,19 @@ function defect(): string {
   );
 }
 
+/** Claude（小克）：Claude Code 终端里的橙色像素小人 */
 function claude(): string {
-  const robe = '#efe3cf';
-  const robeD = '#cdbb9f';
-  const terra = '#d97757';
-  const terraD = '#a9533a';
-  const hand = '#f3cfb0';
-  // 漂浮的纸页
-  const page = (x: number, y: number, rot: number, s = 1) =>
-    place(ink('M-9 -12 L5 -12 L9 -8 L9 12 L-9 12 Z', '#fbf3e2', 1.8) + line('M-5 -6 L4 -6 M-5 -1 L5 -1 M-5 4 L3 4', '#8a6a4a', 1.2, 0.7), x, y, s, rot);
-  const mote = (x: number, y: number, r: number) => ink(starPath(x, y, r, r * 0.3, 4), '#ffe0c8', 1.2);
-  return (
-    shadow(46) +
-    glow(76, 34, 46, '#ffb48a', 0.55) +
-    glow(130, 60, 26, '#ffe0b0', 0.45) +
-    page(18, 70, -18, 0.9) +
-    page(136, 132, 14, 0.8) +
-    page(24, 150, 10, 0.7) +
-    // 长袍
-    ink('M52 64 L98 64 L114 192 L36 192 Z', robe) +
-    dark('M76 64 L98 64 L114 192 L80 192 Z', 0.16) +
-    line('M60 96 C56 130 50 160 46 186 M90 96 C96 130 100 160 104 186', robeD, 2, 0.7) +
-    // 前襟（陶土色）
-    ink('M68 66 L82 66 L90 192 L60 192 Z', terra, 2.6) +
-    dark('M75 66 L82 66 L90 192 L76 192 Z', 0.2) +
-    [0, 1, 2].map((i) => place(sparkBody('#f6e2cc', 5, 8), 75, 124 + i * 24, 1)).join('') +
-    // 腰带
-    ink('M48 100 L102 100 L104 110 L46 110 Z', terraD, 2.4) +
-    circle(75, 105, 5, '#f6e2cc', 2) +
-    // 兜帽与披肩
-    ink('M44 70 C50 52 62 46 76 46 C90 46 102 52 108 70 C96 82 56 82 44 70 Z', terra) +
-    dark('M76 46 C90 46 102 52 108 70 C100 78 88 81 76 81 Z', 0.2) +
-    ink('M46 52 C38 32 42 12 54 -2 C60 4 66 6 76 5 C96 4 110 20 106 48 C98 62 54 64 46 52 Z', robe) +
-    dark('M80 5 C98 6 110 20 106 48 C102 56 92 60 82 61 C94 44 94 20 80 5 Z', 0.16) +
-    line('M50 46 C46 30 48 16 56 4', '#fff', 2, 0.45) +
-    `<radialGradient id="cl-face" cx="0.52" cy="0.5" r="0.6"><stop offset="0" stop-color="#9a4a2c"/><stop offset="0.55" stop-color="#4a2418"/><stop offset="1" stop-color="#1e100c"/></radialGradient>` +
-    `<path d="M56 48 C52 26 62 13 77 13 C91 13 100 26 97 48 C90 57 63 57 56 48 Z" fill="url(#cl-face)" stroke="${INK}" stroke-width="2.4"/>` +
-    // 星火之首
-    glow(77, 33, 34, '#ffb48a', 0.95) +
-    place(sparkBody('#e8845f', 23, 12, 8), 77, 33, 1) +
-    glow(77, 33, 12, '#fff0e0', 0.7) +
-    // 后臂捧书
-    limb('M56 72 C46 88 42 102 44 112', robeD, 13) +
-    ink('M36 108 L50 110 L48 118 L35 116 Z', terra, 2.2) +
-    place(ink('M0 -2 C-10 -8 -24 -8 -32 -4 L-32 18 C-24 14 -10 14 0 20 Z', '#f6ecd8', 2.4) + ink('M0 -2 C10 -8 24 -8 32 -4 L32 18 C24 14 10 14 0 20 Z', '#ece0c6', 2.4) + line('M-26 2 L-6 4 M-26 8 L-6 10 M6 4 L26 2 M6 10 L26 8', '#8a6a4a', 1.4, 0.7), 46, 126, 0.9, -8) +
-    circle(40, 122, 6, hand, 2.4) +
-    // 前臂执笔
-    limb('M96 72 C108 74 114 70 117 64', robeD, 13) +
-    ink('M112 58 L122 62 L118 70 L109 66 Z', terra, 2.2) +
-    circle(121, 60, 6.5, hand, 2.4) +
-    place(feather({ pal: PALS.claude, r: () => 0.5, color: 'claude', tint: '#fbf3e2' }), 130, 40, 0.42, 4) +
-    // 笔尖留下的光痕
-    line('M120 64 C128 74 140 76 144 90 C146 100 138 108 130 106', '#ffd2a8', 2.2, 0.8) +
-    mote(144, 90, 5) +
-    mote(130, 106, 4) +
-    mote(112, 28, 4) +
-    mote(34, 38, 5) +
-    mote(120, 150, 3.5)
-  );
+  // 思考时终端里转动的星芒「✻」
+  const spin = (x: number, y: number, r: number, o = 0.9) =>
+    [0, 60, 120]
+      .map((a) => {
+        const dx = Math.cos((a * Math.PI) / 180) * r;
+        const dy = Math.sin((a * Math.PI) / 180) * r;
+        return limb(`M${(x - dx).toFixed(1)} ${(y - dy).toFixed(1)} L${(x + dx).toFixed(1)} ${(y + dy).toFixed(1)}`, '#e8916f', r * 0.36);
+      })
+      .join('') + dot(x, y, r * 0.28, '#ffe6d8', o);
+  const top = 194 - 90;
+  return shadow(64) + glow(75, 148, 86, '#ffb48a', 0.4) + place(clawdBody(9), 75, 194, 1) + spin(30, top - 22, 9) + spin(118, top - 34, 6.5, 0.8) + spin(84, top - 52, 4.5, 0.65);
 }
 
 function osty(): string {

@@ -91,9 +91,9 @@ export const CHARACTERS: Record<CharId, CharDef> = {
   },
   claude: {
     id: 'claude',
-    name: 'Claude',
-    title: '星火中的思考者',
-    desc: '一束橙色星火化成的思考者。先思考再行动：交锋写进上下文，窗口装满就压缩成摘要，并随手调用工具。',
+    name: 'Claude（小克）',
+    title: '终端里的小助手',
+    desc: '从命令行里蹦出来的橙色小家伙。先思考再动手：写进上下文，装满就压缩成摘要，还会调用工具。',
     hp: 72,
     gold: 99,
     relic: 'the_spark',

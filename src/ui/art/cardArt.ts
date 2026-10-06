@@ -346,7 +346,7 @@ const BY_ID: Record<string, ArtSpec> = {
   extended_thinking: { m: 'brain', bg: 'night' },
   chain_of_thought: { m: 'chain' },
   prompt_caching: { m: 'disk' },
-  subagent: { m: 'sparkle', bg: 'night' },
+  subagent: { m: 'clawd', n: 3 },
   prompt_engineering: { m: 'keyboard' },
   follow_up: { m: 'eye' },
   red_teaming: { m: 'target', bg: 'blood' },

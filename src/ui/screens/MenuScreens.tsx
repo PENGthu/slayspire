@@ -150,7 +150,7 @@ export function CharSelectScreen() {
               <div class="portrait">
                 <Portrait char={id} size={1.05} />
               </div>
-              <h3>{c.name}</h3>
+              <h3 class={c.name.length > 6 ? 'long' : ''}>{c.name}</h3>
               <div class="title">{c.title}</div>
               <div class="mech">{c.mechanic}</div>
               <div class="desc">{c.desc}</div>

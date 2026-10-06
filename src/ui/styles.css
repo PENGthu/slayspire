@@ -1520,6 +1520,10 @@ button {
   font-size: 24px;
   color: color-mix(in srgb, var(--pc) 55%, #fff);
 }
+.char-card h3.long {
+  font-size: 20px;
+  white-space: nowrap;
+}
 .char-card .title {
   color: var(--muted);
   font-size: 13px;
@@ -2356,8 +2360,9 @@ button {
   width: 110px;
   height: 130px;
 }
-.portrait .char-card .portrait svg {
-  width: 110px;
+.portrait .char-card .portrait svg,
+.portrait .char-card .portrait .portrait-svg {
+  width: 98px;
   height: 130px;
 }
 .portrait .char-card .desc {
@@ -2371,6 +2376,9 @@ button {
 }
 .portrait .char-card h3 {
   font-size: 20px;
+}
+.portrait .char-card h3.long {
+  font-size: 15px;
 }
 .portrait .map-node {
   width: 40px;

@@ -1705,3 +1705,63 @@ export const nodes: Motif = (c) => {
   });
   return s;
 };
+
+/**
+ * 小克：Claude Code 终端欢迎界面里的橙色像素小人。
+ * 按方块字符「▐▛███▜▌ / ▝▜█████▛▘ / ▘▘ ▝▝」逐格还原：每个象限宽 u、高 2u。
+ * 原点在两脚中间的地面上。
+ */
+export function clawdBody(u = 9, orange = '#d77757'): string {
+  const v = 2 * u;
+  const X = (c: number) => fx1((c - 9) * u);
+  const Y = (r: number) => fx1((r - 5) * v);
+  const rect = (c0: number, r0: number, c1: number, r1: number) => `M${X(c0)} ${Y(r0)} L${X(c1)} ${Y(r0)} L${X(c1)} ${Y(r1)} L${X(c0)} ${Y(r1)} Z`;
+  const outline =
+    [
+      [3, 0],
+      [15, 0],
+      [15, 2],
+      [17, 2],
+      [17, 3],
+      [15, 3],
+      [15, 4],
+      [3, 4],
+      [3, 3],
+      [1, 3],
+      [1, 2],
+      [3, 2],
+    ]
+      .map(([c, r], i) => `${i ? 'L' : 'M'}${X(c)} ${Y(r)}`)
+      .join(' ') + ' Z';
+  const k = u / 9;
+  const n = (x: string, d: number) => fx1(+x + d * k);
+  return (
+    // 四条小腿（先画，身体压在上面）
+    [4, 6, 11, 13].map((c) => ink(rect(c, 3.85, c + 1, 5), mix(orange, '#000000', 0.12), 2.6 * k)).join('') +
+    ink(outline, orange, 3.4 * k) +
+    fill(rect(14.3, 0, 15, 4), '#000', 0.13) +
+    fill(rect(16.4, 2, 17, 3), '#000', 0.13) +
+    fill(rect(3, 3.5, 15, 4), '#000', 0.13) +
+    fill(rect(1, 2.6, 17, 3), '#000', 0.1) +
+    line(`M${n(X(3), 5)} ${n(Y(0), 5)} L${X(10)} ${n(Y(0), 5)}`, '#fff', 3 * k, 0.45) +
+    line(`M${n(X(3), 5)} ${n(Y(0), 9)} L${n(X(3), 5)} ${n(Y(1), 10)}`, '#fff', 2.4 * k, 0.35) +
+    line(`M${n(X(1), 4)} ${n(Y(2), 4)} L${n(X(2), 4)} ${n(Y(2), 4)}`, '#fff', 2.2 * k, 0.4) +
+    // 眼睛：两道竖长的小缝
+    ink(rect(5, 1, 6, 2), '#1c1210', 2 * k) +
+    ink(rect(12, 1, 13, 2), '#1c1210', 2 * k) +
+    dot(+X(5) + 3 * k, +Y(1) + 4 * k, 1.6 * k, '#fff', 0.55) +
+    dot(+X(12) + 3 * k, +Y(1) + 4 * k, 1.6 * k, '#fff', 0.55)
+  );
+}
+
+/** 一群小克（子代理） */
+export const clawd: Motif = (c) => {
+  const n = c.n ?? 1;
+  if (n <= 1) return glow(0, -20, 70, c.pal.light, 0.4) + place(clawdBody(6), 0, 42, 1);
+  return (
+    glow(0, -10, 74, c.pal.light, 0.4) +
+    place(clawdBody(3.4), -40, 2, 1) +
+    place(clawdBody(3.4), 40, 2, 1) +
+    place(clawdBody(5), 0, 44, 1)
+  );
+};
