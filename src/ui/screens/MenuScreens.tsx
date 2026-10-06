@@ -7,6 +7,8 @@ import type { CharId } from '../../game/types';
 import { Portrait, RelicIcon } from '../components/Art';
 import { tipProps } from '../components/Tooltip';
 import { confirm, deleteSave, loadRun, refresh, setOverlay, startNewRun, state } from '../store';
+import { AccountChip } from '../components/Account';
+import { cloud } from '../../cloud/sync';
 
 export const ASC_DESC = [
   '标准难度。',
@@ -59,6 +61,9 @@ export function MenuScreen() {
   return (
     <div class="menu">
       <SpireBackdrop />
+      <div class="menu-account">
+        <AccountChip />
+      </div>
       <div style={{ position: 'relative', textAlign: 'center' }}>
         <div class="logo">尖塔重铸</div>
         <div class="logo-sub">Spire · Reforged</div>
@@ -112,7 +117,8 @@ export function MenuScreen() {
             攀登 {p.runs} 次 · 登顶 {p.wins} 次 · 最高分 {p.bestScore}
           </div>
         )}
-        致敬《杀戮尖塔 2》的同人卡牌构筑游戏 · 进度只保存在这台设备的浏览器里
+        致敬《杀戮尖塔 2》的同人卡牌构筑游戏 ·{' '}
+        {cloud.user ? '进度已同步到你的账号' : cloud.available ? '未登录时进度只保存在这台设备上' : '进度只保存在这台设备的浏览器里'}
       </div>
     </div>
   );

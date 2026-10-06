@@ -1,0 +1,12 @@
+// 云存档的安全规则：每个玩家只能读写自己的存档（saves/{uid}）。
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /saves/{uid} {
+      allow read, delete: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['profile', 'run', 'runMeta', 'updatedAt', 'v'])
+        && (request.resource.data.run == null || request.resource.data.run.size() < 400000);
+    }
+  }
+}

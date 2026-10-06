@@ -16,6 +16,7 @@
     "preact": "^11.0.0"
   },
   "devDependencies": {
+    "firebase": "12.19.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.2",
     "vitest": "^5.0.3"

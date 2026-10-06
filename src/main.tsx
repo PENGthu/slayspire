@@ -3,6 +3,7 @@ import './game/content';
 import './ui/styles.css';
 import { App } from './ui/App';
 import { installArtStyles } from './ui/art/frames';
+import { initCloud } from './cloud/sync';
 import { act, loadRun, refresh, state } from './ui/store';
 
 interface HotData {
@@ -26,6 +27,7 @@ function start(data: HotData) {
     state.view = data.view;
   }
   installArtStyles();
+  initCloud();
   render(<App />, document.getElementById('app')!);
 }
 

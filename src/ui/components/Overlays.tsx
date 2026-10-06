@@ -10,6 +10,8 @@ import { TIER_NAMES } from './TopBar';
 import { CHARACTERS } from '../../game/characters';
 import { hideTip, showTip, tipProps } from './Tooltip';
 import { RelicIcon } from './Art';
+import { AccountOverlay, ConflictOverlay, LoginOverlay } from './Account';
+import { cloud } from '../../cloud/sync';
 
 const TYPE_ORDER: Record<string, number> = { attack: 0, skill: 1, power: 2, status: 3, curse: 4 };
 
@@ -82,6 +84,9 @@ export function Overlays() {
     );
   }
   if (o.kind === 'settings') return <Settings />;
+  if (o.kind === 'login') return <LoginOverlay />;
+  if (o.kind === 'account') return <AccountOverlay />;
+  if (o.kind === 'syncConflict') return <ConflictOverlay />;
   if (o.kind === 'confirm') {
     return (
       <div class="overlay">
@@ -143,6 +148,16 @@ function Settings() {
             }}
           />
         </label>
+        {cloud.available && (
+          <div class="toggle-row">
+            <span>
+              账号：{cloud.user ? `${cloud.user.name}（${cloud.sync === 'error' ? '同步失败' : '已开启云存档'}）` : '未登录，进度只保存在本机'}
+            </span>
+            <button class="btn small" onClick={() => setOverlay({ kind: cloud.user ? 'account' : 'login' })}>
+              {cloud.user ? '管理' : '登录'}
+            </button>
+          </div>
+        )}
         <div style={{ color: 'var(--muted)', fontSize: '13px', lineHeight: 1.6, textAlign: 'left' }}>
           操作：拖动卡牌到敌人身上打出，或先点击卡牌再点击目标。按 E 结束回合，数字键 1–9 选牌，Esc 取消。
           右键（或长按）敌人、遗物可以查看详细说明。

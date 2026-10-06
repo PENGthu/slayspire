@@ -3,6 +3,7 @@ import { Run } from '../game/run';
 import type { CharId } from '../game/types';
 
 const SAVE_KEY = 'spire-reforged/save';
+const SAVE_TIME_KEY = 'spire-reforged/save-time';
 const PROFILE_KEY = 'spire-reforged/profile';
 
 export interface Settings {
@@ -26,7 +27,10 @@ export type Overlay =
   | { kind: 'deck'; pile: 'deck' | 'draw' | 'discard' | 'exhaust' }
   | { kind: 'settings' }
   | { kind: 'map' }
-  | { kind: 'confirm'; text: string; yes: string; onYes: () => void };
+  | { kind: 'confirm'; text: string; yes: string; onYes: () => void }
+  | { kind: 'login' }
+  | { kind: 'account' }
+  | { kind: 'syncConflict' };
 
 export interface UiState {
   /** 打开操作菜单的药水栏位 */
@@ -44,21 +48,33 @@ export interface AppState {
   ui: UiState;
 }
 
-function safeGet(key: string): string | null {
+/** 本地存档变化时的回调（云存档用它来同步） */
+export const persistHooks: { onChange: ((what: 'run' | 'profile') => void) | null } = { onChange: null };
+
+/** 存档的概要（用于在本机和云端存档之间做选择） */
+export interface RunMeta {
+  char: CharId;
+  act: number;
+  floor: number;
+  ascension: number;
+  savedAt: number;
+}
+
+export function safeGet(key: string): string | null {
   try {
     return localStorage.getItem(key);
   } catch {
     return null;
   }
 }
-function safeSet(key: string, v: string) {
+export function safeSet(key: string, v: string) {
   try {
     localStorage.setItem(key, v);
   } catch {
     /* 存储不可用时静默失败 */
   }
 }
-function safeDel(key: string) {
+export function safeDel(key: string) {
   try {
     localStorage.removeItem(key);
   } catch {
@@ -106,20 +122,60 @@ export function useStore(): AppState {
 
 export function saveProfile() {
   safeSet(PROFILE_KEY, JSON.stringify(state.profile));
+  persistHooks.onChange?.('profile');
+}
+
+/** 本机存档的原始 JSON */
+export function localRunRaw(): string | null {
+  return safeGet(SAVE_KEY);
+}
+
+export function runMetaOf(raw: string | null, savedAt?: number): RunMeta | null {
+  if (!raw) return null;
+  try {
+    const j = JSON.parse(raw);
+    return { char: j.char, act: j.act, floor: j.floor, ascension: j.ascension ?? 0, savedAt: savedAt ?? 0 };
+  } catch {
+    return null;
+  }
+}
+
+export function localRunMeta(): RunMeta | null {
+  return runMetaOf(localRunRaw(), Number(safeGet(SAVE_TIME_KEY) ?? 0) || 0);
+}
+
+/** 用外部（云端）存档覆盖本机存档，不触发同步 */
+export function writeLocalRun(raw: string | null, savedAt = Date.now()) {
+  if (raw) {
+    safeSet(SAVE_KEY, raw);
+    safeSet(SAVE_TIME_KEY, String(savedAt));
+  } else {
+    safeDel(SAVE_KEY);
+    safeDel(SAVE_TIME_KEY);
+  }
+  state.hasSave = !!raw;
 }
 
 export function saveRun() {
   const run = state.run;
   if (!run) return;
   if (run.screen.s === 'gameover') {
-    safeDel(SAVE_KEY);
-    state.hasSave = false;
+    if (state.hasSave) {
+      safeDel(SAVE_KEY);
+      safeDel(SAVE_TIME_KEY);
+      state.hasSave = false;
+      persistHooks.onChange?.('run');
+    }
     return;
   }
   // 战斗中不存档：读档会回到进入战斗前的状态
   if (run.screen.s === 'combat') return;
-  safeSet(SAVE_KEY, JSON.stringify(run.toJSON()));
+  const raw = JSON.stringify(run.toJSON());
+  if (raw === safeGet(SAVE_KEY)) return;
+  safeSet(SAVE_KEY, raw);
+  safeSet(SAVE_TIME_KEY, String(Date.now()));
   state.hasSave = true;
+  persistHooks.onChange?.('run');
 }
 
 export function loadRun(): Run | null {
@@ -137,7 +193,9 @@ export function loadRun(): Run | null {
 
 export function deleteSave() {
   safeDel(SAVE_KEY);
+  safeDel(SAVE_TIME_KEY);
   state.hasSave = false;
+  persistHooks.onChange?.('run');
 }
 
 let recorded = new WeakSet<Run>();

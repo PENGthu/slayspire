@@ -21,6 +21,20 @@ npm run build      # 生成 dist/spire-reforged.html（单文件，双击即可�
 - 鼠标悬停（或右键 / 长按）可查看卡牌关键词、敌人意图、能力与遗物说明
 - 横屏和竖屏（手机）都可以玩，进度自动保存在浏览器本地
 
+## 登录与云存档（可选）
+
+不登录也能完整游玩，进度保存在浏览器本地。登录后，解锁的进阶、战绩和进行中的攀登会同步到云端，换一台设备登录同一账号即可继续。支持 **Google 账号登录** 和 **邮箱 + 密码注册**。
+
+云存档基于 Firebase（免费的 Spark 套餐即可）。启用步骤：
+
+1. 在 [Firebase 控制台](https://console.firebase.google.com) 新建项目，在「项目概览 → 添加应用」中添加一个**网页应用**，复制它的 `firebaseConfig`
+2. **Authentication → 登录方法**：启用「电子邮件地址/密码」和「Google」
+3. **Authentication → 设置 → 已获授权的网域**：添加游戏所在的域名（如 `pengthu.github.io`）
+4. **Firestore Database**：创建数据库（正式模式），在「规则」中粘贴本仓库的 [`firestore.rules`](firestore.rules) 并发布
+5. 把第 1 步的配置填进 [`src/cloud/config.ts`](src/cloud/config.ts) 的 `firebase` 字段，确认 `hosts` 里有你的域名，重新构建
+
+`firebaseConfig` 不是密钥，可以公开；数据由安全规则保护，每个玩家只能读写自己的存档。Firebase SDK 只在玩家打开登录面板（或已有登录会话）时才从 Google CDN 加载，不增加游戏本体体积。未配置时不显示登录入口。
+
 ## 内容
 
 | 类别 | 内容 |
@@ -48,6 +62,7 @@ src/
     bot.ts         自动对战机器人（测试 / 平衡性模拟）
     orbs.ts        故障机器人的充能球
     content/       全部游戏内容（卡牌、能力、遗物、药水、敌人、事件、先古之民、附魔）
+  cloud/           可选的登录与云存档（Firebase：Google / 邮箱账号 + Firestore）
   ui/              Preact 界面：按屏幕缩放的舞台、各个场景、特效与音效
     art/           程序化美术：墨线描边 + 光照滤镜的 SVG 插画（卡牌、敌人、立绘、遗物、药水、场景、地图）
 tests/             Vitest：内容完整性、规则单元测试、机器人完整流程模拟
