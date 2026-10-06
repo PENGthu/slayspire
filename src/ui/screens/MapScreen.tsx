@@ -4,7 +4,7 @@ import { ENCOUNTERS, ENEMIES } from '../../game/registry';
 import type { Run } from '../../game/run';
 import type { MapNode, RoomKind } from '../../game/types';
 import { stageInfo, tipProps } from '../components/Tooltip';
-import { act } from '../store';
+import { act, refresh } from '../store';
 import { enemyArtUrl } from '../art/enemyArt';
 import { mapIconUrl } from '../art/mapArt';
 
@@ -97,7 +97,17 @@ export function MapScreen({ run, readonly = false }: { run: Run; readonly?: bool
           <div
             class={`map-boss ${!readonly && run.bossReachable ? 'reachable' : ''}`}
             style={{ left: `${bossX}px`, top: `${bossY}px` }}
-            onClick={() => !readonly && run.bossReachable && act(() => run.enterBoss())}
+            {...tipProps([{ title: `首领：${boss?.name ?? ''}`, body: '本幕的首领。走到地图最上面一层后，点击它开始首领战。' }], 'bottom')}
+            onClick={() => {
+              if (readonly) return;
+              if (run.bossReachable) return act(() => run.enterBoss());
+              // 还没走到最上面一层：给出提示，而不是毫无反应
+              if (run.screen.s === 'map') {
+                const left = MAP_H - 1 - curRow;
+                run.toast(`还要再走 ${left} 层：先走到地图最上面一层，才能挑战首领。`);
+                refresh();
+              }
+            }}
           >
             <div class="face">{bossArt ? <img src={bossArt} alt="" draggable={false} /> : (boss?.art ?? '💀')}</div>
             <div class="label">首领：{boss?.name}</div>
