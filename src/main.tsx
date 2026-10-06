@@ -2,6 +2,7 @@ import { render } from 'preact';
 import './game/content';
 import './ui/styles.css';
 import { App } from './ui/App';
+import { installArtStyles } from './ui/art/frames';
 import { act, loadRun, refresh, state } from './ui/store';
 
 interface HotData {
@@ -24,6 +25,7 @@ function start(data: HotData) {
   } else if (data?.view === 'compendium' || data?.view === 'charSelect') {
     state.view = data.view;
   }
+  installArtStyles();
   render(<App />, document.getElementById('app')!);
 }
 

@@ -1,22 +1,12 @@
 import { useEffect, useRef } from 'preact/hooks';
 import { MAP_H, MAP_W, ROOM_NAMES, ZONE_NAMES } from '../../game/map';
-import { ENCOUNTERS } from '../../game/registry';
+import { ENCOUNTERS, ENEMIES } from '../../game/registry';
 import type { Run } from '../../game/run';
 import type { MapNode, RoomKind } from '../../game/types';
 import { stageInfo, tipProps } from '../components/Tooltip';
 import { act } from '../store';
-
-export const ROOM_ICONS: Record<RoomKind, string> = {
-  monster: '⚔️',
-  elite: '👹',
-  rest: '🔥',
-  shop: '💰',
-  event: '❓',
-  treasure: '🧰',
-  boss: '💀',
-  ancient: '✨',
-};
-
+import { enemyArtUrl } from '../art/enemyArt';
+import { mapIconUrl } from '../art/mapArt';
 
 export function MapScreen({ run, readonly = false }: { run: Run; readonly?: boolean }) {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -38,6 +28,7 @@ export function MapScreen({ run, readonly = false }: { run: Run; readonly?: bool
   const visitedSet = new Set(run.path.map(([r, c]) => `${r}-${c}`));
   const edgeSet = new Set(run.path.slice(1).map(([r, c], i) => `${run.path[i][0]}-${run.path[i][1]}-${c}-${r}`));
   const boss = ENCOUNTERS[run.boss];
+  const bossArt = boss && Array.isArray(boss.enemies) ? enemyArtUrl([...boss.enemies].sort((a, b) => (ENEMIES[b]?.size ?? 1) - (ENEMIES[a]?.size ?? 1))[0]) : null;
   const bossX = width / 2;
   const bossY = 110;
 
@@ -66,16 +57,17 @@ export function MapScreen({ run, readonly = false }: { run: Run; readonly?: bool
             y1={a.y}
             x2={b.x}
             y2={b.y}
-            stroke={travelled ? '#e2b04a' : '#5d5446'}
+            stroke={travelled ? '#7a1e14' : '#4a3420'}
             stroke-width={travelled ? 4 : 3}
-            stroke-dasharray={travelled ? '0' : '3 9'}
+            stroke-dasharray={travelled ? '0' : '2 9'}
+            opacity={travelled ? 0.9 : 0.7}
             stroke-linecap="round"
           />,
         );
       }
       if (n.row === MAP_H - 1) {
         lines.push(
-          <line key={`${n.row}-${n.col}-boss`} x1={a.x} y1={a.y} x2={bossX} y2={bossY + 60} stroke="#5d5446" stroke-width="3" stroke-dasharray="3 9" stroke-linecap="round" />,
+          <line key={`${n.row}-${n.col}-boss`} x1={a.x} y1={a.y} x2={bossX} y2={bossY + 60} stroke="#4a3420" stroke-width="3" stroke-dasharray="2 9" stroke-linecap="round" opacity="0.7" />,
         );
       }
     }
@@ -92,7 +84,7 @@ export function MapScreen({ run, readonly = false }: { run: Run; readonly?: bool
       <div class="map-legend panel">
         {(['monster', 'elite', 'rest', 'shop', 'event', 'treasure'] as RoomKind[]).map((k) => (
           <div class="row" key={k}>
-            <span>{ROOM_ICONS[k]}</span>
+            <img class="legend-icon" src={mapIconUrl(k)} alt="" draggable={false} />
             <span>{ROOM_NAMES[k]}</span>
           </div>
         ))}
@@ -107,7 +99,7 @@ export function MapScreen({ run, readonly = false }: { run: Run; readonly?: bool
             style={{ left: `${bossX}px`, top: `${bossY}px` }}
             onClick={() => !readonly && run.bossReachable && act(() => run.enterBoss())}
           >
-            <div class="face">{boss?.art ?? '💀'}</div>
+            <div class="face">{bossArt ? <img src={bossArt} alt="" draggable={false} /> : (boss?.art ?? '💀')}</div>
             <div class="label">首领：{boss?.name}</div>
           </div>
           {run.map.rows.flat().map((n) => {
@@ -125,7 +117,7 @@ export function MapScreen({ run, readonly = false }: { run: Run; readonly?: bool
                 onClick={() => reachable && act(() => run.enterNode(n.row, n.col))}
                 {...tipProps([{ title: ROOM_NAMES[n.kind], body: roomDesc(n.kind) }], 'right')}
               >
-                {ROOM_ICONS[n.kind]}
+                <img src={mapIconUrl(n.kind)} alt="" draggable={false} />
               </div>
             );
           })}

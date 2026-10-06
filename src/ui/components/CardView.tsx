@@ -16,6 +16,7 @@ import {
 import type { Combat } from '../../game/combat';
 import { ENCHANTS } from '../../game/registry';
 import type { Card, Enemy } from '../../game/types';
+import { cardArtUrl } from '../art/cardArt';
 import type { TipData } from './Tooltip';
 
 export interface CardViewProps {
@@ -79,7 +80,7 @@ export function CardView(p: CardViewProps) {
       <div class="card-frame">
         <div class="card-title">{cardName(c)}</div>
         <div class="card-art">
-          <span class="glyph">{d.art}</span>
+          <img src={cardArtUrl(d)} alt="" draggable={false} />
         </div>
         <div class="card-type">{TYPE_NAMES[d.type]}</div>
         <div class="card-desc">

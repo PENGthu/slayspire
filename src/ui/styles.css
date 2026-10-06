@@ -97,6 +97,16 @@ button {
   pointer-events: none;
 }
 
+.bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(6, 8, 12, 0);
+  transition: background 0.4s;
+}
+.bg.bg-dim::after {
+  background: linear-gradient(180deg, rgba(6, 8, 12, 0.35), rgba(6, 8, 12, 0.6));
+}
 .bg-act1 {
   background:
     radial-gradient(ellipse at 20% 110%, rgba(84, 140, 70, 0.28), transparent 55%),
@@ -392,10 +402,14 @@ button {
   inset: 0;
   border-radius: 12px;
   background:
-    linear-gradient(160deg, color-mix(in srgb, var(--cc) 55%, #1b1b1b) 0%, color-mix(in srgb, var(--cc) 25%, #0d0d0f) 100%);
-  border: 3px solid color-mix(in srgb, var(--cc) 70%, #000);
-  box-shadow: inset 0 0 0 1px rgba(255, 240, 210, 0.25), inset 0 0 20px rgba(0, 0, 0, 0.5);
-  overflow: hidden;
+    var(--tex),
+    radial-gradient(ellipse at 50% 18%, color-mix(in srgb, var(--cc) 70%, #3a3a3a) 0%, transparent 70%),
+    linear-gradient(170deg, color-mix(in srgb, var(--cc) 58%, #1b1b1b) 0%, color-mix(in srgb, var(--cc) 30%, #0d0d0f) 100%);
+  background-size: 180px 180px, auto, auto;
+  background-blend-mode: overlay, normal, normal;
+  border: 3px solid color-mix(in srgb, var(--cc) 45%, #000);
+  box-shadow: inset 0 0 0 1px rgba(255, 240, 210, 0.22), inset 0 0 0 4px color-mix(in srgb, var(--cc) 40%, #000), inset 0 0 22px rgba(0, 0, 0, 0.55);
+  overflow: visible;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -404,19 +418,19 @@ button {
   border-radius: 18px;
 }
 .card-title {
-  margin-top: 8px;
-  width: 112%;
-  height: 26px;
+  margin-top: 5px;
+  width: 118%;
+  height: 31px;
+  padding-bottom: 3px;
   display: grid;
   place-items: center;
   font-family: var(--f-serif);
   font-weight: 900;
   font-size: 15px;
   color: #fff8e6;
-  text-shadow: 0 1px 2px #000, 0 0 6px rgba(0, 0, 0, 0.6);
-  background: linear-gradient(180deg, var(--rc) 0%, color-mix(in srgb, var(--rc) 60%, #000) 100%);
-  border-top: 1px solid rgba(255, 255, 255, 0.25);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.5);
+  text-shadow: 0 1px 2px #000, 0 0 5px rgba(0, 0, 0, 0.7), 1px 0 1px #000, -1px 0 1px #000;
+  background: var(--ribbon) center / 100% 100% no-repeat;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.55));
   position: relative;
   z-index: 2;
   white-space: nowrap;
@@ -433,49 +447,65 @@ button {
   color: #a8f07a;
 }
 .card-art {
-  margin-top: -4px;
-  width: 86%;
-  height: 74px;
+  margin-top: -5px;
+  width: 87%;
+  height: 76px;
   position: relative;
-  display: grid;
-  place-items: center;
-  background:
-    radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--cc) 45%, #fff3d0) 0%, color-mix(in srgb, var(--cc) 60%, #111) 70%);
-  border: 2px solid rgba(0, 0, 0, 0.6);
-  box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.55);
+  flex: none;
+  background: linear-gradient(170deg, var(--rim-light, #c8cad2) 0%, var(--rim, #7c7e86) 35%, var(--rim-dark, #45464c) 100%);
   overflow: hidden;
 }
-.card.t-attack .card-art {
-  clip-path: polygon(0 0, 100% 0, 100% 78%, 50% 100%, 0 78%);
-  border: none;
+.card.t-attack .card-art,
+.card.t-attack .card-art img,
+.card.t-curse .card-art,
+.card.t-curse .card-art img {
+  clip-path: polygon(0 0, 100% 0, 100% 80%, 50% 100%, 0 80%);
 }
-.card.t-skill .card-art {
-  border-radius: 4px;
+.card.t-skill .card-art,
+.card.t-status .card-art {
+  border-radius: 5px;
+}
+.card.t-skill .card-art img,
+.card.t-status .card-art img {
+  border-radius: 3px;
 }
 .card.t-power .card-art {
   border-radius: 50% / 46%;
 }
-.card-art .glyph {
-  font-size: 44px;
-  filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.55));
-  transform: translateY(-2px);
+.card.t-power .card-art img {
+  border-radius: 50% / 46%;
 }
-.card.t-attack .card-art .glyph {
-  transform: translateY(-6px);
+.card-art img {
+  position: absolute;
+  inset: 3px;
+  width: calc(100% - 6px);
+  height: calc(100% - 6px);
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+  -webkit-user-drag: none;
 }
 .card-type {
-  margin-top: 2px;
-  font-size: 11px;
-  padding: 1px 8px;
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0.55);
+  margin-top: -8px;
+  position: relative;
+  z-index: 2;
+  font-size: 10.5px;
+  line-height: 1.35;
+  padding: 0 9px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #2a2522, #12100f);
+  border: 1px solid var(--rim, #7c7e86);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
   color: var(--parchment-dim);
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
 }
 .card-desc {
   flex: 1;
-  width: 100%;
-  padding: 4px 10px 10px;
+  width: calc(100% - 12px);
+  margin: 3px 6px 7px;
+  border-radius: 6px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.3));
+  padding: 2px 5px 4px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -514,9 +544,11 @@ button {
   font-size: 22px;
   color: #fff;
   text-shadow: 0 0 3px #000, 0 1px 1px #000;
-  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--cc) 40%, #fff) 0%, var(--cc) 45%, color-mix(in srgb, var(--cc) 50%, #000) 100%);
-  border: 2px solid rgba(0, 0, 0, 0.7);
-  box-shadow: 0 0 0 1px rgba(255, 235, 180, 0.5);
+  background:
+    radial-gradient(circle at 36% 28%, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0) 26%),
+    radial-gradient(circle at 50% 58%, color-mix(in srgb, var(--cc) 75%, #fff) 0%, var(--cc) 48%, color-mix(in srgb, var(--cc) 40%, #000) 100%);
+  border: 2px solid #120c08;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--cc) 25%, #e8d6a4), 0 0 0 3.5px #120c08, 0 3px 6px rgba(0, 0, 0, 0.6);
   z-index: 3;
 }
 .card-cost.cheaper {
@@ -590,10 +622,9 @@ button {
   --ch: 180px;
   font-size: 11px;
 }
-.card.sm .card-title { font-size: 13px; height: 22px; }
-.card.sm .card-art { height: 60px; }
-.card.sm .card-art .glyph { font-size: 36px; }
-.card.sm .card-desc { font-size: 11px; padding: 3px 8px 8px; }
+.card.sm .card-title { font-size: 13px; height: 27px; margin-top: 4px; }
+.card.sm .card-art { height: 62px; margin-top: -4px; }
+.card.sm .card-desc { font-size: 11px; padding: 1px 4px 3px; margin: 2px 5px 6px; width: calc(100% - 10px); }
 .card.sm .card-desc .n { font-size: 12px; }
 .card.sm .card-cost { width: 30px; height: 30px; font-size: 18px; }
 .card.sm .card-star { top: 24px; width: 26px; height: 26px; font-size: 13px; }
@@ -603,11 +634,10 @@ button {
   --cw: 220px;
   --ch: 308px;
 }
-.card.lg .card-title { font-size: 20px; height: 34px; margin-top: 12px; }
-.card.lg .card-art { height: 110px; }
-.card.lg .card-art .glyph { font-size: 64px; }
+.card.lg .card-title { font-size: 20px; height: 42px; margin-top: 8px; }
+.card.lg .card-art { height: 112px; margin-top: -7px; }
 .card.lg .card-type { font-size: 13px; }
-.card.lg .card-desc { font-size: 16px; padding: 6px 14px 14px; }
+.card.lg .card-desc { font-size: 16px; padding: 4px 10px 8px; margin: 4px 9px 10px; width: calc(100% - 18px); }
 .card.lg .card-desc .n { font-size: 18px; }
 .card.lg .card-cost { width: 48px; height: 48px; font-size: 28px; left: -12px; top: -12px; }
 .card.lg .card-star { top: 42px; width: 40px; height: 40px; font-size: 19px; }
@@ -669,6 +699,11 @@ button {
   transform: translateX(-50%);
   background: radial-gradient(ellipse, rgba(0, 0, 0, 0.55), transparent 70%);
   z-index: -1;
+}
+.enemy-img {
+  display: block;
+  pointer-events: none;
+  -webkit-user-drag: none;
 }
 @keyframes idle {
   0%, 100% { transform: translateY(0) scale(1, 1); }
@@ -1494,47 +1529,76 @@ button {
 }
 .map-inner {
   position: relative;
-  margin: 0 auto;
+  margin: 12px auto 24px;
+  background: var(--paper) 0 0 / 420px 420px, #e4d2a8;
+  border-radius: 8px;
+  box-shadow:
+    inset 0 0 80px rgba(90, 56, 20, 0.7),
+    inset 0 0 14px rgba(60, 36, 12, 0.7),
+    0 12px 40px rgba(0, 0, 0, 0.75);
 }
 .map-node {
   position: absolute;
-  width: 46px;
-  height: 46px;
-  margin: -23px 0 0 -23px;
+  width: 52px;
+  height: 52px;
+  margin: -26px 0 0 -26px;
   border-radius: 50%;
   display: grid;
   place-items: center;
-  font-size: 24px;
-  background: radial-gradient(circle at 40% 35%, #f3e7cc, #b9a985);
-  border: 2px solid #5c5040;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.5);
   transition: transform 0.15s;
   cursor: default;
 }
-.map-node.visited {
-  background: radial-gradient(circle at 40% 35%, #7a705e, #4a4337);
-  filter: grayscale(0.4);
+.map-node img {
+  width: 46px;
+  height: 46px;
+  pointer-events: none;
+  -webkit-user-drag: none;
 }
-.map-node.current {
-  box-shadow: 0 0 0 3px var(--gold), 0 0 18px rgba(226, 176, 74, 0.8);
+.map-node.k-elite img {
+  width: 52px;
+  height: 52px;
+}
+.map-node.visited::after,
+.map-node.current::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border: 3px solid #3a2616;
+  border-radius: 52% 46% 50% 48%;
+  transform: rotate(-12deg);
+  opacity: 0.85;
+}
+.map-node.current::after {
+  border-color: #7a1e14;
+  border-width: 4px;
+  inset: -6px;
+  opacity: 1;
 }
 .map-node.reachable {
   cursor: pointer;
-  animation: nodepulse 1.2s ease-in-out infinite;
+  animation: inkpulse 1.1s ease-in-out infinite;
+}
+.map-node.reachable::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(122, 30, 20, 0.22), transparent 70%);
 }
 .map-node.reachable:hover {
-  transform: scale(1.18);
+  animation: none;
+  transform: scale(1.3);
 }
 .map-node.unreach {
-  opacity: 0.55;
+  opacity: 0.62;
+}
+@keyframes inkpulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
 }
 @keyframes nodepulse {
   0%, 100% { box-shadow: 0 0 0 2px rgba(226, 176, 74, 0.9), 0 0 6px rgba(226, 176, 74, 0.6); }
   50% { box-shadow: 0 0 0 5px rgba(226, 176, 74, 0.35), 0 0 22px rgba(226, 176, 74, 0.9); }
-}
-.map-node.k-elite {
-  background: radial-gradient(circle at 40% 35%, #f7d6c8, #c98d79);
-  border-color: #6e2d22;
 }
 .map-boss {
   position: absolute;
@@ -1545,31 +1609,40 @@ button {
   gap: 4px;
 }
 .map-boss .face {
-  width: 120px;
-  height: 120px;
+  width: 130px;
+  height: 130px;
   border-radius: 50%;
   display: grid;
   place-items: center;
   font-size: 72px;
-  background: radial-gradient(circle, #3a2a2a, #120c0c);
-  border: 3px solid #6e2d22;
-  box-shadow: 0 0 30px rgba(207, 74, 60, 0.4);
+}
+.map-boss .face img {
+  width: 130px;
+  height: 130px;
+  pointer-events: none;
+  filter: sepia(0.85) saturate(0.75) brightness(0.8) contrast(1.2) drop-shadow(0 2px 0 rgba(58, 38, 22, 0.6));
 }
 .map-boss.reachable .face {
   cursor: pointer;
-  animation: nodepulse 1.2s ease-in-out infinite;
+  animation: inkpulse 1.2s ease-in-out infinite;
 }
 .map-boss .label {
   font-family: var(--f-serif);
   font-weight: 900;
   font-size: 18px;
-  color: #ff9d8f;
+  color: #7a1e14;
 }
 .map-legend {
   position: absolute;
   right: 18px;
   top: 14px;
-  padding: 12px 14px;
+  padding: 12px 16px;
+  background: var(--paper) 0 0 / 420px 420px, #e4d2a8 !important;
+  color: #3a2616 !important;
+  border: 2px solid #6a4a2a !important;
+  box-shadow: inset 0 0 20px rgba(90, 56, 20, 0.6), 0 6px 18px rgba(0, 0, 0, 0.6) !important;
+  font-family: var(--f-serif);
+  font-weight: 700;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -1580,6 +1653,10 @@ button {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+.legend-icon {
+  width: 26px;
+  height: 26px;
 }
 .map-title {
   position: absolute;
@@ -1697,8 +1774,18 @@ button {
   gap: 12px;
   text-align: center;
 }
-.merchant .big-art {
-  font-size: 120px;
+.merchant .big-art .figure-img {
+  width: 180px;
+  height: 180px;
+}
+.chest-art .figure-img {
+  width: var(--sz, 210px);
+  height: var(--sz, 210px);
+}
+.figure-img {
+  display: block;
+  pointer-events: none;
+  -webkit-user-drag: none;
 }
 .merchant .speech {
   font-size: 14px;
@@ -1800,12 +1887,18 @@ button {
   height: 360px;
   flex: none;
   border-radius: 20px;
+  overflow: hidden;
   display: grid;
   place-items: center;
   font-size: 170px;
   background: radial-gradient(circle at 50% 40%, rgba(255, 230, 170, 0.18), rgba(0, 0, 0, 0.5) 70%);
   border: 1px solid var(--line);
   box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.6);
+}
+.event-art img {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 .event-body {
   flex: 1;
@@ -1893,6 +1986,10 @@ button {
   0%, 100% { transform: scale(1); opacity: 0.85; }
   50% { transform: scale(1.06); opacity: 1; }
 }
+.ancient-figure .glyph .figure-img {
+  width: 340px;
+  height: 340px;
+}
 .ancient-figure .glyph {
   position: relative;
   font-size: 200px;
@@ -1961,6 +2058,10 @@ button {
 }
 
 /* 休息处 */
+.campfire .figure-img {
+  width: 230px;
+  height: 230px;
+}
 .campfire {
   font-size: 150px;
   filter: drop-shadow(0 0 40px rgba(255, 140, 40, 0.65));
@@ -2121,6 +2222,10 @@ button {
 .portrait .ancient-figure .glyph {
   font-size: 130px;
 }
+.portrait .ancient-figure .glyph .figure-img {
+  width: 220px;
+  height: 220px;
+}
 .portrait .shop {
   flex-direction: column;
   padding: 12px 18px;
@@ -2131,6 +2236,10 @@ button {
 }
 .portrait .merchant .big-art {
   font-size: 70px;
+}
+.portrait .merchant .big-art .figure-img {
+  width: 96px;
+  height: 96px;
 }
 .portrait .map-legend {
   display: none;
@@ -2178,7 +2287,10 @@ button {
   width: 40px;
   height: 40px;
   margin: -20px 0 0 -20px;
-  font-size: 20px;
+}
+.portrait .map-node img {
+  width: 36px;
+  height: 36px;
 }
 .portrait .map-title {
   font-size: 32px;
@@ -2212,4 +2324,10 @@ button {
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }
+}
+
+.portrait-svg {
+  display: block;
+  pointer-events: none;
+  -webkit-user-drag: none;
 }

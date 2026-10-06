@@ -19,6 +19,16 @@ import {
 } from './screens/RoomScreens';
 import { refresh, state, useStore } from './store';
 import { sfxForScreen } from './sound';
+import { SCENE_GROUND, sceneUrl } from './art/sceneArt';
+
+/** 让场景的地面线对齐到人物站立的高度 */
+function sceneOffset(d: Dims): number {
+  const s = Math.max(d.W / 1600, d.H / 900);
+  const target = d.portrait ? d.H * 0.45 : 432;
+  return Math.round(Math.min(0, Math.max(d.H - 900 * s, target - SCENE_GROUND * s)));
+}
+
+const SCENE_OF: Record<string, string> = { 'bg-act1': 'overgrowth', 'bg-docks': 'underdocks', 'bg-act2': 'hive', 'bg-act3': 'glory', 'bg-menu': 'menu' };
 
 interface Dims {
   W: number;
@@ -93,7 +103,10 @@ export function App() {
           transform: `translate(${dims.ox}px, ${dims.oy}px) scale(${dims.s})`,
         }}
       >
-        <div class={`bg ${actBg}`} />
+        <div
+          class={`bg ${actBg} ${run && st.view === 'run' && run.screen.s !== 'combat' ? 'bg-dim' : ''}`}
+          style={{ backgroundImage: `url("${sceneUrl(SCENE_OF[actBg] ?? 'menu')}")`, backgroundSize: 'cover', backgroundPosition: `50% ${sceneOffset(dims)}px` }}
+        />
         {st.view === 'menu' && (
           <div class="screen">
             <MenuScreen />

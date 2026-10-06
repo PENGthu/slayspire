@@ -7,6 +7,8 @@ import { Portrait } from '../components/Art';
 import { CardView, cardTips } from '../components/CardView';
 import { hideTip, pointer, showTip, stageInfo, tipProps } from '../components/Tooltip';
 import { act, deleteSave, state, refresh } from '../store';
+import { eventArtUrl } from '../art/cardArt';
+import { figureUrl } from '../art/figureArt';
 
 export function relicTip(id: string) {
   const d = RELICS[id];
@@ -155,7 +157,9 @@ export function ShopScreen({ run }: { run: Run }) {
   return (
     <div class="shop">
       <div class="merchant">
-        <div class="big-art">🧙</div>
+        <div class="big-art">
+          <img class="figure-img" src={figureUrl('merchant')!} alt="" draggable={false} />
+        </div>
         <div class="speech">「随便看看，旅人。这些可都是我从尖塔里捡来的好东西。」</div>
         <button class="btn" onClick={() => act(() => run.leaveRoom())}>
           离开商店
@@ -236,7 +240,9 @@ export function RestScreen({ run }: { run: Run }) {
   if (run.hasRelic('shovel')) opts.push({ id: 'dig', ico: '🪏', lbl: '挖掘', desc: '获得一件遗物', ok: true });
   return (
     <div class="room" style={{ flexDirection: 'column' }}>
-      <div class="campfire">🔥</div>
+      <div class="campfire">
+        <img class="figure-img" src={figureUrl('campfire')!} alt="" draggable={false} />
+      </div>
       <h2>休息处</h2>
       {!sc.done ? (
         <div class="rest-opts">
@@ -269,7 +275,9 @@ export function EventScreen({ run }: { run: Run }) {
   if (!v) return null;
   return (
     <div class="event">
-      <div class="event-art">{def.art}</div>
+      <div class="event-art">
+        <img src={eventArtUrl(def.id, def.art)} alt="" draggable={false} />
+      </div>
       <div class="event-body">
         <h2>{def.name}</h2>
         <div class="event-text">{v.text}</div>
@@ -293,8 +301,8 @@ export function TreasureScreen({ run }: { run: Run }) {
   const names = { small: '小宝箱', medium: '宝箱', large: '大宝箱' };
   return (
     <div class="room" style={{ flexDirection: 'column' }}>
-      <div class="big-art" style={{ fontSize: sc.size === 'large' ? '170px' : sc.size === 'medium' ? '150px' : '130px', cursor: sc.opened ? 'default' : 'pointer' }} onClick={() => act(() => run.openChest())}>
-        {sc.opened ? '📭' : '🧰'}
+      <div class="big-art chest-art" style={{ '--sz': sc.size === 'large' ? '240px' : sc.size === 'medium' ? '210px' : '180px', cursor: sc.opened ? 'default' : 'pointer' } as Record<string, string>} onClick={() => act(() => run.openChest())}>
+        <img class="figure-img" src={figureUrl(sc.opened ? 'chest_open' : 'chest_closed')!} alt="" draggable={false} />
       </div>
       <h2>{names[sc.size]}</h2>
       {!sc.opened ? (
@@ -360,7 +368,7 @@ export function AncientScreen({ run }: { run: Run }) {
     <div class="ancient" style={{ '--ac': anc.color } as Record<string, string>}>
       <div class="ancient-figure">
         <div class="halo" />
-        <div class="glyph">{anc.art}</div>
+        <div class="glyph">{figureUrl(anc.id) ? <img class="figure-img" src={figureUrl(anc.id)!} alt="" draggable={false} /> : anc.art}</div>
       </div>
       <div class="ancient-body">
         <div class="ttl">先古之民 · {anc.title}</div>

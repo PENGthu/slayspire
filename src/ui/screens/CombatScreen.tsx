@@ -5,6 +5,7 @@ import { CARDS, ENEMIES, POTIONS, POWERS } from '../../game/registry';
 import type { Run } from '../../game/run';
 import type { Card, Creature, Enemy } from '../../game/types';
 import { INTENT_DESC, IntentIcon, OrbArt, OstyArt, Portrait } from '../components/Art';
+import { enemyArtUrl } from '../art/enemyArt';
 import { ORBS } from '../../game/orbs';
 import { CardView, cardTips } from '../components/CardView';
 import { hideTip, rectInStage, showTip, stageInfo, tipProps, toStage, type TipData } from '../components/Tooltip';
@@ -694,6 +695,8 @@ function EnemyView({
   const m = g.moveOf(e);
   const intent = g.intentDamage(e);
   const fontSize = Math.round(118 * e.size);
+  const artUrl = enemyArtUrl(e.defId);
+  const artSize = Math.round(146 * e.size);
   const reviving = !!e.powers.revive_pending;
   const enemyTips = (): TipData[] => {
     const tips: TipData[] = [
@@ -740,8 +743,14 @@ function EnemyView({
         </div>
       )}
       <div class="sprite" style={{ fontSize: `${fontSize}px`, opacity: reviving ? 0.45 : 1 }}>
-        <span class="shadow" />
-        <span>{e.art}</span>
+        {artUrl ? (
+          <img class="enemy-img" src={artUrl} width={artSize} height={artSize} alt="" draggable={false} />
+        ) : (
+          <>
+            <span class="shadow" />
+            <span>{e.art}</span>
+          </>
+        )}
       </div>
       <HpBar c={e} width={Math.round(100 + 40 * e.size)} />
       <Powers c={e} />
