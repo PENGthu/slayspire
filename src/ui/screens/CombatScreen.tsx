@@ -68,6 +68,20 @@ function HpBar({ c, width = 130 }: { c: Creature; width?: number }) {
   );
 }
 
+/**
+ * 触屏轻点卡牌后，浏览器会补发一次 click。此时选中的牌已经抬起移开，
+ * 这次 click 会落到牌下方的按钮或空白处（打开牌堆、取消选择），所以把它吞掉。
+ */
+function swallowNextClick() {
+  const kill = (ev: MouseEvent) => {
+    ev.stopPropagation();
+    ev.preventDefault();
+    window.removeEventListener('click', kill, true);
+  };
+  window.addEventListener('click', kill, true);
+  setTimeout(() => window.removeEventListener('click', kill, true), 500);
+}
+
 function handPos(n: number, i: number, cw: number, maxW: number) {
   const spread = Math.min(maxW, n * cw * 0.86);
   const step = n > 1 ? Math.min(cw * 0.86, spread / (n - 1)) : 0;
@@ -282,6 +296,7 @@ export function CombatScreen({ run }: { run: Run }) {
       }
     };
     const up = (e: PointerEvent) => {
+      if (e.pointerType === 'touch') swallowNextClick();
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
       window.removeEventListener('pointercancel', up);
@@ -320,7 +335,8 @@ export function CombatScreen({ run }: { run: Run }) {
 
   const cd = CHARACTERS[run.char];
   const n = g.hand.length;
-  const maxW = Math.min(stageInfo.w * (portrait ? 0.86 : 0.6), 900);
+  // 竖屏时让两端的牌也完整留在屏幕内
+  const maxW = portrait ? stageInfo.w - cw - 16 : Math.min(stageInfo.w * 0.6, 900);
 
   return (
     <div

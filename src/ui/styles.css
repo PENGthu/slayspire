@@ -1553,6 +1553,7 @@ button {
   height: 46px;
   pointer-events: none;
   -webkit-user-drag: none;
+  transition: transform 0.15s;
 }
 .map-node.k-elite img {
   width: 52px;
@@ -1576,6 +1577,8 @@ button {
 }
 .map-node.reachable {
   cursor: pointer;
+}
+.map-node.reachable img {
   animation: inkpulse 1.1s ease-in-out infinite;
 }
 .map-node.reachable::before {
@@ -1585,7 +1588,7 @@ button {
   border-radius: 50%;
   background: radial-gradient(circle, rgba(122, 30, 20, 0.22), transparent 70%);
 }
-.map-node.reachable:hover {
+.map-node.reachable:hover img {
   animation: none;
   transform: scale(1.3);
 }
@@ -1624,6 +1627,8 @@ button {
 }
 .map-boss.reachable .face {
   cursor: pointer;
+}
+.map-boss.reachable .face img {
   animation: inkpulse 1.2s ease-in-out infinite;
 }
 .map-boss .label {
