@@ -102,8 +102,8 @@ export function MapScreen({ run, readonly = false }: { run: Run; readonly?: bool
               if (readonly) return;
               if (run.bossReachable) return act(() => run.enterBoss());
               // 还没走到最上面一层：给出提示，而不是毫无反应
-              if (run.screen.s === 'map') {
-                const left = MAP_H - 1 - curRow;
+              const left = MAP_H - 1 - curRow;
+              if (run.screen.s === 'map' && left > 0) {
                 run.toast(`还要再走 ${left} 层：先走到地图最上面一层，才能挑战首领。`);
                 refresh();
               }

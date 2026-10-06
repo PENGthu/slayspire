@@ -4,8 +4,8 @@ import { canUpgrade, cardDef, makeCard, upgradeCard } from './cards';
 import { CHARACTERS } from './characters';
 import { Combat } from './combat';
 import type { EventState, EventView } from './events';
-import { generateMap, nodeAt } from './map';
-import { ANCIENTS, CARDS, ENCHANTS, ENCOUNTERS, EVENTS, POTIONS, RELICS } from './registry';
+import { MAP_H, generateMap, nodeAt } from './map';
+import { ANCIENTS, CARDS, ENCHANTS, ENCOUNTERS, ENEMIES, EVENTS, POTIONS, RELICS } from './registry';
 import type {
   Card,
   CharId,
@@ -256,8 +256,40 @@ export class Run {
     if (sc.s === 'reward') sc.rewards.forEach((r) => r.type === 'card' && r.cards.forEach(scan));
     if (sc.s === 'shop') sc.shop.items.forEach((i) => i.card && scan(i.card));
     bumpUid(maxUid + 1000);
+    run.repairSave();
     if (run.screen.s === 'combat') run.beginCombat();
     return run;
+  }
+
+  /**
+   * 旧存档兼容：内容更新后，存档里可能留着已经删除或改名的首领、敌人、卡牌、遗物和药水。
+   * 读档时换成现有的内容，并修复因此卡住的进度。
+   */
+  private repairSave() {
+    // 首领已不存在（例如换成原作怪物阵容之前开的局）：在本区域的首领中重新挑一个
+    if (!ENCOUNTERS[this.boss]) this.boss = this.pickBoss(this.act);
+    // 旧版本进入首领房间失败时，位置停在了首领那一行、却还在地图上：退回到最上面一行
+    if (this.screen.s === 'map' && this.pos && this.pos.row >= MAP_H) {
+      const last = this.path[this.path.length - 1];
+      this.pos = { row: MAP_H - 1, col: last && last[0] === MAP_H - 1 ? last[1] : this.pos.col };
+      this.floor = Math.max(0, this.floor - 1);
+      this.stats.floorsClimbed = Math.max(0, this.stats.floorsClimbed - 1);
+    }
+    // 存档时正在打的战斗里有已删除的敌人：按原遭遇重新生成，遭遇也不存在时换一个同类遭遇
+    const sc = this.screen;
+    if (sc.s === 'combat' && sc.enemies.some((id) => !ENEMIES[id])) {
+      const resolve = (e: EncounterDef) => (typeof e.enemies === 'function' ? e.enemies(this.rng('enc')) : [...e.enemies]);
+      let enc: EncounterDef | undefined = ENCOUNTERS[sc.enc];
+      if (!enc || !resolve(enc).every((id) => ENEMIES[id])) {
+        enc = sc.kind === 'boss' ? ENCOUNTERS[this.boss] : this.pickEncounter(sc.kind === 'elite' ? 'elite' : this.fights < 3 ? 'weak' : 'strong');
+      }
+      sc.enc = enc.id;
+      sc.enemies = resolve(enc);
+    }
+    // 已删除的卡牌、遗物、药水直接移除
+    this.deck = this.deck.filter((c) => !!CARDS[c.id]);
+    this.relics = this.relics.filter((r) => !!RELICS[r.id]);
+    this.potions = this.potions.map((p) => (p && POTIONS[p] ? p : null));
   }
 
   // =========================================================================
@@ -578,10 +610,7 @@ export class Run {
     this.path = [];
     this.zone = act === 1 ? this.rng('map').pick(['overgrowth', 'underdocks']) : act === 2 ? 'hive' : 'glory';
     this.map = generateMap(this.rng(`map${act}`), act, this.ascension);
-    // 角色专属首领（例如小克的 Gemini / Grok / OpenAI）优先，否则在本区域的首领中随机
-    const own = Object.values(ENCOUNTERS).filter((e) => e.kind === 'boss' && e.char === this.char && e.act === act);
-    const bosses = Object.values(ENCOUNTERS).filter((e) => this.encInZone(e) && e.kind === 'boss' && !e.char);
-    this.boss = own.length ? own[0].id : this.rng('enc').pick(bosses).id;
+    this.boss = this.pickBoss(act);
     // 先古之民
     const ancients = Object.values(ANCIENTS).filter((a) => a.acts.includes(act));
     const anc = this.rng('event').pick(ancients);
@@ -636,8 +665,17 @@ export class Run {
     this.enterRoom(node.kind);
   }
 
+  /** 本幕首领：角色专属首领（例如小克的 Gemini / Grok / OpenAI）优先，否则在本区域的首领中随机 */
+  private pickBoss(act: number): string {
+    const own = Object.values(ENCOUNTERS).filter((e) => e.kind === 'boss' && e.char === this.char && e.act === act);
+    const bosses = Object.values(ENCOUNTERS).filter((e) => this.encInZone(e) && e.kind === 'boss' && !e.char);
+    return own.length ? own[0].id : this.rng('enc').pick(bosses).id;
+  }
+
   enterBoss() {
     if (!this.bossReachable) return;
+    // 先确认首领存在，再改动位置：否则开战失败时会卡在“已进入首领房间”的状态
+    if (!ENCOUNTERS[this.boss]) this.boss = this.pickBoss(this.act);
     this.pos = { row: 15, col: 3 };
     this.floor++;
     this.stats.floorsClimbed++;
