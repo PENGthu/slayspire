@@ -148,6 +148,46 @@ button {
   flex-direction: column;
 }
 
+/* ---------------------------------------------------------------- 画面切换过渡（见 transition.tsx） */
+.xfade {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.xfade-in {
+  animation: xf-in 0.38s cubic-bezier(0.2, 0.7, 0.3, 1) backwards;
+}
+@keyframes xf-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+/* 被换下的旧画面：原地淡出，不再响应操作 */
+.xf-ghost {
+  pointer-events: none !important;
+  animation: xf-out 0.26s ease-in forwards !important;
+}
+.bg.xf-ghost {
+  animation-duration: 0.7s !important;
+}
+.overlay.xf-ghost {
+  animation-duration: 0.18s !important;
+}
+@keyframes xf-out {
+  to {
+    opacity: 0;
+  }
+}
+.stage.fast .xfade-in {
+  animation-duration: 0.2s;
+}
+.stage.fast .xf-ghost {
+  animation-duration: 0.14s !important;
+}
+
 /* ---------------------------------------------------------------- 通用按钮 */
 .btn {
   appearance: none;

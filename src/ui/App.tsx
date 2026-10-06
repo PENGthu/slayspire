@@ -23,6 +23,7 @@ import { SCENE_GROUND, sceneUrl } from './art/sceneArt';
 import { CardReveal } from './components/CardReveal';
 import { AchievementToasts } from './components/Achievements';
 import { setRasterScale } from './art/raster';
+import { Swap, installTransitions } from './transition';
 
 /** 让场景的地面线对齐到人物站立的高度 */
 function sceneOffset(d: Dims): number {
@@ -90,6 +91,7 @@ export function App() {
   useLayoutEffect(() => {
     stageInfo.el = stageRef.current;
   });
+  useLayoutEffect(() => (stageRef.current ? installTransitions(stageRef.current) : undefined), []);
 
   const run = st.run;
   const actBg = run && st.view === 'run' ? (run.zone === 'underdocks' ? 'bg-docks' : `bg-act${run.act}`) : 'bg-menu';
@@ -100,7 +102,7 @@ export function App() {
     <div class="viewport" ref={vpRef} onContextMenu={(e) => e.preventDefault()}>
       <div
         ref={stageRef}
-        class={`stage ${dims.portrait ? 'portrait' : 'landscape'}`}
+        class={`stage ${dims.portrait ? 'portrait' : 'landscape'}${st.profile.settings.fast ? ' fast' : ''}`}
         style={{
           width: `${dims.W}px`,
           height: `${dims.H}px`,
@@ -108,25 +110,20 @@ export function App() {
         }}
       >
         <div
+          key={actBg}
           class={`bg ${actBg} ${run && st.view === 'run' && run.screen.s !== 'combat' ? 'bg-dim' : ''}`}
           style={{ backgroundImage: `url("${sceneUrl(SCENE_OF[actBg] ?? 'menu')}")`, backgroundSize: 'cover', backgroundPosition: `50% ${sceneOffset(dims)}px` }}
         />
-        {st.view === 'menu' && (
-          <div class="screen">
-            <MenuScreen />
-          </div>
-        )}
-        {st.view === 'charSelect' && (
-          <div class="screen">
-            <CharSelectScreen />
-          </div>
-        )}
-        {st.view === 'compendium' && <Compendium />}
-        {st.view === 'run' && run && (
-          <ErrorGuard>
-            <RunView run={run} />
-          </ErrorGuard>
-        )}
+        <Swap k={st.view} cls="screen">
+          {st.view === 'menu' && <MenuScreen />}
+          {st.view === 'charSelect' && <CharSelectScreen />}
+          {st.view === 'compendium' && <Compendium />}
+          {st.view === 'run' && run && (
+            <ErrorGuard>
+              <RunView run={run} />
+            </ErrorGuard>
+          )}
+        </Swap>
         <Overlays />
         {run && run.selection && <SelectionOverlay run={run} />}
         {st.view === 'run' && run && <CardReveal run={run} />}
@@ -143,16 +140,18 @@ function RunView({ run }: { run: Run }) {
   return (
     <div class="screen" onPointerDown={() => hideTip()}>
       <TopBar run={run} />
-      {sc === 'combat' && run.combat && <CombatScreen key={`${run.floor}-${run.act}`} run={run} />}
-      {sc === 'map' && <MapScreen run={run} />}
-      {sc === 'reward' && <RewardScreen run={run} />}
-      {sc === 'shop' && <ShopScreen run={run} />}
-      {sc === 'rest' && <RestScreen run={run} />}
-      {sc === 'event' && <EventScreen run={run} />}
-      {sc === 'treasure' && <TreasureScreen run={run} />}
-      {sc === 'bossRelic' && <BossRelicScreen run={run} />}
-      {sc === 'ancient' && <AncientScreen run={run} />}
-      {sc === 'gameover' && <GameOverScreen run={run} />}
+      <Swap k={`${sc}-${run.act}-${run.floor}`} cls="run-body" appear={false}>
+        {sc === 'combat' && run.combat && <CombatScreen key={`${run.floor}-${run.act}`} run={run} />}
+        {sc === 'map' && <MapScreen run={run} />}
+        {sc === 'reward' && <RewardScreen run={run} />}
+        {sc === 'shop' && <ShopScreen run={run} />}
+        {sc === 'rest' && <RestScreen run={run} />}
+        {sc === 'event' && <EventScreen run={run} />}
+        {sc === 'treasure' && <TreasureScreen run={run} />}
+        {sc === 'bossRelic' && <BossRelicScreen run={run} />}
+        {sc === 'ancient' && <AncientScreen run={run} />}
+        {sc === 'gameover' && <GameOverScreen run={run} />}
+      </Swap>
     </div>
   );
 }
