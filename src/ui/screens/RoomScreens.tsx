@@ -3,12 +3,13 @@ import { CHARACTERS } from '../../game/characters';
 import { ANCIENTS, EVENTS, POTIONS, RELICS } from '../../game/registry';
 import type { Run } from '../../game/run';
 import type { Card } from '../../game/types';
-import { Portrait } from '../components/Art';
+import { PotionIcon, Portrait, RelicIcon } from '../components/Art';
 import { CardView, cardTips } from '../components/CardView';
 import { hideTip, pointer, showTip, stageInfo, tipProps } from '../components/Tooltip';
 import { act, deleteSave, state, refresh } from '../store';
 import { eventArtUrl } from '../art/cardArt';
 import { figureUrl } from '../art/figureArt';
+import { serviceArtUrl } from '../art/itemArt';
 
 export function relicTip(id: string) {
   const d = RELICS[id];
@@ -53,7 +54,9 @@ export function RewardScreen({ run }: { run: Run }) {
             const d = RELICS[r.id];
             return (
               <button key={i} class="reward-item" onClick={() => act(() => run.takeReward(i))} {...tipProps(relicTip(r.id), 'right')}>
-                <span class="ri">{d.art}</span>
+                <span class="ri">
+                  <RelicIcon id={r.id} />
+                </span>
                 <span class="rt">
                   遗物：{d.name}
                   <small>{d.desc}</small>
@@ -70,7 +73,9 @@ export function RewardScreen({ run }: { run: Run }) {
                 onClick={() => act(() => run.takeReward(i))}
                 {...tipProps([{ title: d.name, body: d.desc }], 'right')}
               >
-                <span class="ri">{d.art}</span>
+                <span class="ri">
+                  <PotionIcon id={r.id} />
+                </span>
                 <span class="rt">
                   药水：{d.name}
                   <small>{d.desc}</small>
@@ -183,7 +188,7 @@ export function ShopScreen({ run }: { run: Run }) {
               {relics.map(({ it, i }) => (
                 <div key={i} class={`shop-item ${it.sold ? 'sold' : ''}`}>
                   <div class="goods-tile" style={armed === i ? { outline: '2px solid var(--gold)' } : undefined} onClick={() => buy(i)} {...tipProps(relicTip(it.id!), 'top')}>
-                    {RELICS[it.id!].art}
+                    <RelicIcon id={it.id!} />
                   </div>
                   <Price p={it.price} />
                 </div>
@@ -198,7 +203,7 @@ export function ShopScreen({ run }: { run: Run }) {
                 return (
                   <div key={i} class={`shop-item ${it.sold ? 'sold' : ''}`}>
                     <div class="goods-tile" style={armed === i ? { outline: '2px solid var(--gold)' } : undefined} onClick={() => buy(i)} {...tipProps([{ title: d.name, body: d.desc }], 'top')}>
-                      {d.art}
+                      <PotionIcon id={it.id!} />
                     </div>
                     <Price p={it.price} />
                   </div>
@@ -214,7 +219,7 @@ export function ShopScreen({ run }: { run: Run }) {
                 onClick={() => run.gold >= removeCost && act(() => run.buyRemoval())}
                 {...tipProps([{ title: '移除卡牌', body: '从牌组中移除一张牌。每次使用后价格上涨。' }], 'top')}
               >
-                ✂️
+                <img class="item-icon" src={serviceArtUrl('remove')} alt="" draggable={false} />
               </div>
               <Price p={removeCost} />
             </div>
@@ -313,7 +318,7 @@ export function TreasureScreen({ run }: { run: Run }) {
         <>
           <div style={{ display: 'flex', gap: '16px', alignItems: 'center', fontSize: '18px' }}>
             <span {...tipProps(relicTip(sc.relic), 'right')} style={{ fontSize: '40px' }}>
-              {RELICS[sc.relic].art}
+              <RelicIcon id={sc.relic} />
             </span>
             <span>获得「{RELICS[sc.relic].name}」</span>
             {sc.gold > 0 && !run.hasRelic('ectoplasm') && <span style={{ color: 'var(--gold)' }}>以及 {sc.gold} 金币</span>}
@@ -341,7 +346,7 @@ export function BossRelicScreen({ run }: { run: Run }) {
           return (
             <button key={id} class="rest-opt" style={{ width: '220px' }} onClick={() => act(() => run.pickBossRelic(i))}>
               <span class="ico" style={{ fontSize: '60px' }}>
-                {d.art}
+                <RelicIcon id={id} />
               </span>
               <span class="lbl">{d.name}</span>
               <span class="desc" style={{ whiteSpace: 'pre-line', fontSize: '14px', color: 'var(--parchment-dim)' }}>

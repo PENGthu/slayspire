@@ -4,6 +4,7 @@ import type { Run } from '../../game/run';
 import { ZONE_NAMES } from '../../game/map';
 import { act, refresh, setOverlay, state } from '../store';
 import { tipProps } from './Tooltip';
+import { PotionIcon, RelicIcon } from './Art';
 
 export const TIER_NAMES: Record<string, string> = {
   starter: '初始遗物',
@@ -58,7 +59,7 @@ export function TopBar({ run }: { run: Run }) {
                   refresh();
                 }}
               >
-                {def ? def.art : ''}
+                {def ? <PotionIcon id={p!} /> : ''}
                 {ui.potionMenu === i && def && <PotionMenu run={run} slot={i} />}
               </div>
             );
@@ -101,7 +102,7 @@ export function TopBar({ run }: { run: Run }) {
               class={`relic ${r.used ? 'used' : ''}`}
               {...tipProps([{ title: d.name, sub: TIER_NAMES[d.tier], body: d.desc + (d.flavor ? `\n\n${d.flavor}` : '') }], 'bottom')}
             >
-              {d.art}
+              <RelicIcon id={r.id} />
               {showCounter && <span class="rc">{r.counter}</span>}
             </div>
           );

@@ -4,7 +4,7 @@ import { CHAR_ORDER, CHARACTERS } from '../../game/characters';
 import { RELICS } from '../../game/registry';
 import { Run } from '../../game/run';
 import type { CharId } from '../../game/types';
-import { Portrait } from '../components/Art';
+import { Portrait, RelicIcon } from '../components/Art';
 import { tipProps } from '../components/Tooltip';
 import { confirm, deleteSave, loadRun, refresh, setOverlay, startNewRun, state } from '../store';
 
@@ -151,7 +151,7 @@ export function CharSelectScreen() {
               <div class="meta">
                 <span>❤️ {c.hp}</span>
                 <span>🪙 {c.gold}</span>
-                <span {...tipProps([{ title: r.name, sub: '初始遗物', body: r.desc }], 'top')}>{r.art} {r.name}</span>
+                <span {...tipProps([{ title: r.name, sub: '初始遗物', body: r.desc }], 'top')}><RelicIcon id={c.relic} /> {r.name}</span>
               </div>
             </div>
           );

@@ -2336,3 +2336,18 @@ button {
   pointer-events: none;
   -webkit-user-drag: none;
 }
+
+/* 遗物与药水图标：随容器字号缩放，替代原来的 emoji */
+.item-icon {
+  width: 1.4em;
+  height: 1.4em;
+  display: inline-block;
+  vertical-align: middle;
+  pointer-events: none;
+  -webkit-user-drag: none;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.5));
+}
+.reward-item .ri .item-icon {
+  width: 34px;
+  height: 34px;
+}

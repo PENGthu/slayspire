@@ -1,4 +1,5 @@
 import type { IntentKind } from '../../game/types';
+import { potionArtUrl, relicArtUrl } from '../art/itemArt';
 import { portraitUrl } from '../art/portraitArt';
 
 /** 意图图标（内联 SVG） */
@@ -165,4 +166,14 @@ export function OrbArt({ color, art }: { color: string; art: string }) {
 export function OstyArt({ size = 1 }: { size?: number }) {
   const url = portraitUrl('osty');
   return url ? <img src={url} width={100 * size} height={133 * size} class="portrait-svg" alt="" draggable={false} /> : null;
+}
+
+/** 遗物图标（尺寸随所在元素的字号缩放） */
+export function RelicIcon({ id }: { id: string }) {
+  return <img class="item-icon" src={relicArtUrl(id)} alt="" draggable={false} />;
+}
+
+/** 药水图标 */
+export function PotionIcon({ id }: { id: string }) {
+  return <img class="item-icon" src={potionArtUrl(id)} alt="" draggable={false} />;
 }

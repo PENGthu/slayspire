@@ -9,6 +9,7 @@ import { CardView, cardTips } from './CardView';
 import { TIER_NAMES } from './TopBar';
 import { CHARACTERS } from '../../game/characters';
 import { hideTip, showTip, tipProps } from './Tooltip';
+import { RelicIcon } from './Art';
 
 const TYPE_ORDER: Record<string, number> = { attack: 0, skill: 1, power: 2, status: 3, curse: 4 };
 
@@ -314,7 +315,7 @@ export function Compendium() {
             .filter((r) => r.tier !== 'event' || r.id !== 'circlet')
             .map((r) => (
               <div key={r.id} class="relic" style={{ width: '54px', height: '54px', fontSize: '30px' }} {...tipProps([{ title: r.name, sub: `${TIER_NAMES[r.tier] ?? r.tier}${r.char ? ` · ${CHARACTERS[r.char].name}专属` : ''}`, body: r.desc }], 'right')}>
-                {r.art}
+                <RelicIcon id={r.id} />
               </div>
             ))}
         </div>
