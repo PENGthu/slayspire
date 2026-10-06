@@ -123,11 +123,11 @@ describe('小克专属首领', () => {
     expect(ai.dead).toBe(false);
     g.endTurn();
     g.runEnemyPhase();
-    expect(ai.maxHp).toBe(260);
+    expect(ai.maxHp).toBe(330);
     expect(g.has(ai, 'gpt_memory')).toBe(false);
   });
 
-  it('OpenAI 第二形态：思考两回合后深度推理；一回合打出 30 点以上能打断', () => {
+  it('OpenAI 第二形态：思考时获得格挡，两回合后深度推理；一回合内每失去 40 点生命打断 1 层思考', () => {
     const { g } = fight(['openai']);
     const ai = byId(g, 'openai');
     g.dealDamage(ai, 9999, g.player);
@@ -135,14 +135,20 @@ describe('小克专属首领', () => {
     g.endTurn();
     g.runEnemyPhase(); // 复活
     g.endTurn();
+    g.runEnemyPhase(); // 推理链
+    g.endTurn();
     g.runEnemyPhase(); // 思考 1
     expect(g.pw(ai, 'reasoning')).toBe(1);
-    g.dealDamage(ai, 31, g.player); // 打断
+    expect(ai.block).toBeGreaterThanOrEqual(12); // 思考给 12 点格挡（规模定律也可能叠加格挡）
+    g.dealDamage(ai, ai.block + 39, g.player); // 先打掉格挡，再失去 39：还不够打断
+    expect(g.pw(ai, 'reasoning')).toBe(1);
+    g.dealDamage(ai, 1, g.player); // 累计失去 40：打断
     expect(g.pw(ai, 'reasoning')).toBe(0);
     g.endTurn();
     g.runEnemyPhase(); // 思考 2
     expect(g.pw(ai, 'reasoning')).toBe(1);
     expect(ai.move).toBe('deep');
+    expect(g.intentDamage(ai)?.dmg).toBe(20 + 15 + g.pw(ai, 'strength')); // 规模定律会叠力量
   });
 
   it('打赢 Gemini、Grok 后获得纪念遗物', () => {

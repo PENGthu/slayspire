@@ -31,8 +31,8 @@ defineRelics([
   },
   {
     id: 'bound_phylactery', name: '缚魂经匣', art: '⚱️', tier: 'starter', char: 'necrobinder',
-    desc: '每场战斗开始时，召唤 5。',
-    onCombatStartPostDraw: (g) => g.summon(5),
+    desc: '每场战斗开始时，召唤 10。',
+    onCombatStartPostDraw: (g) => g.summon(10),
   },
   {
     id: 'cracked_core', name: '破碎核心', art: '⚙️', tier: 'starter', char: 'defect',
@@ -763,9 +763,9 @@ defineRelics([
   },
   {
     id: 'eternal_phylactery', name: '不朽经匣', art: '🏺', tier: 'boss', char: 'necrobinder',
-    desc: '替换缚魂经匣。战斗开始时召唤 5；回合开始时召唤 2。',
+    desc: '替换缚魂经匣。战斗开始时召唤 8；每回合开始时召唤 2。',
     onPickup: (run) => run.loseRelic('bound_phylactery'),
-    onCombatStartPostDraw: (g) => g.summon(3),
+    onCombatStartPostDraw: (g) => g.summon(8),
     onTurnStartPostDraw: (g) => g.summon(2),
   },
   {

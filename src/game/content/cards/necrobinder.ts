@@ -36,13 +36,14 @@ defineCards([
   },
   {
     id: 'bodyguard', name: '骸骨守卫', color: NB, type: 'skill', rarity: 'basic', cost: 1, target: 'self',
-    mag: [5, 8], text: '召唤 {M}。', art: '🦴',
+    mag: [7, 10], text: '召唤 {M}。', art: '🦴',
     play: (g, c) => g.summon(M(c)),
   },
   {
     id: 'unleash', name: '释放', color: NB, type: 'attack', rarity: 'basic', cost: 1, target: 'enemy',
-    text: '奥斯提造成 {D} 点伤害。\n（6 点 + 奥斯提当前生命值的一半）', art: '✋', tags: ['osty'],
-    dmgFn: (g, c) => (c.up ? 9 : 6) + Math.floor((g?.osty?.hp ?? 0) / 2),
+    text: ['奥斯提造成 {D} 点伤害。\n（8 点 + 奥斯提当前生命值的一半）', '奥斯提造成 {D} 点伤害。\n（11 点 + 奥斯提当前生命值的一半）'],
+    art: '✋', tags: ['osty'],
+    dmgFn: (g, c) => (c.up ? 11 : 8) + Math.floor((g?.osty?.hp ?? 0) / 2),
     canPlay: needOsty,
     play: (g, c, t) => osty(g, c, t),
   },

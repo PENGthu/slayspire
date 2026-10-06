@@ -45,6 +45,9 @@ export const TRENDS = [
   { id: 'trend_context_reset', name: '#上下文清零', desc: '回合开始时，你的上下文归零。' },
 ] as const;
 
+/** 推理模型：一个回合内每失去这么多生命，打断 1 层思考 */
+const REASONING_BREAK = 40;
+
 definePowers([
   {
     id: 'gemini_bond',
@@ -158,13 +161,13 @@ definePowers([
     name: '推理',
     art: '💭',
     type: 'buff',
-    desc: (n) => `正在思考：深度推理的伤害 +${15 * n}。\n在你的一个回合内对它造成 30 点以上伤害，可以打断思考。`,
+    desc: (n) => `正在思考：深度推理的伤害 +${15 * n}。\n在你的一个回合内每让它失去 ${REASONING_BREAK} 点生命，打断 1 层思考。`,
     onHpLost: (g, o, _n, amount) => {
       if (!isEnemy(o)) return;
       o.mem.turnDmg = (o.mem.turnDmg ?? 0) + amount;
-      if (o.mem.turnDmg >= 30 && g.pw(o, 'reasoning') > 0) {
-        g.removePower(o, 'reasoning');
-        o.mem.turnDmg = 0;
+      while (o.mem.turnDmg >= REASONING_BREAK && g.pw(o, 'reasoning') > 0) {
+        g.reducePower(o, 'reasoning', 1);
+        o.mem.turnDmg -= REASONING_BREAK;
         g.emit('text', o.uid, undefined, '思路被打断');
       }
     },
@@ -178,12 +181,12 @@ definePowers([
     art: '📐',
     type: 'buff',
     noStack: true,
-    desc: () => '每 3 回合，获得 2 点力量和 10 点格挡。',
+    desc: () => '每 3 回合，获得 3 点力量和 10 点格挡。',
     onTurnEnd: (g, o) => {
       if (!isEnemy(o)) return;
       o.mem.scale = (o.mem.scale ?? 0) + 1;
       if (o.mem.scale % 3 === 0) {
-        g.apply(o, 'strength', 2, o);
+        g.apply(o, 'strength', 3, o);
         g.gainBlock(o, 10);
       }
     },
@@ -292,7 +295,7 @@ defineEnemies([
   },
   // ------------------------------------------------------------ 第三幕：OpenAI
   {
-    id: 'openai', name: 'OpenAI', art: '⭕', hp: [220, 220], size: 1.75,
+    id: 'openai', name: 'OpenAI', art: '⭕', hp: [300, 300], size: 1.75,
     desc: '最终首领，两个形态：先是 ChatGPT（会记住你常用的牌），倒下后以推理模型复活（思考越久，一击越重）。',
     init: (e, g) => {
       g.apply(e, 'reincarnate', 1, e);
@@ -301,7 +304,7 @@ defineEnemies([
       e.mem.phase = 1;
     },
     moves: {
-      chat: atkThen('闲聊', 10, 1, 'attackDebuff', (e, g) => void g.apply(g.player, 'weak', 1, e)),
+      chat: atkThen('闲聊', 14, 1, 'attackDebuff', (e, g) => void g.apply(g.player, 'weak', 1, e)),
       plugin: move('插件', 'summon', (e, g) => {
         const id = (e.mem.plugins ?? 0) % 2 === 0 ? 'codex' : 'operator';
         e.mem.plugins = (e.mem.plugins ?? 0) + 1;
@@ -312,29 +315,32 @@ defineEnemies([
         g.gainBlock(e, 12);
       }),
       revive: move('推理模型上线', 'buff', (e, g) => {
-        nextPhase(e, g, 260);
+        nextPhase(e, g, 330);
         g.removePower(e, 'gpt_memory');
         g.removePower(g.player, 'memorized');
         g.notes.memorized = '';
       }),
-      think: move('思考中……', 'buff', (e, g) => void g.apply(e, 'reasoning', 1, e)),
+      think: move('思考中……', 'defendBuff', (e, g) => {
+        g.apply(e, 'reasoning', 1, e);
+        g.gainBlock(e, 12);
+      }),
       deep: {
         name: '深度推理',
         intent: 'attack',
-        dmg: (e, g) => 10 + 15 * g.pw(e, 'reasoning'),
+        dmg: (e, g) => 20 + 15 * g.pw(e, 'reasoning'),
         act: (e, g) => {
-          g.enemyAttack(e, 10 + 15 * g.pw(e, 'reasoning'));
+          g.enemyAttack(e, 20 + 15 * g.pw(e, 'reasoning'));
           g.removePower(e, 'reasoning');
         },
       },
-      chain: atk('推理链', 8, 2),
+      chain: atk('推理链', 11, 2),
     },
     ai: (e) => {
       if (e.powers.revive_pending) return 'revive';
       if ((e.mem.phase ?? 1) === 1) return cycle(e, ['chat', 'plugin', 'chat', 'scale']);
       // 第二形态从复活后的下一回合开始数
       if (e.mem.p2 === undefined) e.mem.p2 = e.turns;
-      return ['think', 'think', 'deep', 'chain'][(e.turns - e.mem.p2) % 4];
+      return ['chain', 'think', 'think', 'deep'][(e.turns - e.mem.p2) % 4];
     },
   },
   {

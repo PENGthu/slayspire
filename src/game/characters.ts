@@ -64,7 +64,7 @@ export const CHARACTERS: Record<CharId, CharDef> = {
     name: '亡灵契约师',
     title: '与死亡缔约者',
     desc: '一位与死亡签下契约的施法者。召唤骸骨伙伴奥斯提替她作战，并以灾厄宣告敌人的终结。',
-    hp: 66,
+    hp: 70,
     gold: 99,
     relic: 'bound_phylactery',
     deck: [
@@ -81,7 +81,7 @@ export const CHARACTERS: Record<CharId, CharDef> = {
     name: '故障机器人',
     title: '觉醒的机械',
     desc: '一具在尖塔深处苏醒的战斗机械。生成闪电、冰霜、黑暗与等离子充能球，并用集中强化它们。',
-    hp: 75,
+    hp: 70,
     gold: 99,
     relic: 'cracked_core',
     deck: ['strike_b', 'strike_b', 'strike_b', 'strike_b', 'defend_b', 'defend_b', 'defend_b', 'defend_b', 'zap', 'dualcast'],

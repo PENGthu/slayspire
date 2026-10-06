@@ -153,7 +153,7 @@ describe('角色机制', () => {
     const { g } = setup('necrobinder');
     const before = g.osty!.maxHp;
     play(g, 'bodyguard');
-    expect(g.osty!.maxHp).toBe(before + 5);
+    expect(g.osty!.maxHp).toBe(before + 7);
   });
 
   it('铸造会把君王之刃加入手牌并提高伤害', () => {
