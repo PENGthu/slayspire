@@ -131,6 +131,11 @@ definePotions([
     desc: '获得 2 点集中。', combatOnly: true,
     use: (x) => G(x).apply(G(x).player, 'focus', 2 * x.potency),
   },
+  {
+    id: 'insight_potion', name: '灵感药水', art: '💡', color: '#e08a64', rarity: 'common', char: 'claude', target: 'none',
+    desc: '记录 5。', combatOnly: true,
+    use: (x) => G(x).note(5 * x.potency),
+  },
   // ---------------------------------------------------------------- 罕见
   {
     id: 'ancient_potion', name: '古代药水', art: '🏺', color: '#f1c40f', rarity: 'uncommon', target: 'none',
@@ -217,6 +222,11 @@ definePotions([
     desc: '获得 2 个充能球栏位。', combatOnly: true,
     use: (x) => G(x).addOrbSlots(2 * x.potency),
   },
+  {
+    id: 'tool_potion', name: '工具药水', art: '🧰', color: '#c9a27a', rarity: 'uncommon', char: 'claude', target: 'none',
+    desc: '将 3 张随机的升级工具牌加入手牌。', combatOnly: true,
+    use: (x) => G(x).addTools(3 * x.potency, true),
+  },
   // ---------------------------------------------------------------- 稀有
   {
     id: 'fairy_in_bottle', name: '瓶中精灵', art: '🧚', color: '#f5b7b1', rarity: 'rare', target: 'none',
@@ -280,6 +290,13 @@ definePotions([
     use: (x) => {
       const g = G(x);
       for (let i = 0; i < g.orbSlots * x.potency; i++) g.channel('dark');
+    },
+  },
+  {
+    id: 'compaction_potion', name: '压缩药水', art: '📄', color: '#f0d6b8', rarity: 'rare', char: 'claude', target: 'none',
+    desc: '压缩 2 次。', combatOnly: true,
+    use: (x) => {
+      for (let i = 0; i < 2 * x.potency; i++) G(x).compact();
     },
   },
   {

@@ -39,6 +39,12 @@ defineRelics([
     desc: '每场战斗开始时，生成 1 个闪电。',
     onCombatStart: (g) => g.channel('lightning'),
   },
+  {
+    id: 'the_spark', name: '星火', art: '✴️', tier: 'starter', char: 'claude',
+    desc: '每当你打出一张牌，记录 1。',
+    flavor: '一切思考开始的地方。',
+    afterCardPlayed: (g) => g.note(1),
+  },
   // ======================================================== 普通
   {
     id: 'anchor', name: '锚', art: '⚓', tier: 'common',
@@ -265,6 +271,11 @@ defineRelics([
     desc: '每场战斗开始时，获得 1 点集中。',
     onCombatStart: (g) => g.apply(g.player, 'focus', 1),
   },
+  {
+    id: 'sticky_note', name: '便签', art: '🗒️', tier: 'common', char: 'claude',
+    desc: '每场战斗开始时，记录 4。',
+    onCombatStart: (g) => g.note(4),
+  },
   // ======================================================== 罕见
   {
     id: 'blue_candle', name: '蓝蜡烛', art: '🕯️', tier: 'uncommon',
@@ -456,6 +467,11 @@ defineRelics([
     desc: '每场战斗开始时，生成 1 个黑暗。',
     onCombatStart: (g) => g.channel('dark'),
   },
+  {
+    id: 'tool_belt', name: '工具腰带', art: '🧰', tier: 'uncommon', char: 'claude',
+    desc: '每场战斗开始时，将 2 张随机工具牌加入手牌。',
+    onCombatStartPostDraw: (g) => g.addTools(2),
+  },
   // ======================================================== 稀有
   {
     id: 'bird_faced_urn', name: '鸟面瓮', art: '🏺', tier: 'rare',
@@ -613,6 +629,11 @@ defineRelics([
     },
     onCombatStart: (_g, r) => (r.counter = 0),
   },
+  {
+    id: 'endless_scroll', name: '无尽卷轴', art: '📜', tier: 'rare', char: 'claude',
+    desc: '每当你压缩时，获得 1 点能量。',
+    onCompact: (g) => g.gainEnergy(1),
+  },
   // ======================================================== 首领遗物
   {
     id: 'coffee_dripper', name: '咖啡滤杯', art: '☕', tier: 'boss', energy: 1,
@@ -768,6 +789,13 @@ defineRelics([
       }
     },
   },
+  {
+    id: 'blazing_spark', name: '燎原之火', art: '🔥', tier: 'boss', char: 'claude',
+    desc: '替换星火。每当你打出一张牌，记录 1。你的上下文窗口 -3。',
+    onPickup: (run) => run.loseRelic('the_spark'),
+    onCombatStart: (g) => g.resizeContext(-3),
+    afterCardPlayed: (g) => g.note(1),
+  },
   // ======================================================== 商店
   {
     id: 'membership_card', name: '会员卡', art: '💳', tier: 'shop',
@@ -834,6 +862,12 @@ defineRelics([
     id: 'runic_capacitor', name: '符文电容', art: '🔋', tier: 'shop', char: 'defect',
     desc: '每场战斗开始时，获得 3 个充能球栏位。',
     onCombatStart: (g) => g.addOrbSlots(3),
+  },
+  {
+    id: 'rubber_duck', name: '小黄鸭', art: '🦆', tier: 'shop', char: 'claude',
+    desc: '回合开始时，思考 2。',
+    flavor: '把问题讲给它听，答案往往就自己浮现了。',
+    onTurnStart: (g) => g.think(2),
   },
   {
     id: 'warped_tongs', name: '扭曲钳子', art: '🗜️', tier: 'shop',

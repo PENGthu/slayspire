@@ -1,7 +1,7 @@
 import type { Combat } from './combat';
 import type { Run } from './run';
 
-export type CharId = 'ironclad' | 'silent' | 'regent' | 'necrobinder' | 'defect';
+export type CharId = 'ironclad' | 'silent' | 'regent' | 'necrobinder' | 'defect' | 'claude';
 export type Color = CharId | 'colorless' | 'curse' | 'status';
 export type CardType = 'attack' | 'skill' | 'power' | 'status' | 'curse';
 export type Rarity = 'basic' | 'common' | 'uncommon' | 'rare' | 'special' | 'curse' | 'status';
@@ -178,6 +178,10 @@ export interface PowerDef {
   onSummon?: (g: Combat, o: Creature, n: number, amount: number) => void;
   onShuffle?: (g: Combat, o: Creature, n: number) => void;
   onManualDiscard?: (g: Combat, o: Creature, n: number, c: Card) => void;
+  /** 上下文压缩时（Claude） */
+  onCompact?: (g: Combat, o: Creature, n: number) => void;
+  /** 思考结束时（discarded：弃掉的张数） */
+  onThink?: (g: Combat, o: Creature, n: number, discarded: number) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -211,6 +215,8 @@ export interface RelicDef {
   onTurnStartPostDraw?: (g: Combat, r: RelicInst) => void;
   onTurnEnd?: (g: Combat, r: RelicInst) => void;
   onCardPlayed?: (g: Combat, r: RelicInst, c: Card) => void;
+  /** 卡牌结算完毕之后 */
+  afterCardPlayed?: (g: Combat, r: RelicInst, c: Card) => void;
   onAttackDamage?: (g: Combat, r: RelicInst, d: number, card: Card | null) => number;
   onPlayerHpLoss?: (g: Combat, r: RelicInst, amount: number) => void;
   /** 修改玩家将失去的生命（钨合金棍、鸟居） */
@@ -223,6 +229,7 @@ export interface RelicDef {
   onGainBlock?: (g: Combat, r: RelicInst, amount: number) => void;
   onStarsSpent?: (g: Combat, r: RelicInst, spent: number) => void;
   onSummon?: (g: Combat, r: RelicInst, amount: number) => void;
+  onCompact?: (g: Combat, r: RelicInst) => void;
   onRest?: (run: Run, r: RelicInst) => void;
   onEnterRoom?: (run: Run, r: RelicInst, kind: RoomKind) => void;
   onCardAdded?: (run: Run, r: RelicInst, c: Card) => void;

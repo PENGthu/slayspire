@@ -178,6 +178,7 @@ const EMB: Record<string, string> = {
   ghost: fill('M-8 30 L-8 14 C-8 4 8 4 8 14 L8 30 L4 26 L0 30 L-4 26 Z', '#f4f0ff', 0.95) + dot(-3, 15, 1.6, INK) + dot(3, 15, 1.6, INK),
   orb: `<circle cx="0" cy="18" r="8" fill="#fff" opacity="0.85"/>`,
   card: fill('M-7 8 L7 8 L7 28 L-7 28 Z', '#fff', 0.9) + line('M-4 14 L4 14 M-4 19 L4 19', INK, 1.4, 0.7),
+  spark: [0, 1, 2, 3, 4, 5].map((i) => line(`M0 18 L${(Math.cos((i * Math.PI) / 3) * (i % 2 ? 7 : 10)).toFixed(1)} ${(18 + Math.sin((i * Math.PI) / 3) * (i % 2 ? 7 : 10)).toFixed(1)}`, '#fff6ec', 3.4, 0.95)).join(''),
   none: '',
 };
 
@@ -231,6 +232,9 @@ const POTION_SPEC: Record<string, PotionSpec> = {
   crown_elixir: { shape: 'heart', emb: 'crown' },
   essence_of_darkness: { shape: 'round', emb: 'orb', col: '#3a1a5a' },
   soul_vessel: { shape: 'jar', emb: 'ghost' },
+  insight_potion: { shape: 'round', emb: 'spark' },
+  tool_potion: { shape: 'square', emb: 'gear' },
+  compaction_potion: { shape: 'tall', emb: 'card' },
 };
 
 function potionArtBody(id: string): string {
@@ -247,6 +251,23 @@ function potionArtBody(id: string): string {
 // ---------------------------------------------------------------- 遗物
 
 const R: Record<string, Draw> = {
+  // Claude
+  the_spark: () => glow(0, 0, 46, '#ffb48a', 0.6) + Mo.sparkBody('#d97757', 40, 12, 6),
+  blazing_spark: () => place(Mo.flameBody(), 0, -6, 0.62) + place(Mo.sparkBody('#e8845f', 26, 12, 6), 0, 12, 1),
+  sticky_note: () =>
+    place(ink('M-32 -32 L32 -32 L32 22 L18 34 L-32 34 Z', '#ffe27a') + ink('M18 34 L18 22 L32 22 Z', '#e8c050', 2) + line('M-22 -16 L20 -16 M-22 -4 L20 -4 M-22 8 L8 8', '#8a6a2a', 2.6, 0.7) + shadowR('M10 -32 L32 -32 L32 22 L18 34 L10 34 Z', 0.12), 0, 2, 1, -8) +
+    circle(-4, -34, 6, '#d97757', 2.4),
+  tool_belt: () => mo('toolbox', 0.6, { color: 'claude' }),
+  endless_scroll: () => mo('scroll', 0.58, { color: 'claude' }) + place(Mo.infinity({ pal: PALS.claude, r: rand(5), color: 'claude', tint: '#d97757' }), 0, 32, 0.32),
+  rubber_duck: () =>
+    ink('M-34 6 C-38 28 -16 38 8 36 C28 34 38 22 34 6 C30 -2 20 0 14 4 C4 8 -20 10 -34 6 Z', '#ffd23a') +
+    shadowR('M0 34 C20 34 34 24 34 8 C36 22 26 36 4 37 Z', 0.18) +
+    ink('M-22 8 C-12 0 4 2 8 12 C-2 18 -16 16 -22 8 Z', '#f0be20', 2.2) +
+    ink('M6 -6 C4 -26 20 -36 32 -28 C42 -22 40 -6 30 0 C22 6 8 4 6 -6 Z', '#ffd23a') +
+    ink('M38 -16 L52 -12 C50 -6 44 -4 36 -8 Z', '#f08a2a', 2.4) +
+    dot(28, -20, 3.4, INK) +
+    dot(27, -21, 1.2, '#fff') +
+    line('M-28 0 C-24 -4 -18 -4 -14 -2', '#fff', 2.4, 0.6),
   burning_blood: () => mo('drop', 0.62, { tint: '#b01020', y: 8 }) + place(Mo.flameBody(), 0, -30, 0.32),
   ring_of_snake: () => snakeRing('#4a8a3a'),
   divine_right: () => mo('star', 0.66),

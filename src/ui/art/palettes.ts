@@ -18,6 +18,7 @@ export const PALS: Record<string, Pal> = {
   regent: { dark: '#120c26', mid: '#3d2a5a', light: '#ffd77a', accent: '#d9821f', accent2: '#f6e3a6' },
   necrobinder: { dark: '#150818', mid: '#44183f', light: '#f0a0e4', accent: '#8f3a86', accent2: '#d6b8ff' },
   defect: { dark: '#06111f', mid: '#173a63', light: '#8af0ff', accent: '#4f7fb0', accent2: '#7ef2ff' },
+  claude: { dark: '#1c100b', mid: '#5c2f20', light: '#ffc49c', accent: '#d97757', accent2: '#f2dcc2' },
   colorless: { dark: '#14120e', mid: '#433d31', light: '#f6e6b8', accent: '#8a7d62', accent2: '#e8d9a8' },
   curse: { dark: '#0b0510', mid: '#2a1033', light: '#b45ad6', accent: '#5e2a6e', accent2: '#e07ad8' },
   status: { dark: '#111216', mid: '#33363e', light: '#c8ccd6', accent: '#6a6e78', accent2: '#a8acb8' },

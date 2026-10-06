@@ -62,6 +62,10 @@ export function playFx(layer: HTMLElement | null, root: HTMLElement | null, fxs:
       case 'stars':
         float(layer, cx + 60, r.t, `★+${f.n}`, 'stars', delay);
         break;
+      case 'compact':
+        float(layer, cx, r.t - 34, '压缩！', 'compact', delay);
+        sfx('buff');
+        break;
       case 'summon':
         float(layer, cx, cy, `召唤 +${f.n}`, 'summon', delay);
         break;

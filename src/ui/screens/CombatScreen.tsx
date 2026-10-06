@@ -4,7 +4,7 @@ import type { Combat } from '../../game/combat';
 import { CARDS, ENEMIES, POTIONS, POWERS } from '../../game/registry';
 import type { Run } from '../../game/run';
 import type { Card, Creature, Enemy } from '../../game/types';
-import { INTENT_DESC, IntentIcon, OrbArt, OstyArt, Portrait } from '../components/Art';
+import { INTENT_DESC, IntentIcon, OrbArt, OstyArt, Portrait, RelicIcon } from '../components/Art';
 import { enemyArtUrl } from '../art/enemyArt';
 import { ORBS } from '../../game/orbs';
 import { CardView, cardTips } from '../components/CardView';
@@ -47,6 +47,37 @@ function Powers({ c }: { c: Creature }) {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+/** Claude 的上下文：窗口装满时压缩为摘要 */
+function ContextMeter({ g }: { g: Combat }) {
+  const max = g.contextMax;
+  const near = g.context >= max - 2;
+  const tips = (): TipData[] => [
+    {
+      title: '上下文',
+      body: `Claude 的资源，回合之间保留，通过「记录」积累（星火：每打出一张牌记录 1）。达到上下文窗口（当前 ${max}）时会自动压缩：减少 ${max} 点（溢出的部分保留），并将 1 张摘要加入手牌。`,
+    },
+    { title: '摘要', body: '0 费技能牌：获得 1 点能量，抽 2 张牌。保留。消耗。' },
+    { body: `本场战斗已压缩 ${g.compacts} 次。` },
+  ];
+  return (
+    <div key={`cm${g.compacts}`} class={`context-meter ${near ? 'near' : ''} ${g.compacts > 0 ? 'flash' : ''}`} {...tipProps(tips, 'right')}>
+      <div class="cm-head">
+        <RelicIcon id="the_spark" />
+        上下文
+        <span class="cm-num">
+          {g.context}
+          <small>/{max}</small>
+        </span>
+      </div>
+      <div class="cm-bar" style={{ '--seg': `${100 / max}%` } as Record<string, string>}>
+        <div class="cm-fill" style={{ width: `${Math.min(100, (g.context / max) * 100)}%` }} />
+        <div class="cm-ticks" />
+      </div>
+      {g.compacts > 0 && <div class="cm-sub">已压缩 {g.compacts} 次</div>}
     </div>
   );
 }
@@ -434,6 +465,7 @@ export function CombatScreen({ run }: { run: Run }) {
           {g.energy}/{g.maxEnergy}
         </span>
       </div>
+      {(run.char === 'claude' || g.context > 0 || g.compacts > 0) && <ContextMeter g={g} />}
       {run.char === 'regent' && (
         <div class="stars" {...tipProps([{ title: '星辰', body: '储君的资源，在回合之间保留。部分卡牌需要花费星辰才能打出。' }], 'right')}>
           <div class="star-ico" />

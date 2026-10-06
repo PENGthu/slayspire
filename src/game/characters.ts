@@ -89,6 +89,19 @@ export const CHARACTERS: Record<CharId, CharDef> = {
     art: 'defect',
     mechanic: '充能球 · 集中',
   },
+  claude: {
+    id: 'claude',
+    name: 'Claude',
+    title: '星火中的思考者',
+    desc: '一束橙色星火化成的思考者。先思考再行动：交锋写进上下文，窗口装满就压缩成摘要，并随手调用工具。',
+    hp: 72,
+    gold: 99,
+    relic: 'the_spark',
+    deck: ['strike_c', 'strike_c', 'strike_c', 'strike_c', 'defend_c', 'defend_c', 'defend_c', 'defend_c', 'ponder', 'tool_use'],
+    color: '#d97757',
+    art: 'claude',
+    mechanic: '思考 · 上下文 · 工具',
+  },
 };
 
-export const CHAR_ORDER: CharId[] = ['ironclad', 'silent', 'regent', 'necrobinder', 'defect'];
+export const CHAR_ORDER: CharId[] = ['ironclad', 'silent', 'regent', 'necrobinder', 'defect', 'claude'];

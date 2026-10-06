@@ -1617,3 +1617,91 @@ export const mirror: Motif = (c) =>
   ink('M-26 -38 C-26 -54 26 -54 26 -38 L26 38 C26 48 -26 48 -26 38 Z', mix(c.pal.light, '#c8e8ff', 0.5), 2.4) +
   line('M-16 -30 L4 -46 M-18 -10 L14 -38 M-16 10 L10 -14', '#fff', 3, 0.7) +
   ink(starPath(0, -58, 6, 2.4, 4), M.gold, 1.6);
+
+// ---------------------------------------------------------------- Claude
+
+const fx1 = (n: number) => n.toFixed(1);
+
+/** Claude 的星火：长短不一、末端圆润的放射光芒（先画整体墨线轮廓，再填色，避免光芒之间互相描边） */
+export function sparkBody(col = '#d97757', R = 48, n = 12, rot = 0): string {
+  const lens = [1, 0.74, 0.9, 0.66, 0.96, 0.78, 0.88, 0.7, 1, 0.76, 0.92, 0.68];
+  let under = '';
+  let over = '';
+  let hiL = '';
+  for (let i = 0; i < n; i++) {
+    const a = (((i / n) * 360 + rot + (i % 2 ? 4 : -3)) * Math.PI) / 180;
+    const L = R * lens[i % lens.length];
+    const w0 = R * 0.12;
+    const w1 = R * 0.075;
+    const cx = Math.cos(a);
+    const cy = Math.sin(a);
+    const px = -cy;
+    const py = cx;
+    const bx = cx * R * 0.12;
+    const by = cy * R * 0.12;
+    const tx = cx * L;
+    const ty = cy * L;
+    const d = `M${fx1(bx + px * w0)} ${fx1(by + py * w0)} L${fx1(tx + px * w1)} ${fx1(ty + py * w1)} Q${fx1(tx + cx * w1 * 1.9)} ${fx1(ty + cy * w1 * 1.9)} ${fx1(tx - px * w1)} ${fx1(ty - py * w1)} L${fx1(bx - px * w0)} ${fx1(by - py * w0)} Z`;
+    under += `<path d="${d}" fill="${INK}" stroke="${INK}" stroke-width="5" stroke-linejoin="round"/>`;
+    over += fill(d, col);
+    hiL += line(`M${fx1(cx * R * 0.3 + px * w0 * 0.4)} ${fx1(cy * R * 0.3 + py * w0 * 0.4)} L${fx1(cx * L * 0.82 + px * w1 * 0.4)} ${fx1(cy * L * 0.82 + py * w1 * 0.4)}`, '#fff', 1.3, 0.32);
+  }
+  return under + circle(0, 0, R * 0.22, INK, 5) + over + dot(0, 0, R * 0.24, col) + hiL + dot(-R * 0.06, -R * 0.06, R * 0.08, '#fff', 0.35);
+}
+
+export const spark: Motif = (c) => glow(0, 0, 74, c.tint ? mix(c.tint, '#ffffff', 0.4) : '#ffc9a8', 0.6) + sparkBody(c.tint ?? '#d97757', 48, 12, c.r() * 24);
+
+/** 对话气泡 */
+export const speech: Motif = (c) =>
+  glow(0, -6, 66, c.pal.light, 0.35) +
+  ink('M-52 -36 C-52 -46 -44 -50 -34 -50 L34 -50 C44 -50 52 -46 52 -36 L52 8 C52 18 44 22 34 22 L-2 22 L-26 44 L-20 22 L-34 22 C-44 22 -52 18 -52 8 Z', c.tint ?? '#f6ecd8') +
+  fill('M20 -50 L34 -50 C44 -50 52 -46 52 -36 L52 8 C52 18 44 22 34 22 L28 22 C40 10 40 -30 20 -50 Z', '#000', 0.12) +
+  line('M-36 -30 L30 -30 M-36 -16 L22 -16 M-36 -2 L6 -2', '#8a5a3a', 3.2, 0.7);
+
+/** 文档（带折角的纸页） */
+export const docPage: Motif = (c) =>
+  glow(0, 0, 64, c.pal.light, 0.3) +
+  place(ink('M-30 -44 L18 -44 L34 -28 L34 46 L-30 46 Z', '#e6d8bc'), 16, 4, 0.9, 12) +
+  ink('M-34 -46 L14 -46 L30 -30 L30 44 L-34 44 Z', c.tint ?? '#fbf3e2') +
+  ink('M14 -46 L14 -30 L30 -30 Z', '#e0d2b4', 2) +
+  line('M-24 -26 L4 -26 M-24 -12 L20 -12 M-24 2 L20 2 M-24 16 L12 16 M-24 30 L16 30', '#8a6a4a', 2.6, 0.65);
+
+/** 终端窗口 */
+export const terminal: Motif = (c) =>
+  glow(0, 0, 66, c.pal.light, 0.3) +
+  ink('M-56 -40 L56 -40 L56 38 L-56 38 Z', '#1e1a1c') +
+  ink('M-56 -40 L56 -40 L56 -27 L-56 -27 Z', '#3a3234', 2) +
+  dot(-47, -33.5, 2.8, '#ff6a5a') +
+  dot(-38, -33.5, 2.8, '#ffc24a') +
+  dot(-29, -33.5, 2.8, '#6ad06a') +
+  line('M-44 -14 L-33 -6 L-44 2', c.tint ?? '#d97757', 3.6) +
+  line('M-26 4 L-10 4', '#f6ecd8', 3.6) +
+  line('M-44 18 L-8 18 M0 18 L26 18 M-44 28 L10 28', mix(c.pal.light, '#ffffff', 0.3), 2.6, 0.55);
+
+/** 互相连接的节点（多智能体、子代理） */
+export const nodes: Motif = (c) => {
+  const pts: [number, number][] = [
+    [0, 0],
+    [-42, -26],
+    [40, -30],
+    [-36, 32],
+    [38, 28],
+    [2, -52],
+  ];
+  const edges = [
+    [0, 1],
+    [0, 2],
+    [0, 3],
+    [0, 4],
+    [1, 5],
+    [2, 5],
+    [1, 3],
+    [2, 4],
+  ];
+  let s = glow(0, 0, 70, c.pal.light, 0.4);
+  for (const [a, b] of edges) s += line(`M${pts[a][0]} ${pts[a][1]} L${pts[b][0]} ${pts[b][1]}`, INK, 6) + line(`M${pts[a][0]} ${pts[a][1]} L${pts[b][0]} ${pts[b][1]}`, mix(c.pal.light, '#ffffff', 0.2), 2.4);
+  pts.forEach(([x, y], i) => {
+    s += i === 0 ? place(sparkBody(c.tint ?? '#d97757', 18, 10), x, y, 1) : circle(x, y, 10, i % 2 ? c.pal.accent2 : '#f2dcc2', 2.6) + dot(x - 3, y - 3, 3, '#fff', 0.5);
+  });
+  return s;
+};

@@ -39,6 +39,11 @@ import { UNPLAYABLE } from './types';
 
 export const HAND_LIMIT = 10;
 
+/** Claude 的工具牌 */
+export const TOOL_IDS = ['web_search', 'code_exec', 'text_edit', 'memory_tool'] as const;
+/** 上下文窗口的初始大小 */
+export const CONTEXT_WINDOW = 10;
+
 export interface Pending {
   mode: 'hand' | 'grid';
   title: string;
@@ -64,7 +69,8 @@ export type FxKind =
   | 'summon'
   | 'stars'
   | 'escape'
-  | 'hurt';
+  | 'hurt'
+  | 'compact';
 
 export interface Fx {
   id: number;
@@ -125,6 +131,11 @@ export class Combat {
   /** 充能球（故障机器人） */
   orbs: Orb[] = [];
   orbSlots = 0;
+  /** 上下文（Claude）：达到窗口上限时压缩为摘要 */
+  context = 0;
+  contextMax = CONTEXT_WINDOW;
+  /** 本场战斗压缩的次数 */
+  compacts = 0;
   turn = 0;
   phase: Phase = 'busy';
   result: null | 'win' | 'lose' | 'escape' = null;
@@ -139,7 +150,7 @@ export class Combat {
   x = 0;
   t: TurnStats = newTurnStats();
   /** 整场战斗计数 */
-  total = { cards: 0, attacks: 0, hpLossTimes: 0, shuffles: 0, summons: 0, ostyDeaths: 0, lightning: 0, frost: 0, powers: 0 };
+  total = { cards: 0, attacks: 0, hpLossTimes: 0, shuffles: 0, summons: 0, ostyDeaths: 0, lightning: 0, frost: 0, powers: 0, tools: 0 };
   firstTurnDrawBonus = 0;
   drawPerTurnBonus = 0;
   /** 战斗结束奖励的额外金币（偷窃被夺回等） */
@@ -1214,6 +1225,7 @@ export class Combat {
         this.t.powers++;
         this.total.powers++;
       }
+      if (d.tags?.includes('tool')) this.total.tools++;
       this.firePowers(this.player, 'onCardPlayed', c);
       for (const e of this.alive) this.firePowers(e, 'onCardPlayed', c);
       for (const r of this.run.relics) RELICS[r.id]?.onCardPlayed?.(this, r, c);
@@ -1242,6 +1254,7 @@ export class Combat {
       this.reducePower(this.player, 'twin_stars', 1);
       plays++;
     }
+    if (d.tags?.includes('tool')) plays += this.pw(this.player, 'agentic_loop');
     const ench = c.ench && ENCHANTS[c.ench.id];
     if (ench?.id === 'echo' && !this.enchFirstPlayed.has(c.uid)) plays++;
     for (let i = 0; i < plays; i++) {
@@ -1282,6 +1295,7 @@ export class Combat {
       this.discardPile.push(c);
     }
     this.firePowers(this.player, 'afterCardPlayed', c);
+    this.fireRelics('afterCardPlayed', c);
     if (this.hand.length === 0 && this.run.hasRelic('unceasing_top') && this.phase !== 'enemy') {
       this.draw(1);
     }
@@ -1364,6 +1378,86 @@ export class Combat {
       return { dealt: 0, killed: false };
     }
     return this.attack(target, base, card, this.osty);
+  }
+
+  // =========================================================================
+  // 上下文、思考与工具（Claude）
+  // =========================================================================
+
+  /** 记录：获得上下文；达到窗口上限时压缩（溢出的部分保留） */
+  note(n: number) {
+    if (n <= 0 || this.over) return;
+    this.context += n;
+    this.overflow();
+  }
+
+  private compactDepth = 0;
+
+  private overflow() {
+    // 压缩时触发的效果可能再次记录：嵌套的记录交给最外层统一处理，并限制单次连锁的次数
+    if (this.compactDepth > 0) return;
+    this.compactDepth++;
+    try {
+      let guard = 0;
+      while (this.context >= this.contextMax && !this.over) {
+        if (guard++ >= 10) {
+          this.context = this.contextMax - 1;
+          break;
+        }
+        this.context -= this.contextMax;
+        this.compact();
+      }
+    } finally {
+      this.compactDepth--;
+    }
+  }
+
+  /** 压缩：将 1 张摘要加入手牌，并触发压缩相关的效果 */
+  compact() {
+    if (this.over) return;
+    this.compacts++;
+    this.emit('compact', this.player.uid);
+    this.addToHand('summary');
+    this.firePowers(this.player, 'onCompact');
+    this.fireRelics('onCompact');
+  }
+
+  /** 花费上下文，返回实际花费的数量 */
+  spendContext(n = this.context): number {
+    const s = Math.max(0, Math.min(this.context, n));
+    this.context -= s;
+    return s;
+  }
+
+  /** 改变上下文窗口的大小（至少为 3） */
+  resizeContext(delta: number) {
+    this.contextMax = Math.max(3, this.contextMax + delta);
+    this.overflow();
+  }
+
+  /**
+   * 思考：查看抽牌堆顶部 n 张牌，弃掉其中任意张。
+   * then 会在玩家做出选择之后执行（思考后面的效果都应该放在这里）。
+   */
+  think(n: number, then?: () => void) {
+    // 已有待选择的效果时（例如回合开始时多个思考同时触发），排在它之后
+    if (this.pending) {
+      this.next(() => this.think(n, then));
+      return;
+    }
+    const top = n > 0 ? this.drawPile.slice(-n).reverse() : [];
+    this.chooseCards({ title: `思考 ${top.length}：选择要弃掉的牌（可以不选，最左边是牌堆顶）`, cards: top, min: 0, max: top.length, mode: 'grid' }, (sel) => {
+      for (const c of sel) this.discardCard(c);
+      // 「灵光」：每当你思考时，从弃牌堆回到手牌
+      for (const c of [...this.discardPile]) if (cardDef(c).tags?.includes('thinkReturn')) this.moveTo(c, 'hand');
+      this.firePowers(this.player, 'onThink', sel.length);
+      then?.();
+    });
+  }
+
+  /** 将 n 张随机工具牌加入手牌 */
+  addTools(n: number, up = false) {
+    for (let i = 0; i < n; i++) this.addToHand(this.rng.pick([...TOOL_IDS]), up);
   }
 
   // =========================================================================

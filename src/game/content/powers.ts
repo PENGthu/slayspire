@@ -1,5 +1,5 @@
 import { definePowers } from '../registry';
-import { cardDef } from '../cards';
+import { cardDef, upgradeCard } from '../cards';
 import type { Combat } from '../combat';
 import type { Creature, Enemy } from '../types';
 
@@ -1177,6 +1177,98 @@ definePowers([
     desc: (n) => `回合结束时，所有其他敌人获得 ${n} 点力量。`,
     onTurnEnd: (g, o, n) => {
       for (const e of g.alive) if (e !== o) g.apply(e, 'strength', n, o);
+    },
+  },
+  // ---------------------------------------------------------------------------
+  // Claude
+  // ---------------------------------------------------------------------------
+  {
+    id: 'extended_thinking',
+    name: '扩展思考',
+    art: '🧠',
+    type: 'buff',
+    desc: (n) => `回合开始时，思考 ${n}。`,
+    onTurnStart: (g, _o, n) => g.think(n),
+  },
+  {
+    id: 'chain_of_thought',
+    name: '链式思考',
+    art: '🔗',
+    type: 'buff',
+    desc: (n) => `每当你思考，获得 ${n} 点格挡。`,
+    onThink: (g, o, n) => g.gainBlock(o, n),
+  },
+  {
+    id: 'prompt_caching',
+    name: '提示缓存',
+    art: '🗄️',
+    type: 'buff',
+    desc: (n) => `每当你压缩时，记录 ${n}。`,
+    onCompact: (g, _o, n) => g.note(n),
+  },
+  {
+    id: 'subagent',
+    name: '子代理',
+    art: '🤖',
+    type: 'buff',
+    desc: (n) => `回合开始时，将 ${n} 张随机工具牌加入手牌。`,
+    onTurnStartPostDraw: (g, _o, n) => g.addTools(n),
+  },
+  {
+    id: 'memory_consolidation',
+    name: '记忆整理',
+    art: '🗃️',
+    type: 'buff',
+    desc: (n) => `每当你压缩时，获得 ${n} 点格挡。`,
+    onCompact: (g, o, n) => g.gainBlock(o, n),
+  },
+  {
+    id: 'million_context',
+    name: '百万上下文',
+    art: '🌌',
+    type: 'buff',
+    desc: (n) => `上下文窗口已扩大。回合开始时，记录 ${n}。`,
+    onTurnStartPostDraw: (g, _o, n) => g.note(n),
+  },
+  {
+    id: 'constitution',
+    name: '宪法',
+    art: '📜',
+    type: 'buff',
+    desc: (n) => `回合开始时，获得 ${n} 点格挡，抽 1 张牌，并给予所有敌人 1 层虚弱。`,
+    onTurnStartPostDraw: (g, o, n) => {
+      g.gainBlock(o, n);
+      g.draw(1);
+      for (const e of g.alive) g.apply(e, 'weak', 1);
+    },
+  },
+  {
+    id: 'agentic_loop',
+    name: '智能体循环',
+    art: '🔁',
+    type: 'buff',
+    desc: (n) => `你打出的工具牌会额外打出 ${n} 次。`,
+  },
+  {
+    id: 'emergence',
+    name: '涌现',
+    art: '🦋',
+    type: 'buff',
+    desc: (n) => `每当你压缩时，获得 ${n} 点力量和 ${n} 点敏捷。`,
+    onCompact: (g, o, n) => {
+      g.apply(o, 'strength', n);
+      g.apply(o, 'dexterity', n);
+    },
+  },
+  {
+    id: 'self_reflection',
+    name: '自我反思',
+    art: '🪞',
+    type: 'buff',
+    noStack: true,
+    desc: () => '每当你压缩时，升级手牌中的所有牌（本场战斗）。',
+    onCompact: (g) => {
+      for (const c of g.hand) upgradeCard(c);
     },
   },
 ]);

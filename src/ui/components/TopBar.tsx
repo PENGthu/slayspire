@@ -17,7 +17,7 @@ export const TIER_NAMES: Record<string, string> = {
   ancient: '先古之民的赠礼',
 };
 
-const CHAR_BADGE: Record<string, string> = { ironclad: '⚔️', silent: '🗡️', regent: '👑', necrobinder: '💀', defect: '🤖' };
+const CHAR_BADGE: Record<string, string> = { ironclad: '⚔️', silent: '🗡️', regent: '👑', necrobinder: '💀', defect: '🤖', claude: '✴️' };
 
 export function TopBar({ run }: { run: Run }) {
   const cd = CHARACTERS[run.char];

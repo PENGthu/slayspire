@@ -23,6 +23,7 @@
   --c-regent: #e08a1e;
   --c-necrobinder: #b0509a;
   --c-defect: #3a8fd6;
+  --c-claude: #d97757;
   --c-colorless: #8d8f96;
   --c-curse: #5e3a6e;
   --c-status: #5a5d66;
@@ -394,6 +395,7 @@ button {
 .card.c-regent { --cc: var(--c-regent); }
 .card.c-necrobinder { --cc: var(--c-necrobinder); }
 .card.c-defect { --cc: var(--c-defect); }
+.card.c-claude { --cc: var(--c-claude); }
 .card.c-curse { --cc: var(--c-curse); }
 .card.c-status { --cc: var(--c-status); }
 
@@ -1015,6 +1017,81 @@ button {
   z-index: 6;
   cursor: help;
 }
+/* 上下文（Claude） */
+.context-meter {
+  position: absolute;
+  left: 116px;
+  bottom: 196px;
+  width: 156px;
+  padding: 6px 8px 7px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(42, 22, 15, 0.92), rgba(20, 11, 8, 0.92));
+  border: 1px solid rgba(217, 119, 87, 0.55);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.context-meter .cm-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #f2dcc2;
+  letter-spacing: 0.06em;
+}
+.context-meter .cm-head img {
+  width: 20px;
+  height: 20px;
+}
+.context-meter .cm-num {
+  margin-left: auto;
+  font-family: var(--f-num);
+  font-weight: 700;
+  font-size: 17px;
+  color: #ffd2b8;
+  letter-spacing: 0;
+}
+.context-meter .cm-num small {
+  font-size: 12px;
+  color: #b89a88;
+}
+.context-meter .cm-bar {
+  position: relative;
+  height: 10px;
+  border-radius: 5px;
+  background: #2a1610;
+  border: 1px solid #1a0d09;
+  overflow: hidden;
+}
+.context-meter .cm-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: linear-gradient(90deg, #a9533a, #d97757 60%, #f0a07e);
+  transition: width 0.3s ease-out;
+}
+.context-meter .cm-ticks {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(90deg, transparent 0 calc(var(--seg) - 1px), rgba(20, 10, 6, 0.75) calc(var(--seg) - 1px) var(--seg));
+}
+.context-meter.near {
+  border-color: #f0a07e;
+  box-shadow: 0 0 14px rgba(217, 119, 87, 0.6), 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+.context-meter .cm-sub {
+  font-size: 11px;
+  color: #b89a88;
+}
+.context-meter.flash {
+  animation: cm-flash 0.6s ease-out;
+}
+@keyframes cm-flash {
+  0% { box-shadow: 0 0 0 rgba(255, 200, 160, 0); }
+  30% { box-shadow: 0 0 26px rgba(255, 190, 150, 0.95); }
+  100% { box-shadow: 0 0 0 rgba(255, 200, 160, 0); }
+}
 .stars .star-ico {
   width: 34px;
   height: 34px;
@@ -1173,6 +1250,7 @@ button {
 .fx.debuff { color: #e8a0ff; font-size: 18px; font-family: var(--f-serif); }
 .fx.text { color: var(--parchment); font-size: 20px; font-family: var(--f-serif); }
 .fx.stars { color: #ffe08a; font-size: 24px; }
+.fx.compact { color: #ffd2b8; font-size: 30px; text-shadow: 0 0 12px rgba(217, 119, 87, 0.95), 0 2px 3px #000; }
 .fx.summon { color: #e9d3ff; font-size: 26px; }
 @keyframes floatup {
   0% { opacity: 0; transform: translate(-50%, -20%) scale(0.7); }
@@ -2201,6 +2279,12 @@ button {
 .portrait .stars {
   bottom: 290px;
   left: 18px;
+}
+.portrait .context-meter {
+  left: auto;
+  right: 18px;
+  bottom: 262px;
+  width: 150px;
 }
 .portrait .end-turn {
   bottom: 200px;

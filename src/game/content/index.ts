@@ -6,6 +6,7 @@ import './cards/silent';
 import './cards/regent';
 import './cards/necrobinder';
 import './cards/defect';
+import './cards/claude';
 import './cards/colorless';
 import './relics';
 import './potions';
