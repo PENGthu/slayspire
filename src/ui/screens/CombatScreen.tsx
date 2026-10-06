@@ -33,10 +33,10 @@ function powerTips(c: Creature): TipData[] {
     });
 }
 
-function Powers({ c }: { c: Creature }) {
+function Powers({ c, maxW }: { c: Creature; maxW?: number }) {
   const list = Object.entries(c.powers).filter(([id]) => POWERS[id] && !POWERS[id].hidden);
   return (
-    <div class="powers" {...tipProps(() => powerTips(c), 'bottom')}>
+    <div class="powers" style={maxW ? { maxWidth: `${maxW}px` } : undefined} {...tipProps(() => powerTips(c), 'bottom')}>
       {list.map(([id, n]) => {
         const d = POWERS[id];
         const neg = d.type === 'debuff' || (d.negative && n < 0);
@@ -129,6 +129,9 @@ export function CombatScreen({ run }: { run: Run }) {
   const g = run.combat as Combat;
   const portrait = stageInfo.w < stageInfo.h;
   const cw = portrait ? 132 : 150;
+  // 竖屏宽度有限：敌人多时缩小立绘，尽量排进一行
+  const slots = g.enemies.length;
+  const enemyScale = portrait ? (slots >= 5 ? 0.6 : slots === 4 ? 0.66 : slots === 3 ? 0.82 : 1) : 1;
   const [sel, setSel] = useState<number | null>(null);
   const [hover, setHover] = useState<number | null>(null);
   const [drag, setDrag] = useState<Drag | null>(null);
@@ -145,6 +148,35 @@ export function CombatScreen({ run }: { run: Run }) {
     return () => clearTimeout(t);
   }, [!!intro]);
   const rootRef = useRef<HTMLDivElement>(null);
+  const fieldRef = useRef<HTMLDivElement>(null);
+  const meRef = useRef<HTMLDivElement>(null);
+  const foesRef = useRef<HTMLDivElement>(null);
+  // 敌人太多、太高时整体缩小，免得头顶的意图被顶栏挡住、或在竖屏里挤出画面
+  const [fit, setFit] = useState(1);
+  useLayoutEffect(() => {
+    const field = fieldRef.current;
+    const me = meRef.current;
+    const foes = foesRef.current;
+    if (!field || !me || !foes) return;
+    const measure = () => {
+      if (!foes.offsetHeight || !foes.offsetWidth) return;
+      const cs = getComputedStyle(field);
+      const innerH = field.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+      const innerW = field.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+      const head = 46; // 意图图标在头顶上方
+      let f = portrait
+        ? (innerH - me.offsetHeight - (parseFloat(cs.rowGap) || 0) - head) / foes.offsetHeight
+        : Math.min((innerH - head) / foes.offsetHeight, (innerW - me.offsetWidth - 24) / foes.offsetWidth);
+      f = Math.max(0.5, Math.min(1, f));
+      setFit((old) => (Math.abs(old - f) > 0.01 ? f : old));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(field);
+    ro.observe(me);
+    ro.observe(foes);
+    return () => ro.disconnect();
+  }, [portrait]);
   const fxRef = useRef<HTMLDivElement>(null);
   const running = useRef(false);
   const ending = useRef(false);
@@ -400,8 +432,8 @@ export function CombatScreen({ run }: { run: Run }) {
         }
       }}
     >
-      <div class="battlefield">
-        <div class="side-player">
+      <div class="battlefield" ref={fieldRef}>
+        <div class="side-player" ref={meRef}>
           <div class="creature player" data-cuid={g.player.uid}>
             {g.orbSlots > 0 && (
               <div class="orbs">
@@ -450,12 +482,17 @@ export function CombatScreen({ run }: { run: Run }) {
             </div>
           )}
         </div>
-        <div class="side-enemies">
+        <div
+          class="side-enemies"
+          ref={foesRef}
+          style={fit < 0.999 ? { transform: `scale(${fit})`, transformOrigin: portrait ? '50% 100%' : '100% 100%' } : undefined}
+        >
           {g.enemies.map((e) => (
             <EnemyView
               key={e.uid}
               g={g}
               e={e}
+              scale={enemyScale}
               targeted={targetEnemyUid === e.uid || (potionTarget !== null && aimEnemy === e.uid)}
               targetable={aiming || potionTarget !== null}
               onClick={() => clickEnemy(e)}
@@ -749,6 +786,7 @@ function tipHandlers(c: Card) {
 function EnemyView({
   g,
   e,
+  scale,
   targeted,
   targetable,
   onClick,
@@ -756,6 +794,7 @@ function EnemyView({
 }: {
   g: Combat;
   e: Enemy;
+  scale: number;
   targeted: boolean;
   targetable: boolean;
   onClick: () => void;
@@ -764,9 +803,10 @@ function EnemyView({
   const def = ENEMIES[e.defId];
   const m = g.moveOf(e);
   const intent = g.intentDamage(e);
-  const fontSize = Math.round(118 * e.size);
+  const fontSize = Math.round(118 * e.size * scale);
   const artUrl = enemyArtUrl(e.defId);
-  const artSize = Math.round(146 * e.size);
+  const artSize = Math.round(146 * e.size * scale);
+  const hpW = Math.max(76, Math.round((100 + 40 * e.size) * scale));
   const reviving = !!e.powers.revive_pending;
   const enemyTips = (): TipData[] => {
     const tips: TipData[] = [
@@ -822,8 +862,8 @@ function EnemyView({
           </>
         )}
       </div>
-      <HpBar c={e} width={Math.round(100 + 40 * e.size)} />
-      <Powers c={e} />
+      <HpBar c={e} width={hpW} />
+      <Powers c={e} maxW={Math.max(artSize, hpW, 100) + 8} />
       <div class="cname">
         {e.name}
         {e.minion ? '（仆从）' : ''}

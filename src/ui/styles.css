@@ -668,6 +668,8 @@ button {
   align-items: flex-end;
   gap: 16px;
   min-width: 260px;
+  /* 让出左下角的能量球、星辰与上下文条，状态栏不被它们挡住 */
+  padding-bottom: 22px;
 }
 .side-enemies {
   display: flex;
@@ -2375,11 +2377,13 @@ button {
 .portrait .side-enemies {
   justify-content: center;
   flex-wrap: wrap;
-  gap: 50px 18px;
+  gap: 46px 10px;
   order: -1;
 }
 .portrait .side-player {
   justify-content: flex-start;
+  /* 竖屏的能量球在左下角，玩家站到它右边 */
+  padding: 0 0 0 96px;
 }
 .portrait .energy-orb {
   bottom: 196px;
