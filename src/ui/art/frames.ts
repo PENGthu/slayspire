@@ -3,6 +3,7 @@
  */
 import { toUri } from './kit';
 import { parchmentUrl } from './mapArt';
+import { rasterize } from './raster';
 
 const RIBBONS: Record<string, [string, string, string]> = {
   // 主色、暗部、高光
@@ -17,6 +18,7 @@ const RIBBONS: Record<string, [string, string, string]> = {
 
 function ribbon([main, dark, light]: [string, string, string]): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 36" preserveAspectRatio="none">
+<g transform="translate(0 1.6)" opacity="0.45" fill="#000"><path d="M1 11 L20 11 L20 34 L1 34 L9 22.5 Z M199 11 L180 11 L180 34 L199 34 L191 22.5 Z M13 5 Q100 -1 187 5 L187 29 Q100 23 13 29 Z"/></g>
 <path d="M1 11 L20 11 L20 34 L1 34 L9 22.5 Z" fill="${dark}" stroke="#120c08" stroke-width="1.6" stroke-linejoin="round"/>
 <path d="M199 11 L180 11 L180 34 L199 34 L191 22.5 Z" fill="${dark}" stroke="#120c08" stroke-width="1.6" stroke-linejoin="round"/>
 <path d="M14 28 L20 34 L20 28 Z M186 28 L180 34 L180 28 Z" fill="#000" opacity="0.5"/>
@@ -34,13 +36,28 @@ function texture(): string {
 </svg>`;
 }
 
-/** 注入卡框相关的 CSS 变量 */
+/** 注入卡框相关的 CSS 变量；纹理和缎带随后换成位图（见 raster.ts） */
 export function installArtStyles(): void {
   if (typeof document === 'undefined' || document.getElementById('art-styles')) return;
-  let css = `:root{--tex:url("${toUri(texture())}");--paper:url("${parchmentUrl()}");}`;
-  for (const [k, v] of Object.entries(RIBBONS)) css += `.card.r-${k}{--ribbon:url("${toUri(ribbon(v))}");--rim:${v[0]};--rim-light:${v[2]};--rim-dark:${v[1]};}`;
+  const tex = toUri(texture());
+  const paper = parchmentUrl();
+  const ribbons = Object.entries(RIBBONS).map(([k, v]) => [k, toUri(ribbon(v)), v] as const);
+  const build = (url: (svg: string) => string) => {
+    let css = `:root{--tex:url("${url(tex)}");--paper:url("${url(paper)}");}`;
+    for (const [k, svg, v] of ribbons) css += `.card.r-${k}{--ribbon:url("${url(svg)}");--rim:${v[0]};--rim-light:${v[2]};--rim-dark:${v[1]};}`;
+    return css;
+  };
   const el = document.createElement('style');
   el.id = 'art-styles';
-  el.textContent = css;
+  el.textContent = build((s) => s);
   document.head.appendChild(el);
+  const sizes = new Map<string, [number, number]>([
+    [tex, [180, 180]],
+    [paper, [420, 420]],
+    ...ribbons.map(([, svg]) => [svg, [200, 36]] as [string, [number, number]]),
+  ]);
+  void Promise.all([...sizes].map(([svg, [w, h]]) => rasterize(svg, w, h).then((b) => [svg, b] as const))).then((pairs) => {
+    const m = new Map(pairs);
+    el.textContent = build((s) => m.get(s) ?? s);
+  });
 }

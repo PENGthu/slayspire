@@ -388,7 +388,11 @@ button {
   border-radius: 12px;
   cursor: pointer;
   transition: transform 0.16s ease, filter 0.16s, box-shadow 0.16s;
-  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.55));
+  /* 用 box-shadow 而不是 drop-shadow 滤镜：滤镜要把整张牌离屏重绘再模糊，滚动和动画时很慢 */
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.5);
+}
+.card.t-power {
+  border-radius: 18px;
 }
 .card.c-ironclad { --cc: var(--c-ironclad); }
 .card.c-silent { --cc: var(--c-silent); }
@@ -431,8 +435,8 @@ button {
   font-size: 15px;
   color: #fff8e6;
   text-shadow: 0 1px 2px #000, 0 0 5px rgba(0, 0, 0, 0.7), 1px 0 1px #000, -1px 0 1px #000;
+  /* 缎带的投影已经画在位图里 */
   background: var(--ribbon) center / 100% 100% no-repeat;
-  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.55));
   position: relative;
   z-index: 2;
   white-space: nowrap;
@@ -602,14 +606,12 @@ button {
   box-shadow: 0 0 8px rgba(190, 90, 230, 0.7);
 }
 .card.sm .card-afflict { top: 76px; }
-.card.playable {
-  box-shadow: 0 0 0 2px rgba(130, 240, 140, 0.0);
-}
+
 .card.playable .card-frame {
   box-shadow: inset 0 0 0 1px rgba(255, 240, 210, 0.25), 0 0 0 2px #6be06b, 0 0 14px rgba(107, 224, 107, 0.6);
 }
 .card.unplayable-now {
-  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.55)) brightness(0.72) saturate(0.7);
+  filter: brightness(0.72) saturate(0.7);
 }
 .card.picked .card-frame {
   box-shadow: inset 0 0 0 1px rgba(255, 240, 210, 0.25), 0 0 0 3px var(--gold), 0 0 22px rgba(226, 176, 74, 0.85);
@@ -1347,6 +1349,8 @@ button {
   min-height: 0;
   width: 100%;
   overflow-y: auto;
+  /* 独立图层滚动：只移动已经画好的内容，而不是每一帧重绘所有卡牌 */
+  will-change: scroll-position;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -1712,6 +1716,7 @@ button {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  will-change: scroll-position;
   position: relative;
   touch-action: pan-y;
   scrollbar-width: thin;
@@ -1990,6 +1995,7 @@ button {
   flex: 1;
   min-width: 0;
   overflow-y: auto;
+  will-change: scroll-position;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -2849,6 +2855,7 @@ button {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  will-change: scroll-position;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
   gap: 10px;
@@ -2911,6 +2918,7 @@ button {
   width: 400px;
   flex-shrink: 0;
   overflow-y: auto;
+  will-change: scroll-position;
   padding: 16px 18px;
   border-radius: 12px;
   border: 1px solid var(--line);
@@ -3087,6 +3095,7 @@ button {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  will-change: scroll-position;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 10px;

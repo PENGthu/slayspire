@@ -6,6 +6,7 @@ import type { Run } from '../../game/run';
 import type { Card, Creature, Enemy } from '../../game/types';
 import { INTENT_DESC, IntentIcon, OrbArt, OstyArt, Portrait, RelicIcon } from '../components/Art';
 import { enemyArtUrl } from '../art/enemyArt';
+import { useBitmap } from '../art/raster';
 import { ORBS } from '../../game/orbs';
 import { CardView, cardTips } from '../components/CardView';
 import { hideTip, rectInStage, showTip, stageInfo, tipProps, toStage, type TipData } from '../components/Tooltip';
@@ -804,7 +805,7 @@ function EnemyView({
   const m = g.moveOf(e);
   const intent = g.intentDamage(e);
   const fontSize = Math.round(118 * e.size * scale);
-  const artUrl = enemyArtUrl(e.defId);
+  const artUrl = useBitmap(enemyArtUrl(e.defId), 200, 200);
   const artSize = Math.round(146 * e.size * scale);
   const hpW = Math.max(76, Math.round((100 + 40 * e.size) * scale));
   const reviving = !!e.powers.revive_pending;

@@ -1,6 +1,7 @@
 import { useState } from 'preact/hooks';
 import { bestiary, hpRange, INTENT_NAMES, RANK_NAMES, REGIONS, type BestiaryEntry, type RegionId } from '../../game/bestiary';
 import { enemyArtUrl } from '../art/enemyArt';
+import { useBitmap } from '../art/raster';
 import { IntentIcon } from './Art';
 
 /** 图鉴：怪物分页 */
@@ -44,7 +45,7 @@ export function Bestiary() {
 }
 
 function MonsterImg({ id, size }: { id: string; size: number }) {
-  const url = enemyArtUrl(id);
+  const url = useBitmap(enemyArtUrl(id), 200, 200);
   return url ? <img src={url} width={size} height={size} alt="" draggable={false} /> : <span style={{ width: `${size}px`, height: `${size}px` }} />;
 }
 

@@ -16,7 +16,8 @@ import {
 import type { Combat } from '../../game/combat';
 import { ENCHANTS } from '../../game/registry';
 import type { Card, Enemy } from '../../game/types';
-import { cardArtUrl } from '../art/cardArt';
+import { ART_H, ART_W, cardArtUrl } from '../art/cardArt';
+import { useBitmap } from '../art/raster';
 import type { TipData } from './Tooltip';
 
 export interface CardViewProps {
@@ -52,6 +53,7 @@ export function cardTips(c: Card): TipData[] {
 export function CardView(p: CardViewProps) {
   const { card: c, g = null, target = null } = p;
   const d = cardDef(c);
+  const art = useBitmap(cardArtUrl(d), ART_W, ART_H);
   const segs = cardText(c, g, target);
   const sizeCls = p.size === 'sm' ? 'sm' : p.size === 'lg' ? 'lg' : '';
   let costEl: JSX.Element | null = null;
@@ -80,7 +82,7 @@ export function CardView(p: CardViewProps) {
       <div class="card-frame">
         <div class="card-title">{cardName(c)}</div>
         <div class="card-art">
-          <img src={cardArtUrl(d)} alt="" draggable={false} />
+          <img src={art ?? undefined} alt="" draggable={false} />
         </div>
         <div class="card-type">{TYPE_NAMES[d.type]}</div>
         <div class="card-desc">

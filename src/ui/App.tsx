@@ -22,6 +22,7 @@ import { sfxForScreen } from './sound';
 import { SCENE_GROUND, sceneUrl } from './art/sceneArt';
 import { CardReveal } from './components/CardReveal';
 import { AchievementToasts } from './components/Achievements';
+import { setRasterScale } from './art/raster';
 
 /** 让场景的地面线对齐到人物站立的高度 */
 function sceneOffset(d: Dims): number {
@@ -83,6 +84,7 @@ export function App() {
 
   stageInfo.el = stageRef.current;
   stageInfo.scale = dims.s;
+  setRasterScale(dims.s);
   stageInfo.w = dims.W;
   stageInfo.h = dims.H;
   useLayoutEffect(() => {
