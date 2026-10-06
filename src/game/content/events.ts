@@ -473,7 +473,7 @@ defineEvents([
               max: 1,
               onDone: (s) => {
                 const c = s[0];
-                if (c) run.addCard({ ...makeCard(c.id, c.up), ench: c.ench ? { ...c.ench } : undefined, misc: c.misc });
+                if (c) run.addCard({ ...makeCard(c.id, c.up), ench: c.ench ? { ...c.ench } : undefined, misc: c.misc }, false, true);
                 done(ev, '镜中的你点了点头，把牌递给了你。');
               },
             }) },
@@ -520,7 +520,7 @@ defineEvents([
               min: 1,
               max: 1,
               onDone: (s) => {
-                s.forEach((c) => run.addCard(c));
+                s.forEach((c) => run.addCard(c, false, true));
                 done(ev, '你从书中领悟了新的技巧。');
               },
             });

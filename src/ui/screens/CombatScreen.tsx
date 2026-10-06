@@ -360,6 +360,8 @@ export function CombatScreen({ run }: { run: Run }) {
   const dragCard = drag ? g.hand.find((c) => c.uid === drag.uid) ?? null : null;
   const activeCard = dragCard ?? selCard;
   const aiming = !!activeCard && g.needsTarget(activeCard) && (drag?.moved || sel !== null);
+  // 箭头终点：拖动中跟随手指/鼠标，否则跟随鼠标位置（触屏上没有鼠标位置，就不画箭头）
+  const arrowTo = drag?.moved ? { x: drag.x, y: drag.y } : pointer;
   const targetEnemyUid =
     aimEnemy ?? (aiming && g.alive.length === 1 ? g.alive[0].uid : null);
   const targetEnemy = g.alive.find((e) => e.uid === targetEnemyUid) ?? null;
@@ -580,10 +582,10 @@ export function CombatScreen({ run }: { run: Run }) {
       </div>
 
       {/* 瞄准箭头 */}
-      {(aiming || potionTarget !== null) && (pointer || drag) && (
+      {(aiming || potionTarget !== null) && arrowTo && (
         <TargetArrow
           from={activeCard ? { x: stageInfo.w / 2 + handPos(n, g.hand.indexOf(activeCard), cw, maxW).x, y: stageInfo.h - (portrait ? 300 : 360) } : { x: stageInfo.w * 0.3, y: 80 }}
-          to={drag?.moved ? { x: drag.x, y: drag.y } : pointer!}
+          to={arrowTo}
           hot={targetEnemyUid !== null}
         />
       )}

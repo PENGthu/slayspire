@@ -121,6 +121,22 @@ const PERSIST_KEYS = [
   'zone',
 ] as const;
 
+/** 需要展示给玩家看的卡牌变化（获得、升级、变化、附魔） */
+export type RevealKind = 'gain' | 'upgrade' | 'transform' | 'enchant';
+export interface Reveal {
+  id: number;
+  kind: RevealKind;
+  /** 变化之后的牌 */
+  cards: Card[];
+  /** 变化之前的牌（升级、变化时） */
+  from?: Card[];
+  /** 界面已经开始展示 */
+  shown?: boolean;
+}
+
+/** 展示用的快照，之后对原牌的修改不影响展示 */
+const snap = (c: Card): Card => ({ ...c, ench: c.ench ? { ...c.ench } : undefined });
+
 export class Run {
   v = SAVE_VERSION;
   seed: number;
@@ -160,6 +176,7 @@ export class Run {
   combat: Combat | null = null;
   selection: Selection | null = null;
   toasts: { id: number; text: string }[] = [];
+  reveals: Reveal[] = [];
   private rngs: Record<string, Rng> = {};
 
   constructor(char: CharId, seed: number, ascension = 0) {
@@ -281,11 +298,29 @@ export class Run {
     if (this.toasts.length > 5) this.toasts.shift();
   }
 
+  /** 把卡牌变化排进展示队列；连续的同类变化合并成一次展示 */
+  reveal(kind: RevealKind, cards: Card[], from?: Card[]) {
+    if (!cards.length) return;
+    const last = this.reveals[this.reveals.length - 1];
+    // 变化要并排展示前后两张，一次最多 4 组，其余每次最多 6 张
+    const cap = kind === 'transform' ? 4 : 6;
+    if (last && !last.shown && last.kind === kind && last.cards.length + cards.length <= cap && !!last.from === !!from) {
+      last.cards.push(...cards.map(snap));
+      if (from && last.from) last.from.push(...from.map(snap));
+      return;
+    }
+    this.reveals.push({ id: nextUid(), kind, cards: cards.map(snap), from: from?.map(snap) });
+    if (this.reveals.length > 6) this.reveals.shift();
+  }
+
   // =========================================================================
   // 牌组 / 遗物 / 药水 / 资源
   // =========================================================================
 
-  addCard(c: Card | string, silent = false): Card | null {
+  /**
+   * 将牌加入牌组。silent：不做任何提示；picked：玩家刚在界面上点选了这张牌（已经看到了，不再展示）。
+   */
+  addCard(c: Card | string, silent = false, picked = false): Card | null {
     const card = typeof c === 'string' ? makeCard(c) : c;
     const def = cardDef(card);
     if (def.type === 'curse') {
@@ -304,6 +339,7 @@ export class Run {
     }
     this.deck.push(card);
     for (const r of this.relics) RELICS[r.id]?.onCardAdded?.(this, r, card);
+    if (!silent && !picked) this.reveal('gain', [card]);
     return card;
   }
 
@@ -407,7 +443,9 @@ export class Run {
   upgradeRandom(n: number, filter: (c: Card) => boolean = () => true): Card[] {
     const cands = this.deck.filter((c) => canUpgrade(c) && filter(c));
     const picked = this.rng('misc').sample(cands, n);
+    const before = picked.map(snap);
     picked.forEach(upgradeCard);
+    this.reveal('upgrade', picked, before);
     return picked;
   }
 
@@ -425,15 +463,18 @@ export class Run {
       )
       .map((d) => d.id);
     const id = this.rng('misc').pick(ids);
+    const before = snap(c);
     this.removeCard(c);
     const nc = makeCard(id, upgrade);
     this.addCard(nc, true);
+    this.reveal('transform', [nc], [before]);
     return nc;
   }
 
   enchant(c: Card, id: string, n: number) {
     if (!ENCHANTS[id]) throw new Error(`未知附魔: ${id}`);
     c.ench = { id, n };
+    this.reveal('enchant', [c]);
   }
 
   // =========================================================================
@@ -781,7 +822,7 @@ export class Run {
         } else {
           const c = r.cards[cardIndex];
           if (!c) return false;
-          this.addCard(c);
+          this.addCard(c, false, true);
           r.taken = true;
         }
         break;
@@ -875,7 +916,9 @@ export class Run {
           preview: 'upgrade',
           onDone: (sel) => {
             if (!sel[0]) return;
+            const before = snap(sel[0]);
             upgradeCard(sel[0]);
+            this.reveal('upgrade', [sel[0]], [before]);
             done(`你锻造了「${cardDef(sel[0]).name}」。`);
           },
         };
@@ -988,7 +1031,7 @@ export class Run {
     it.sold = true;
     const mb = this.relic('maw_bank');
     if (mb) mb.used = true;
-    if (it.kind === 'card' && it.card) this.addCard(it.card);
+    if (it.kind === 'card' && it.card) this.addCard(it.card, false, true);
     if (it.kind === 'relic' && it.id) this.obtainRelic(it.id);
     if (it.kind === 'potion' && it.id) this.obtainPotion(it.id);
     return true;

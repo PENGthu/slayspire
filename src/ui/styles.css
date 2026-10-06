@@ -1386,6 +1386,76 @@ button {
 }
 
 /* 吐司 */
+/* 获得 / 修改卡牌时的展示 */
+.card-reveal {
+  position: absolute;
+  inset: 0;
+  z-index: 250;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, rgba(5, 6, 10, 0.85) 0%, rgba(5, 6, 10, 0.62) 45%, rgba(5, 6, 10, 0.3) 100%);
+  animation: fadein 0.2s ease;
+}
+.card-reveal.leaving {
+  animation: rv-out 0.28s ease forwards;
+}
+.rv-panel {
+  pointer-events: auto;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  max-width: 94%;
+  animation: rv-in 0.32s cubic-bezier(0.2, 0.8, 0.3, 1.2);
+}
+.rv-panel h3 {
+  margin: 0;
+  font-family: var(--f-serif);
+  font-weight: 900;
+  font-size: 26px;
+  color: var(--gold);
+  text-shadow: 0 2px 6px #000;
+  letter-spacing: 0.1em;
+}
+.rv-cards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+}
+.rv-pair {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.rv-old {
+  filter: grayscale(0.55) brightness(0.72) drop-shadow(0 6px 10px rgba(0, 0, 0, 0.55));
+}
+.rv-arrow {
+  font-size: 30px;
+  color: var(--gold);
+  text-shadow: 0 2px 4px #000;
+}
+.rv-hint {
+  font-size: 13px;
+  color: var(--muted);
+  text-shadow: 0 1px 3px #000;
+}
+@keyframes rv-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.7);
+  }
+}
+@keyframes rv-out {
+  to {
+    opacity: 0;
+    transform: translateY(-24px);
+  }
+}
 .toasts {
   position: absolute;
   left: 50%;

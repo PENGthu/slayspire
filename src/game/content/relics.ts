@@ -855,7 +855,7 @@ defineRelics([
         cards: run.deck.filter((c) => cardDef(c).type !== 'curse'),
         min: 1,
         max: 1,
-        onDone: (sel) => sel.forEach((c) => run.addCard({ ...c, uid: makeCard(c.id).uid, ench: c.ench ? { ...c.ench } : undefined })),
+        onDone: (sel) => sel.forEach((c) => run.addCard({ ...c, uid: makeCard(c.id).uid, ench: c.ench ? { ...c.ench } : undefined }, false, true)),
       }),
   },
   {

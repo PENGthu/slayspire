@@ -44,7 +44,7 @@ function chooseRare(run: Run, color: string = run.char) {
     cards: ids.map((id) => makeCard(id)),
     min: 1,
     max: 1,
-    onDone: (s) => s.forEach((c) => run.addCard(c)),
+    onDone: (s) => s.forEach((c) => run.addCard(c, false, true)),
   });
 }
 
