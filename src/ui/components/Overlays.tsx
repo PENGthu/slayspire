@@ -16,6 +16,7 @@ import { Bestiary } from './Bestiary';
 import { AchievementsOverlay } from './Achievements';
 import { SlotsOverlay } from './SaveSlots';
 import { enterFullscreen, exitFullscreen, isFullscreen, needsHomeScreen, showFullscreenButton } from '../fullscreen';
+import { burnAway } from '../gainFx';
 
 const TYPE_ORDER: Record<string, number> = { attack: 0, skill: 1, power: 2, status: 3, curse: 4 };
 
@@ -261,7 +262,13 @@ export function SelectionOverlay({ run }: { run: Run }) {
   const done = (sel: Card[]) => {
     setPicked([]);
     hideTip();
+    // 先记下选中的牌在界面上的位置：确认后若它们被移出了牌组，就在原处烧掉
+    const els = sel.map((c) => document.querySelector(`.overlay [data-card="${c.uid}"]`));
     act(() => run.resolveSelection(sel));
+    sel.forEach((c, k) => {
+      const el = els[k];
+      if (el && !run.deck.includes(c)) burnAway(el);
+    });
   };
   return (
     <div class="overlay">
@@ -279,6 +286,7 @@ export function SelectionOverlay({ run }: { run: Run }) {
               key={c.uid}
               card={shown}
               size="sm"
+              dataUid
               cls={picked.includes(c.uid) ? 'picked' : ''}
               onClick={() => {
                 if (single) return done([c]);

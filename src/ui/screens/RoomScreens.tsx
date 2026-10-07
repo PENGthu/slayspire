@@ -10,7 +10,7 @@ import { act, deleteSave, state, refresh } from '../store';
 import { eventArtUrl } from '../art/cardArt';
 import { figureUrl } from '../art/figureArt';
 import { serviceArtUrl } from '../art/itemArt';
-import { flyGain, gainTargets } from '../gainFx';
+import { deny, flyGain, gainTargets, spendGold } from '../gainFx';
 
 export function relicTip(id: string) {
   const d = RELICS[id];
@@ -183,8 +183,15 @@ export function ShopScreen({ run }: { run: Run }) {
   const sc = run.screen;
   const [armed, setArmed] = useState<number | null>(null);
   if (sc.s !== 'shop') return null;
-  /** 触屏：第一次轻点查看说明，再点一次购买 */
-  const buy = (i: number) => {
+  const shop = sc.shop;
+  /** 触屏：第一次轻点查看说明，再点一次购买。买下时金币飞向商品，商品飞向牌组、遗物栏或药水栏 */
+  const buy = (i: number, e: Event) => {
+    const el = e.currentTarget as Element;
+    const it = shop.items[i];
+    if (run.gold < it.price) {
+      deny(el.closest('.shop-item') ?? el);
+      return;
+    }
     if (pointer.touch && armed !== i) {
       setArmed(i);
       run.toast('再点一次购买');
@@ -192,9 +199,19 @@ export function ShopScreen({ run }: { run: Run }) {
       return;
     }
     setArmed(null);
-    act(() => run.buy(i));
+    hideTip();
+    const slot = run.potions.findIndex((p) => p === null);
+    let ok = false;
+    act(() => {
+      ok = run.buy(i);
+    });
+    if (!ok) return;
+    spendGold(el);
+    const icon = el.querySelector('.item-icon') ?? el;
+    if (it.kind === 'card') flyGain(el, gainTargets.deck, { endScale: 0.18, delay: 160 });
+    else if (it.kind === 'relic' && it.id) flyGain(icon, gainTargets.relic(it.id), { hideTarget: true, delay: 160 });
+    else if (it.kind === 'potion') flyGain(icon, gainTargets.potion(slot), { hideTarget: true, delay: 160 });
   };
-  const shop = sc.shop;
   const cards = shop.items.map((it, i) => ({ it, i })).filter(({ it }) => it.kind === 'card');
   const relics = shop.items.map((it, i) => ({ it, i })).filter(({ it }) => it.kind === 'relic');
   const potions = shop.items.map((it, i) => ({ it, i })).filter(({ it }) => it.kind === 'potion');
@@ -221,7 +238,7 @@ export function ShopScreen({ run }: { run: Run }) {
           {cards.map(({ it, i }) => (
             <div key={i} class={`shop-item ${it.sold ? 'sold' : ''}`}>
               {it.sale && !it.sold && <span class="sale-tag">半价</span>}
-              <CardView card={it.card!} size="sm" cls={armed === i ? 'picked' : ''} onClick={() => buy(i)} {...cardHover(it.card!)} />
+              <CardView card={it.card!} size="sm" cls={armed === i ? 'picked' : ''} onClick={(e) => buy(i, e)} {...cardHover(it.card!)} />
               <Price p={it.price} />
             </div>
           ))}
@@ -232,7 +249,7 @@ export function ShopScreen({ run }: { run: Run }) {
             <div class="shop-row">
               {relics.map(({ it, i }) => (
                 <div key={i} class={`shop-item ${it.sold ? 'sold' : ''}`}>
-                  <div class="goods-tile" style={armed === i ? { outline: '2px solid var(--gold)' } : undefined} onClick={() => buy(i)} {...tipProps(relicTip(it.id!), 'top')}>
+                  <div class="goods-tile" style={armed === i ? { outline: '2px solid var(--gold)' } : undefined} onClick={(e) => buy(i, e)} {...tipProps(relicTip(it.id!), 'top')}>
                     <RelicIcon id={it.id!} />
                   </div>
                   <Price p={it.price} />
@@ -247,7 +264,7 @@ export function ShopScreen({ run }: { run: Run }) {
                 const d = POTIONS[it.id!];
                 return (
                   <div key={i} class={`shop-item ${it.sold ? 'sold' : ''}`}>
-                    <div class="goods-tile" style={armed === i ? { outline: '2px solid var(--gold)' } : undefined} onClick={() => buy(i)} {...tipProps([{ title: d.name, body: d.desc }], 'top')}>
+                    <div class="goods-tile" style={armed === i ? { outline: '2px solid var(--gold)' } : undefined} onClick={(e) => buy(i, e)} {...tipProps([{ title: d.name, body: d.desc }], 'top')}>
                       <PotionIcon id={it.id!} />
                     </div>
                     <Price p={it.price} />
@@ -258,7 +275,7 @@ export function ShopScreen({ run }: { run: Run }) {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div class="shop-label">服务</div>
-            <div class={`shop-item ${shop.removeUsed ? 'sold' : ''}`}>
+            <div class={`shop-item svc ${shop.removeUsed ? 'sold' : ''}`}>
               <div
                 class="goods-tile"
                 onClick={() => run.gold >= removeCost && act(() => run.buyRemoval())}

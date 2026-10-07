@@ -19,7 +19,7 @@ export function pop(el: Element) {
 export function flyGain(
   src: Element,
   findTarget: () => Element | null,
-  opts: { endScale?: number; duration?: number; hideTarget?: boolean } = {},
+  opts: { endScale?: number; duration?: number; delay?: number; hideTarget?: boolean } = {},
 ) {
   const stage = stageInfo.el;
   if (!stage || typeof (src as HTMLElement).animate !== 'function') return;
@@ -43,6 +43,7 @@ export function flyGain(
   });
   stage.appendChild(ghost);
   const duration = opts.duration ?? 560;
+  const delay = opts.delay ?? 0;
   requestAnimationFrame(() =>
     requestAnimationFrame(() => {
       const target = findTarget();
@@ -64,7 +65,7 @@ export function flyGain(
           { transform: `translate(${dx * 0.35}px, ${dy * 0.35 - 50}px) scale(${Math.max(s, 1) * 1.08})`, opacity: 1, offset: 0.35 },
           { transform: `translate(${dx}px, ${dy}px) scale(${s})`, opacity: 0.85 },
         ],
-        { duration, easing: 'cubic-bezier(0.4, 0, 0.25, 1)' },
+        { duration, delay, fill: 'backwards', easing: 'cubic-bezier(0.4, 0, 0.25, 1)' },
       );
       let done = false;
       const finish = () => {
@@ -75,9 +76,78 @@ export function flyGain(
         pop(target);
       };
       anim.onfinish = finish;
-      setTimeout(finish, duration + 250);
+      setTimeout(finish, delay + duration + 250);
     }),
   );
+}
+
+/** 付钱：几枚金币从顶栏的金币数飞向买下的东西，金币数闪一下 */
+export function spendGold(to: Element, coins = 3) {
+  const stage = stageInfo.el;
+  const from = document.querySelector('.topbar .tb-gold .ico');
+  if (!stage || !from || typeof (to as HTMLElement).animate !== 'function') return;
+  const a = rectInStage(from);
+  const b = rectInStage(to);
+  const dx = (b.l + b.r) / 2 - (a.l + a.r) / 2;
+  const dy = (b.t + b.b) / 2 - (a.t + a.b) / 2;
+  for (let k = 0; k < coins; k++) {
+    const coin = document.createElement('span');
+    coin.className = 'gain-fly coin-fly';
+    coin.textContent = '🪙';
+    Object.assign(coin.style, { position: 'absolute', left: `${(a.l + a.r) / 2 - 11}px`, top: `${(a.t + a.b) / 2 - 11}px`, zIndex: '400', pointerEvents: 'none' });
+    stage.appendChild(coin);
+    const jitter = (k - (coins - 1) / 2) * 14;
+    const anim = coin.animate(
+      [
+        { transform: 'translate(0px, 0px) scale(0.9)', opacity: 1 },
+        { transform: `translate(${dx * 0.5 + jitter}px, ${dy * 0.5 - 40}px) scale(1.1)`, opacity: 1, offset: 0.5 },
+        { transform: `translate(${dx + jitter * 0.4}px, ${dy}px) scale(0.6)`, opacity: 0 },
+      ],
+      { duration: 420, delay: k * 70, fill: 'backwards', easing: 'cubic-bezier(0.4, 0, 0.3, 1)' },
+    );
+    anim.onfinish = () => coin.remove();
+    setTimeout(() => coin.remove(), 900);
+  }
+  const counter = document.querySelector('.topbar .tb-gold');
+  if (counter) {
+    counter.classList.remove('spend-flash');
+    void (counter as HTMLElement).offsetWidth;
+    counter.classList.add('spend-flash');
+    setTimeout(() => counter.classList.remove('spend-flash'), 600);
+  }
+}
+
+/** 买不起：轻轻摇一下 */
+export function deny(el: Element) {
+  el.classList.remove('deny-shake');
+  void (el as HTMLElement).offsetWidth;
+  el.classList.add('deny-shake');
+  setTimeout(() => el.classList.remove('deny-shake'), 450);
+}
+
+/** 移除卡牌：这张牌在原处烧掉、消失（原来的元素先藏起来） */
+export function burnAway(el: Element) {
+  const stage = stageInfo.el;
+  if (!stage || typeof (el as HTMLElement).animate !== 'function') return;
+  const r = rectInStage(el);
+  if (r.r - r.l <= 0) return;
+  const ghost = el.cloneNode(true) as HTMLElement;
+  ghost.classList.remove('hovered', 'picked');
+  ghost.classList.add('gain-fly');
+  ghost.removeAttribute('style');
+  Object.assign(ghost.style, { position: 'absolute', left: `${r.l}px`, top: `${r.t}px`, width: `${r.r - r.l}px`, height: `${r.b - r.t}px`, margin: '0', zIndex: '400', pointerEvents: 'none' });
+  stage.appendChild(ghost);
+  (el as HTMLElement).style.visibility = 'hidden';
+  const anim = ghost.animate(
+    [
+      { transform: 'scale(1)', filter: 'brightness(1)', opacity: 1 },
+      { transform: 'scale(1.06)', filter: 'brightness(1.8) sepia(0.8) saturate(3) hue-rotate(-20deg)', opacity: 1, offset: 0.35 },
+      { transform: 'translateY(-24px) scale(0.92)', filter: 'brightness(0.4) sepia(1) blur(2px)', opacity: 0 },
+    ],
+    { duration: 700, easing: 'ease-in' },
+  );
+  anim.onfinish = () => ghost.remove();
+  setTimeout(() => ghost.remove(), 1100);
 }
 
 /** 顶栏上的收获目标 */

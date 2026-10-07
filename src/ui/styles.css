@@ -2125,9 +2125,43 @@ button {
   gap: 6px;
   position: relative;
 }
+.shop-item {
+  transition: opacity 0.3s ease;
+}
+/* 卖出的商品飞走后，原处淡出成空位；用过的服务只是变暗 */
 .shop-item.sold {
-  opacity: 0.25;
+  opacity: 0;
   pointer-events: none;
+}
+.shop-item.svc.sold {
+  opacity: 0.25;
+}
+.deny-shake {
+  animation: deny-shake 0.4s ease;
+}
+@keyframes deny-shake {
+  20%,
+  60% {
+    transform: translateX(-6px);
+  }
+  40%,
+  80% {
+    transform: translateX(6px);
+  }
+}
+.coin-fly {
+  font-size: 22px;
+  line-height: 22px;
+}
+.spend-flash .num {
+  display: inline-block;
+  animation: spend-flash 0.55s ease;
+}
+@keyframes spend-flash {
+  30% {
+    color: #ff6b5a;
+    transform: scale(0.88);
+  }
 }
 .price {
   font-family: var(--f-num);
