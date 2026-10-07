@@ -1,4 +1,4 @@
-// 卡牌注册表：编号、按 id 查询、组成牌库。
+// 卡牌注册表：按 id 查询、组成牌库。卡牌 id：动物 a401、赞助 s201、项目 p101、终局计分 e001。
 import { registerBuilding } from '../buildings';
 import type { AnimalCard, Card, ProjectCard, ScoringCard, SponsorCard } from '../types';
 import { ANIMALS } from './animals';
@@ -8,10 +8,8 @@ import { SPONSORS } from './sponsors';
 export const CARDS: Record<string, Card> = {};
 export const SCORING_CARDS: Record<string, ScoringCard> = {};
 
-let n = 1;
 for (const c of [...ANIMALS, ...SPONSORS, ...PROJECTS]) {
   if (CARDS[c.id]) throw new Error(`重复的卡牌 id：${c.id}`);
-  c.num = n++;
   CARDS[c.id] = c;
 }
 for (const s of SCORING) SCORING_CARDS[s.id] = s;
@@ -54,7 +52,7 @@ export function project(id: string): ProjectCard {
   return c;
 }
 
-/** 进入牌库的卡（基础项目除外） */
+/** 进入牌库的卡（基础项目除外）：128 动物 + 64 赞助 + 20 项目 = 212 张 */
 export function deckCards(): string[] {
   return Object.values(CARDS)
     .filter((c) => !(c.kind === 'project' && c.base))

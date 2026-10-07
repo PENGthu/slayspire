@@ -1,286 +1,73 @@
-// 赞助卡：等级 = 打出所需的赞助行动强度。提供图标、立即收益、持续效果、休息收入、终局保护点数或专属建筑。
-import type { Gain, Icon, Requirement, SponsorCard, SponsorEffect } from '../types';
+// 原版基础游戏的 64 张赞助卡（功能按原版复刻，说明文字为本作撰写）。具体效果在 engine/sponsorfx.ts 中按编号实现。
+import type { SponsorCard } from '../types';
 
-export const SPONSORS: SponsorCard[] = [];
+type S = Omit<SponsorCard, 'kind' | 'id' | 'en'> & { en: string };
 
-interface Opts {
-  icons?: Icon[];
-  req?: Requirement[];
-  gain?: Gain;
-  gainPer?: SponsorCard['gainPer'];
-  effects?: SponsorEffect[];
-  building?: SponsorCard['building'];
-}
+const L: S[] = [
+  { num: 201, name: '科学实验室', en: 'Science Lab', emoji: '🔬', level: 5, icons: ['science'], req: [{ k: 'upgrade', action: 'sponsors' }], text: '立即：从声望范围内或牌库拿 1 张牌。收入：同样拿 1 张牌。终局：研究图标达到 3 / 6 个，获得 1 / 2 保护点数。' },
+  { num: 202, name: '发言人', en: 'Spokesperson', emoji: '🎤', level: 5, icons: ['science'], person: true, req: [{ k: 'icon', icon: 'science', n: 1 }], text: '每当你的动物园新增 1 个研究图标，声望 +1。' },
+  { num: 203, name: '兽医', en: 'Veterinarian', emoji: '🩺', level: 4, icons: ['science'], person: true, text: '支持保护项目只需要价值 4 的协会任务。立即：有 1 / 2 / 3 所大学时，获得 2 / 5 / 10 元。终局：有 3 所大学，获得 1 保护点数。' },
+  { num: 204, name: '科学博物馆', en: 'Science Museum', emoji: '🏛️', level: 4, icons: ['science'], req: [{ k: 'icon', icon: 'science', n: 4 }], text: '每当你的动物园新增 1 个研究图标，获得 1 保护点数。立即：每个研究图标获得 2 元。' },
+  { num: 205, name: '大猩猩野外研究', en: 'Gorilla Field Research', emoji: '🦍', level: 3, icons: ['science'], req: [{ k: 'icon', icon: 'science', n: 3 }], gain: { rep: 2, cp: 1 }, text: '立即：声望 +2，获得 1 保护点数。' },
+  { num: 206, name: '医学突破', en: 'Medical Breakthrough', emoji: '🧬', level: 5, icons: ['science'], req: [{ k: 'icon', icon: 'science', n: 4 }], text: '收入：获得 1 保护点数。立即：每支持过 1 个保护项目，吸引力 +2。' },
+  { num: 207, name: '基础研究', en: 'Basic Research', emoji: '📖', level: 4, icons: ['science'], req: [{ k: 'upgrade', action: 'sponsors' }, { k: 'appealMax', n: 25 }], text: '立即：动物园里每有 2 种不同的大洲或动物种类图标，获得 1 保护点数；你每得 1 点，其他玩家各得 2 元。' },
+  { num: 208, name: '科学图书馆', en: 'Science Library', emoji: '📚', level: 4, icons: ['science'], text: '每当任何动物园新增研究图标，你获得 2 元。立即：每个研究图标吸引力 +1。终局：有 5 种不同的动物种类图标，获得 1 保护点数。' },
+  { num: 209, name: '技术研究所', en: 'Technology Institute', emoji: '💡', level: 5, icons: ['science'], text: '收入：获得 1 个 X 标记。立即：获得 1 个 X 标记。终局：有 3 所大学，获得 1 保护点数。' },
+  { num: 210, name: '美洲专家', en: 'Expert on the Americas', emoji: '🤠', level: 4, icons: ['americas'], person: true, text: '每当你的动物园新增美洲图标，可以免费建 1 个售货亭。立即：每个美洲图标吸引力 +1。终局：有 5 个售货亭，获得 1 保护点数。' },
+  { num: 211, name: '欧洲专家', en: 'Expert on Europe', emoji: '🧔', level: 5, icons: ['europe'], person: true, text: '每当你的动物园新增欧洲图标，可以免费建 1 座 1 格围栏。立即：每个欧洲图标吸引力 +1。终局：有 5 座住着动物的 1 格围栏，获得 1 保护点数。' },
+  { num: 212, name: '澳洲专家', en: 'Expert on Australia', emoji: '👩', level: 5, icons: ['australia'], person: true, text: '每当你的动物园新增大洋洲图标，可以把 1 张手牌压到这张卡下，吸引力 +2。立即：每个大洋洲图标吸引力 +1。' },
+  { num: 213, name: '亚洲专家', en: 'Expert on Asia', emoji: '🧑', level: 5, icons: ['asia'], person: true, text: '每当你的动物园新增亚洲图标，可以免费建 1 座凉亭。立即：每个亚洲图标吸引力 +1。' },
+  { num: 214, name: '非洲专家', en: 'Expert on Africa', emoji: '👩🏿', level: 4, icons: ['africa'], person: true, text: '每当你的动物园新增非洲图标，可以把任一行动卡放到 1 号位。立即：每个非洲图标吸引力 +1。终局：每个 X 标记吸引力 +1。' },
+  { num: 215, name: '全球繁育计划', en: 'Breeding Cooperation', emoji: '🦛', level: 4, icons: [], req: [{ k: 'partners', n: 2 }], text: '打出时放 2 个标记在这张卡上：支持基础保护项目时，可以弃掉 1 个标记当作任意 1 个图标。终局：支持过 5 个保护项目，获得 1 保护点数。' },
+  { num: 216, name: '优秀的协调员', en: 'Talented Communicator', emoji: '🎧', level: 5, icons: [], person: true, req: [{ k: 'upgrade', action: 'sponsors' }], text: '立即：获得 1 名协会工人。终局：声望达到 9，获得 1 保护点数。' },
+  { num: 217, name: '工程师', en: 'Engineer', emoji: '👷', level: 4, icons: [], person: true, text: '每次建造行动建了至少 1 座建筑后，可以按正常价格再建 1 座同种建筑（特殊场馆除外）。终局：动物园地图全部被覆盖，吸引力 +5。' },
+  { num: 218, name: '育种计划', en: 'Breeding Program', emoji: '🐢', level: 4, icons: [], req: [{ k: 'icon', icon: 'science', n: 2 }], text: '打出时放 2 个标记在这张卡上：支持基础保护项目时，可以弃掉 1 个标记当作任意 1 个图标。终局：支持过 5 个保护项目，获得 1 保护点数。' },
+  { num: 219, name: '综合研究员', en: 'Diversity Researcher', emoji: '🧑‍🔬', level: 5, icons: ['science'], person: true, req: [{ k: 'upgrade', action: 'sponsors' }], text: '你可以在水域和岩石格上建造，并忽略所有水域、岩石要求。立即：每个水 / 岩石图标获得 2 元。终局：每个水 / 岩石图标吸引力 +2（最多 3 次）。' },
+  { num: 220, name: '联邦资助金', en: 'Federal Grants', emoji: '🏦', level: 4, icons: ['science'], text: '收入：获得 3 元。立即：获得 3 元。终局：声望达到 9，获得 1 保护点数。' },
+  { num: 221, name: '考古学家', en: 'Archeologist', emoji: '🏺', level: 4, icons: ['science'], person: true, req: [{ k: 'icon', icon: 'science', n: 1 }], text: '每当你获得边缘格上的放置奖励，再额外获得 1 个任意的放置奖励。终局：所有边缘格都被覆盖，获得 1 保护点数。' },
+  { num: 222, name: '发布专利', en: 'Release of Patents', emoji: '📜', level: 5, icons: [], req: [{ k: 'appealMax', n: 25 }], text: '立即：每个研究图标获得 1 保护点数（最多 3 点）；你每得 1 点，其他玩家各得 2 元。' },
+  { num: 223, name: '科研机构', en: 'Science Institute', emoji: '🧪', level: 3, icons: ['science', 'science'], text: '提供 2 个研究图标。' },
+  { num: 224, name: '迁徙记录', en: 'Migration Recording', emoji: '🪿', level: 4, icons: ['science'], req: [{ k: 'icon', icon: 'science', n: 1 }], text: '每次支持“放归野外”保护项目，额外获得 1 保护点数；你可以多次支持同一个放归项目。立即：获得 1 个 X 标记。' },
+  { num: 225, name: '检疫实验室', en: 'Quarantine Lab', emoji: '🥼', level: 3, icons: ['science'], text: '你不受毒液、绞杀、催眠和掠夺的影响。立即：获得 1 个 X 标记。终局：有 5 种不同的大洲图标，获得 1 保护点数。' },
+  { num: 226, name: '海外研究所', en: 'Foreign Institute', emoji: '🏰', level: 6, icons: ['science'], gain: { rep: 2 }, text: '立即：声望 +2。终局：有 5 种不同的大洲图标，获得 1 保护点数。' },
+  { num: 227, name: '世界动物园协会特别任务', en: 'WAZA Special Assignment', emoji: '📝', level: 6, icons: [], req: [{ k: 'rep', n: 6 }], text: '立即：选择小型或大型动物，从牌库依次翻牌，把第一张该类动物加入手牌。之后你不能再打出另一类动物；每打出 1 只所选类型的动物，吸引力 +2（小型）或 +4（大型）。' },
+  { num: 228, name: '世界动物园协会小型动物计划', en: 'WAZA Small Animal Program', emoji: '🐿️', level: 5, icons: [], req: [{ k: 'rep', n: 3 }], text: '每次动物行动只打出了小型动物时，可以按正常费用再打出 1 只小型动物，之后从展示区拿 1 张小型动物卡（如果有）。立即：每只小型动物获得 2 元。' },
+  { num: 229, name: '小型动物专家', en: 'Expert in Small Animals', emoji: '🐔', level: 5, icons: [], person: true, text: '你打出小型动物（体型 ≤2）便宜 3 元。立即：每只小型动物吸引力 +1。' },
+  { num: 230, name: '大型动物专家', en: 'Expert in Large Animals', emoji: '🔭', level: 4, icons: [], person: true, text: '你打出大型动物（体型 ≥4）便宜 4 元。立即：每只大型动物吸引力 +2。' },
+  { num: 231, name: '灵长类资助计划', en: 'Sponsorship: Primates', emoji: '🐒', level: 3, icons: [], req: [{ k: 'icon', icon: 'primate', n: 1 }], text: '收入：有 1 / 3 / 5 个灵长类图标时，获得 3 / 6 / 9 元。立即：每个灵长类图标吸引力 +1。' },
+  { num: 232, name: '爬行类资助计划', en: 'Sponsorship: Reptiles', emoji: '🐊', level: 3, icons: [], req: [{ k: 'icon', icon: 'reptile', n: 1 }], text: '收入：有 1 / 3 / 5 个爬行类图标时，获得 3 / 6 / 9 元。立即：每个爬行类图标吸引力 +1。' },
+  { num: 233, name: '秃鹫资助计划', en: 'Sponsorship: Vultures', emoji: '🦅', level: 3, icons: [], req: [{ k: 'icon', icon: 'bird', n: 1 }], text: '收入：有 1 / 3 / 5 个鸟类图标时，获得 3 / 6 / 9 元。立即：每个鸟类图标吸引力 +1。' },
+  { num: 234, name: '狮子资助计划', en: 'Sponsorship: Lions', emoji: '🦁', level: 3, icons: [], req: [{ k: 'icon', icon: 'predator', n: 1 }], text: '收入：有 1 / 3 / 5 个食肉类图标时，获得 3 / 6 / 9 元。立即：每个食肉类图标吸引力 +1。' },
+  { num: 235, name: '大象资助计划', en: 'Sponsorship: Elephants', emoji: '🐘', level: 3, icons: [], req: [{ k: 'icon', icon: 'herbivore', n: 1 }], text: '收入：有 1 / 3 / 5 个食草类图标时，获得 3 / 6 / 9 元。立即：每个食草类图标吸引力 +1。' },
+  { num: 236, name: '灵长类动物学家', en: 'Primatologist', emoji: '🧑‍🏫', level: 4, icons: ['primate'], person: true, text: '每当任何动物园新增灵长类图标，你获得 3 元。' },
+  { num: 237, name: '爬行类动物学家', en: 'Herpetologist', emoji: '👩‍🔬', level: 4, icons: ['reptile'], person: true, text: '每当任何动物园新增爬行类图标，你获得 3 元。' },
+  { num: 238, name: '鸟类学家', en: 'Ornithologist', emoji: '👩‍🌾', level: 4, icons: ['bird'], person: true, text: '每当任何动物园新增鸟类图标，你获得 3 元。' },
+  { num: 239, name: '食肉动物专家', en: 'Expert in Predators', emoji: '🧑‍🌾', level: 4, icons: ['predator'], person: true, text: '每当任何动物园新增食肉类图标，你获得 3 元。' },
+  { num: 240, name: '食草动物专家', en: 'Expert in Herbivores', emoji: '🧑‍⚕️', level: 4, icons: ['herbivore'], person: true, text: '每当任何动物园新增食草类图标，你获得 3 元。' },
+  { num: 241, name: '水文学家', en: 'Hydrologist', emoji: '💧', level: 5, icons: ['water'], person: true, text: '你每覆盖 1 个与水域相邻的格子，获得 1 元。立即：每个水图标吸引力 +1。终局：所有水域格都与建筑相邻，获得 1 保护点数。' },
+  { num: 242, name: '地质学家', en: 'Geologist', emoji: '⛏️', level: 5, icons: ['rock'], person: true, text: '你每覆盖 1 个与岩石相邻的格子，获得 1 元。立即：每 2 个岩石图标吸引力 +3。终局：所有岩石格都与建筑相邻，获得 1 保护点数。' },
+  { num: 243, name: '狐獴窝', en: 'Meerkat Den', emoji: '🦦', level: 5, icons: ['herbivore'], req: [{ k: 'rep', n: 3 }], building: { shape: [[0, 0], [1, -1], [2, -1]], rock: 1 }, text: '专属建筑（3 格，至少与 1 个岩石格相邻）。每当你的动物园新增食草类图标，吸引力 +2。终局：有 6 个食草类图标，获得 1 保护点数。' },
+  { num: 244, name: '企鹅馆', en: 'Penguin Pool', emoji: '🐧', level: 5, icons: ['bird'], req: [{ k: 'rep', n: 3 }], building: { shape: [[0, 0], [1, 0], [2, -1], [2, 0]], water: 1 }, text: '专属建筑（4 格，至少与 1 个水域格相邻）。每当你的动物园新增鸟类图标，吸引力 +2。终局：有 6 个鸟类图标，获得 1 保护点数。' },
+  { num: 245, name: '水族馆', en: 'Aquarium', emoji: '🐠', level: 5, icons: [], req: [{ k: 'rep', n: 3 }], building: { shape: [[0, 0], [1, -1], [2, -1], [2, 0]], water: 2 }, text: '专属建筑（4 格，至少与 2 个水域格相邻）。每当你的动物园新增水图标，吸引力 +2。终局：有 6 个水图标，获得 1 保护点数。' },
+  { num: 246, name: '空中索道', en: 'Cable Car', emoji: '🚡', level: 6, icons: [], building: { shape: [[0, 0], [1, -1], [2, -2], [3, -3]], rock: 2 }, text: '专属建筑（4 格一条线，至少与 2 个岩石格相邻）。每当你的动物园新增岩石图标，吸引力 +2。终局：有 6 个岩石图标，获得 1 保护点数。' },
+  { num: 247, name: '狒狒栖息岩', en: 'Baboon Rock', emoji: '🐒', level: 6, icons: ['primate'], building: { shape: [[0, 0], [1, 0], [1, 1], [2, 0]], rock: 1 }, text: '专属建筑（4 格，至少与 1 个岩石格相邻）。每当你的动物园新增灵长类图标，吸引力 +2。终局：有 6 个灵长类图标，获得 1 保护点数。' },
+  { num: 248, name: '猕猴园', en: 'Rhesus Monkey Park', emoji: '🐵', level: 5, icons: ['primate'], building: { shape: [[0, 0], [1, -1], [2, -1], [3, -1]] }, text: '专属建筑（4 格）。每当你的动物园新增灵长类图标，获得 1 个 X 标记。' },
+  { num: 249, name: '猫头鹰棚屋', en: 'Barred Owl Hut', emoji: '🦉', level: 6, icons: ['bird'], building: { shape: [[0, 0], [1, 0], [2, 0]] }, text: '专属建筑（3 格一条线）。每当你的动物园新增鸟类图标：从牌库抽 2 张，保留 1 张、弃掉 1 张。' },
+  { num: 250, name: '海龟水族箱', en: 'Sea Turtle Tank', emoji: '🐢', level: 5, icons: ['reptile'], building: { shape: [[0, 0], [1, 0], [1, 1], [2, -1]], water: 1 }, text: '专属建筑（4 格，至少与 1 个水域格相邻）。每当你的动物园新增爬行类图标，可以出售最多 2 张手牌，每张 4 元。' },
+  { num: 251, name: '北极熊展', en: 'Polar Bear Exhibit', emoji: '🐻‍❄️', level: 5, icons: ['bear', 'predator'], building: { shape: [[0, 0], [1, -1], [2, -1], [3, -2]], water: 1 }, text: '专属建筑（4 格，至少与 1 个水域格相邻）。每当任何动物园新增熊图标，你吸引力 +2。终局：有 3 / 6 个熊图标，获得 1 / 2 保护点数。' },
+  { num: 252, name: '斑鬣狗围场', en: 'Spotted Hyena Compound', emoji: '🐺', level: 5, icons: ['predator'], building: { shape: [[0, 0], [1, 0], [2, -1], [3, -2]], rock: 1 }, text: '专属建筑（4 格，至少与 1 个岩石格相邻）。每当你的动物园新增食肉类图标：从牌库翻开 X 张（X = 你的食肉类图标数），把其中 1 张动物卡加入手牌，其余弃掉。' },
+  { num: 253, name: '霍加狓棚厩', en: 'Okapi Stable', emoji: '🦓', level: 6, icons: ['herbivore'], building: { shape: [[0, 0], [1, 0], [2, -1], [3, -1]] }, text: '专属建筑（4 格）。打出时放 3 个标记在这张卡上：每当你的动物园新增食草类图标，可以移除 1 个标记，支付等于等级的钱打出 1 张赞助卡。' },
+  { num: 254, name: '动物园课外学校', en: 'Zoo School', emoji: '🏫', level: 5, icons: [], gain: { rep: 1, cp: 1 }, building: { shape: [[0, 0], [1, 0], [2, -1]], border: 2 }, text: '专属建筑（3 格，至少 2 格在地图边缘）。立即：声望 +1、获得 1 保护点数，并从声望范围内或牌库拿 1 张牌。' },
+  { num: 255, name: '儿童游乐园', en: 'Adventure Playground', emoji: '🛝', level: 3, icons: [], gain: { appeal: 4 }, building: { shape: [[0, 0], [1, 0]], rock: 1 }, text: '专属建筑（2 格，至少与 1 个岩石格相邻）。立即：吸引力 +4。' },
+  { num: 256, name: '水上乐园', en: 'Water Playground', emoji: '⛲', level: 3, icons: [], gain: { appeal: 4 }, building: { shape: [[0, 0], [1, 0]], water: 1 }, text: '专属建筑（2 格，至少与 1 个水域格相邻）。立即：吸引力 +4。' },
+  { num: 257, name: '园区边门', en: 'Side Entrance', emoji: '🚪', level: 3, icons: [], building: { shape: [[0, 0], [1, 0]], border: 2, free: true }, text: '专属建筑（2 格，都在地图边缘，不必与其他建筑相邻）。收入：每座相邻的建筑（空的标准围栏除外）获得 2 元。终局：动物园地图全部被覆盖，吸引力 +5。' },
+  { num: 258, name: '本地海鸟', en: 'Native Seabirds', emoji: '🦆', level: 5, icons: ['bird'], req: [{ k: 'appealMax', n: 25 }], text: '立即：每个与建筑相邻的水域格，吸引力 +1。终局：每 2 个没有与建筑相邻的水域格，获得 1 保护点数。' },
+  { num: 259, name: '本地蜥蜴', en: 'Native Lizards', emoji: '🦎', level: 5, icons: ['reptile'], req: [{ k: 'appealMax', n: 25 }], text: '立即：每个与建筑相邻的岩石格，吸引力 +1。终局：每 2 个没有与建筑相邻的岩石格，获得 1 保护点数。' },
+  { num: 260, name: '本地农牧动物', en: 'Native Farm Animals', emoji: '🐓', level: 5, icons: ['herbivore'], req: [{ k: 'appealMax', n: 25 }], text: '立即：每个与建筑相邻的空边缘格，吸引力 +1。终局：每 6 个空格（没有建筑的可建造格）获得 1 保护点数。' },
+  { num: 261, name: '导游学校参观', en: 'Guided School Tours', emoji: '🎒', level: 3, icons: [], gain: { appeal: 1, cp: 1 }, text: '立即：吸引力 +1，获得 1 保护点数。终局：有 5 种不同的动物种类图标，获得 1 保护点数。' },
+  { num: 262, name: '探险家', en: 'Explorer', emoji: '🧭', level: 5, icons: [], person: true, req: [{ k: 'upgrade', action: 'sponsors' }], text: '每当你的动物园出现一种之前没有的大洲或动物种类图标，吸引力 +1 并获得 2 元。立即：每种不同的大洲 / 动物种类图标获得 2 元。' },
+  { num: 263, name: '世界动物园协会大型动物计划', en: 'WAZA Large Animal Program', emoji: '🦛', level: 5, icons: [], req: [{ k: 'upgrade', action: 'sponsors' }, { k: 'rep', n: 6 }], text: '你打出大型动物（体型 ≥4）时，可以忽略它的 1 个条件。立即：可以免费放 1 座 5 格围栏。' },
+  { num: 264, name: '自由放养的新世界猴', en: 'Free-Range New World Monkeys', emoji: '🐒', level: 5, icons: ['primate'], req: [{ k: 'appealMax', n: 25 }], text: '立即：每个与建筑相邻、还没被覆盖的放置奖励格，吸引力 +1。终局：每 2 个没有与建筑相邻的放置奖励格，获得 1 保护点数。' },
+];
 
-function S(id: string, name: string, emoji: string, level: number, text: string, o: Opts = {}) {
-  SPONSORS.push({
-    kind: 'sponsor',
-    id,
-    num: 0,
-    name,
-    emoji,
-    level,
-    icons: o.icons ?? [],
-    req: o.req,
-    gain: o.gain,
-    gainPer: o.gainPer,
-    effects: o.effects,
-    building: o.building,
-    text,
-  });
-}
-
-const SCI = (n: number): Requirement => ({ k: 'icon', icon: 'science', n });
-const REP = (n: number): Requirement => ({ k: 'rep', n });
-
-// —— 研究
-S('field_lab', '野外研究站', '🔬', 2, '立即抽 1 张牌。', { icons: ['science'], gain: { cards: 1 } });
-S('research_institute', '野生动物研究所', '🏫', 3, '声望 +1。', { icons: ['science'], gain: { rep: 1 } });
-S('veterinary_school', '兽医学院', '🩺', 4, '声望 +2。', { icons: ['science', 'science'], req: [SCI(1)], gain: { rep: 2 } });
-S('gene_bank', '基因库', '🧬', 5, '终局：每 2 个研究图标获得 1 保护点数（最多 3）。', {
-  icons: ['science'],
-  req: [SCI(2)],
-  effects: [{ k: 'end', metric: { m: 'icon', icon: 'science' }, per: 2, cp: 1, max: 3 }],
-});
-S('behaviour_lab', '动物行为学实验室', '🧠', 3, '每当你打出灵长类动物，获得 1 点吸引力。', {
-  icons: ['science'],
-  effects: [{ k: 'onPlay', filter: { cat: 'primate' }, gain: { appeal: 1 } }],
-});
-S('university_partner', '大学合作办公室', '🎓', 2, '立即获得 4 元。', { icons: ['science'], gain: { money: 4 } });
-
-// —— 大洲专家
-S('africa_expert', '非洲专家', '🌍', 3, '每当你打出非洲动物，获得 2 元。', {
-  icons: ['africa'],
-  effects: [{ k: 'onPlay', filter: { cont: 'africa' }, gain: { money: 2 } }],
-});
-S('europe_expert', '欧洲专家', '🏰', 2, '每当你打出欧洲动物，获得 2 元。', {
-  icons: ['europe'],
-  effects: [{ k: 'onPlay', filter: { cont: 'europe' }, gain: { money: 2 } }],
-});
-S('asia_expert', '亚洲专家', '🏯', 3, '每当你打出亚洲动物，获得 2 元。', {
-  icons: ['asia'],
-  effects: [{ k: 'onPlay', filter: { cont: 'asia' }, gain: { money: 2 } }],
-});
-S('americas_expert', '美洲专家', '🌎', 3, '每当你打出美洲动物，获得 2 元。', {
-  icons: ['americas'],
-  effects: [{ k: 'onPlay', filter: { cont: 'americas' }, gain: { money: 2 } }],
-});
-S('australia_expert', '大洋洲专家', '🌏', 2, '每当你打出大洋洲动物，获得 2 元。', {
-  icons: ['australia'],
-  effects: [{ k: 'onPlay', filter: { cont: 'australia' }, gain: { money: 2 } }],
-});
-
-// —— 种类
-S('raptor_center', '猛禽救护中心', '🪶', 3, '每当你打出鸟类，获得 1 点吸引力。', {
-  icons: ['bird'],
-  effects: [{ k: 'onPlay', filter: { cat: 'bird' }, gain: { appeal: 1 } }],
-});
-S('herpetology', '爬行动物学会', '🦎', 3, '每当你打出爬行动物，获得 2 元。', {
-  icons: ['reptile'],
-  effects: [{ k: 'onPlay', filter: { cat: 'reptile' }, gain: { money: 2 } }],
-});
-S('primate_fund', '灵长类保护基金', '🐵', 4, '每当你打出灵长类动物，获得 1 点吸引力和 1 元。', {
-  icons: ['primate'],
-  effects: [{ k: 'onPlay', filter: { cat: 'primate' }, gain: { appeal: 1, money: 1 } }],
-});
-S('big_cat_alliance', '大型猫科动物联盟', '🐾', 4, '每当你打出捕食者，获得 1 点吸引力。', {
-  icons: ['predator'],
-  effects: [{ k: 'onPlay', filter: { cat: 'predator' }, gain: { appeal: 1 } }],
-});
-S('grassland_society', '草原保护协会', '🌾', 3, '每当你打出草食动物，获得 2 元。', {
-  icons: ['herbivore'],
-  effects: [{ k: 'onPlay', filter: { cat: 'herbivore' }, gain: { money: 2 } }],
-});
-S('bear_rescue', '熊类救助站', '🐻', 4, '立即获得 2 点吸引力。打出熊的费用减少 3 元。', {
-  icons: ['bear'],
-  gain: { appeal: 2 },
-  effects: [{ k: 'discount', filter: { cat: 'bear' }, n: 3 }],
-});
-S('petting_sponsor', '亲子乐园赞助商', '🧸', 1, '每当你打出宠物动物，获得 2 元。', {
-  icons: ['petting'],
-  effects: [{ k: 'onPlay', filter: { cat: 'petting' }, gain: { money: 2 } }],
-});
-S('small_animal_program', '小型动物计划', '🐁', 2, '每当你打出体型 1–2 的动物，获得 2 元。', {
-  effects: [{ k: 'onPlay', filter: { maxSize: 2 }, gain: { money: 2 } }],
-});
-S('large_animal_program', '大型动物计划', '🐘', 4, '每当你打出体型 4 以上的动物，获得 2 点吸引力。', {
-  req: [REP(3)],
-  effects: [{ k: 'onPlay', filter: { minSize: 4 }, gain: { appeal: 2 } }],
-});
-
-// —— 收入
-S('ice_cream', '冰淇淋工坊', '🍨', 2, '休息时，你每有 1 个售货亭，额外获得 2 元（最多 8 元）。', {
-  effects: [{ k: 'incomePer', metric: { m: 'kiosks' }, per: 1, money: 2, max: 8 }],
-});
-S('souvenir_shop', '纪念品商店', '🛍️', 2, '休息时，额外获得 3 元。', { effects: [{ k: 'income', money: 3 }] });
-S('restaurant', '园区餐厅', '🍽️', 3, '立即获得 1 点吸引力。休息时，额外获得 3 元。', {
-  gain: { appeal: 1 },
-  effects: [{ k: 'income', money: 3 }],
-});
-S('night_zoo', '夜间动物园', '🌙', 4, '休息时，你每有 3 只动物，额外获得 2 元。', {
-  effects: [{ k: 'incomePer', metric: { m: 'animals' }, per: 3, money: 2 }],
-});
-S('combo_ticket', '联票计划', '🎟️', 2, '休息时，你每有 1 个合作动物园，额外获得 2 元。', {
-  effects: [{ k: 'incomePer', metric: { m: 'partners' }, per: 1, money: 2 }],
-});
-S('parking', '停车场', '🅿️', 1, '立即获得 5 元。', { gain: { money: 5 } });
-S('donor_dinner', '捐赠者晚宴', '🥂', 3, '立即获得 10 元。', { gain: { money: 10 } });
-
-// —— 建筑相关
-S('contractor', '建筑承包商', '🏗️', 2, '每当你建造标准围栏，获得 2 元。', {
-  effects: [{ k: 'onBuild', building: 'enclosure', gain: { money: 2 } }],
-});
-S('landscape', '景观设计事务所', '🌳', 3, '每当你建造凉亭，额外获得 1 点吸引力。立即获得 1 个 X 标记。', {
-  gain: { x: 1 },
-  effects: [{ k: 'onBuild', building: 'pavilion', gain: { appeal: 1 } }],
-});
-S('kiosk_chain', '连锁小吃店', '🌭', 1, '每当你建造售货亭，获得 3 元。', {
-  effects: [{ k: 'onBuild', building: 'kiosk', gain: { money: 3 } }],
-});
-
-// —— 专属建筑
-S('observation_tower', '观景塔', '🗼', 2, '专属建筑（1 格）。建成时，每座相邻的建筑带来 1 点吸引力（最多 4）。', {
-  building: { shape: [[0, 0]] },
-});
-S('nature_center', '自然教育中心', '🏡', 3, '专属建筑（2 格）。获得 3 点吸引力。', {
-  icons: ['science'],
-  gain: { appeal: 3 },
-  building: {
-    shape: [
-      [0, 0],
-      [1, 0],
-    ],
-  },
-});
-S('animal_hospital', '动物医院', '🏥', 3, '专属建筑（2 格）。声望 +2。', {
-  icons: ['science'],
-  gain: { rep: 2 },
-  building: {
-    shape: [
-      [0, 0],
-      [0, 1],
-    ],
-  },
-});
-S('aquarium', '水族馆', '🐠', 4, '专属建筑（3 格，须与水域相邻）。获得 6 点吸引力。', {
-  gain: { appeal: 6 },
-  building: {
-    shape: [
-      [0, 0],
-      [1, 0],
-      [0, 1],
-    ],
-    water: true,
-  },
-});
-S('visitor_center', '游客中心', '🏛️', 5, '专属建筑（3 格）。获得 4 点吸引力。休息时额外获得 4 元。', {
-  gain: { appeal: 4 },
-  effects: [{ k: 'income', money: 4 }],
-  building: {
-    shape: [
-      [0, 0],
-      [1, 0],
-      [2, 0],
-    ],
-  },
-});
-S('rainforest_house', '热带雨林馆', '🌴', 5, '专属建筑（4 格）。获得 5 点吸引力和 1 保护点数。', {
-  icons: ['primate', 'bird'],
-  req: [REP(4)],
-  gain: { appeal: 5, cp: 1 },
-  building: {
-    shape: [
-      [0, 0],
-      [1, 0],
-      [-1, 1],
-      [0, 1],
-    ],
-  },
-});
-
-// —— 声望、保护与终局
-S('wildlife_fund', '野生动物基金会', '🐼', 5, '立即获得 2 保护点数。', { req: [REP(3)], gain: { cp: 2 } });
-S('conservation_education', '保护教育计划', '📚', 3, '终局：你每支持 2 个保护项目，获得 1 保护点数（最多 3）。', {
-  effects: [{ k: 'end', metric: { m: 'projects' }, per: 2, cp: 1, max: 3 }],
-});
-S('breeding_center', '繁育中心', '🥚', 4, '终局：你每有 4 只动物，获得 1 保护点数（最多 3）。', {
-  icons: ['science'],
-  effects: [{ k: 'end', metric: { m: 'animals' }, per: 4, cp: 1, max: 3 }],
-});
-S('international_program', '国际合作计划', '🤝', 4, '终局：你每有 1 个合作动物园，获得 1 保护点数（最多 3）。', {
-  effects: [{ k: 'end', metric: { m: 'partners' }, per: 1, cp: 1, max: 3 }],
-});
-S('media_partner', '媒体合作伙伴', '📺', 3, '声望 +2。', { gain: { rep: 2 } });
-S('celebrity', '名人代言', '🌟', 5, '声望 +2，获得 3 点吸引力。', { req: [REP(5)], gain: { rep: 2, appeal: 3 } });
-S('volunteers', '志愿者计划', '🙋', 1, '获得 1 个 X 标记。', { gain: { x: 1 } });
-S('management_training', '管理培训', '📋', 4, '获得 1 名协会工人。', { gain: { worker: 1 } });
-S('strategic_plan', '战略规划', '🗺️', 3, '获得 2 个 X 标记，声望 +1。', { gain: { x: 2, rep: 1 } });
-S('school_partnership', '学校合作', '🏫', 1, '获得 1 点吸引力，抽 1 张牌。', { gain: { appeal: 1, cards: 1 } });
-S('friends_of_zoo', '动物园之友协会', '💚', 2, '每当你支持一个保护项目，获得 3 元。', {
-  effects: [{ k: 'onProject', gain: { money: 3 } }],
-});
-S('wildlife_photographer', '野生动物摄影师', '📷', 2, '每当其他玩家打出体型 4 以上的动物，你获得 2 元。', {
-  effects: [{ k: 'onOtherPlay', filter: { minSize: 4 }, gain: { money: 2 } }],
-});
-S('diversity_award', '多样性奖', '🏅', 3, '立即：你的动物园中每有 1 种不同的动物种类，获得 1 点吸引力。', {
-  gainPer: { metric: { m: 'catKinds' }, per: 1, gain: { appeal: 1 }, max: 7 },
-});
-S('travel_agency', '旅行社', '✈️', 3, '立即：你的动物园中每有 1 个不同大洲的图标，获得 2 元。', {
-  gainPer: { metric: { m: 'contKinds' }, per: 1, gain: { money: 2 }, max: 5 },
-});
-S('library', '自然历史图书馆', '📖', 2, '手牌上限 +2。立即抽 1 张牌。', {
-  gain: { cards: 1 },
-  effects: [{ k: 'handLimit', n: 2 }],
-});
-S('scouts', '物种侦察队', '🔭', 2, '你的声望范围（可以拿取的展示区位置）+1。', { effects: [{ k: 'range', n: 1 }] });
-
-// —— 扩充
-S('zoo_shop', '园区便利店', '🏪', 1, '休息时，额外获得 2 元。', { effects: [{ k: 'income', money: 2 }] });
-S('adoption', '动物认养计划', '💌', 2, '休息时，你每有 4 只动物，额外获得 2 元。', {
-  effects: [{ k: 'incomePer', metric: { m: 'animals' }, per: 4, money: 2 }],
-});
-S('research_grant', '科研经费', '💶', 2, '立即：你每有 1 个研究图标，获得 3 元（最多 12 元）。', {
-  gainPer: { metric: { m: 'icon', icon: 'science' }, per: 1, gain: { money: 3 }, max: 4 },
-});
-S('children_day', '儿童节活动', '🎈', 2, '立即：你每有 1 个宠物图标，获得 2 点吸引力（最多 6 点）。', {
-  icons: ['petting'],
-  gainPer: { metric: { m: 'icon', icon: 'petting' }, per: 1, gain: { appeal: 2 }, max: 3 },
-});
-S('bird_show', '飞禽表演', '🦜', 3, '立即：你每有 1 个鸟类图标，获得 1 点吸引力（最多 5 点）。', {
-  icons: ['bird'],
-  gainPer: { metric: { m: 'icon', icon: 'bird' }, per: 1, gain: { appeal: 1 }, max: 5 },
-});
-S('documentary', '纪录片拍摄', '🎥', 3, '声望 +1。立即：你的动物园中每有 1 个不同大洲的图标，获得 1 点吸引力。', {
-  gain: { rep: 1 },
-  gainPer: { metric: { m: 'contKinds' }, per: 1, gain: { appeal: 1 }, max: 5 },
-});
-S('zoo_school', '动物园学校', '🎒', 3, '立即抽 2 张牌，获得 1 个 X 标记。', { icons: ['science'], gain: { cards: 2, x: 1 } });
-S('sustainability', '可持续发展计划', '♻️', 3, '终局：你每有 2 个凉亭，获得 1 保护点数（最多 3）。', {
-  effects: [{ k: 'end', metric: { m: 'pavilions' }, per: 2, cp: 1, max: 3 }],
-});
-S('safari_train', '游园小火车', '🚂', 3, '专属建筑（3 格，一条直线）。获得 2 点吸引力。休息时额外获得 2 元。', {
-  gain: { appeal: 2 },
-  effects: [{ k: 'income', money: 2 }],
-  building: {
-    shape: [
-      [0, 0],
-      [1, 0],
-      [2, 0],
-    ],
-  },
-});
-S('predator_deck', '猛兽观赏台', '🔭', 4, '专属建筑（1 格）。立即：你每有 1 个捕食者图标，获得 1 点吸引力（最多 5 点）。', {
-  icons: ['predator'],
-  gainPer: { metric: { m: 'icon', icon: 'predator' }, per: 1, gain: { appeal: 1 }, max: 5 },
-  building: { shape: [[0, 0]] },
-});
-S('reptile_naming', '爬行馆冠名', '🐊', 4, '立即：特殊场馆中每有 1 只动物，获得 1 点吸引力（最多 6 点）。', {
-  icons: ['reptile'],
-  gainPer: { metric: { m: 'specialAnimals' }, per: 1, gain: { appeal: 1 }, max: 6 },
-});
-S('conservation_lab', '物种保护实验室', '🧫', 5, '每当你支持一个保护项目，额外获得 1 保护点数。', {
-  icons: ['science'],
-  req: [SCI(2)],
-  effects: [{ k: 'onProject', gain: { cp: 1 } }],
-});
-
+export const SPONSORS: SponsorCard[] = L.map((s) => ({ ...s, kind: 'sponsor', id: `s${s.num}` }));

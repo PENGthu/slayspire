@@ -1,7 +1,9 @@
-// 六边形网格（尖顶朝上，奇数行右移）。地图格子用下标引用，形状用轴坐标 (q, r) 描述。
+// 六边形网格（平顶，按列排列，偶数列下沉半格——与原版动物园地图一致）。
+// 地图格子用下标引用，形状用轴坐标 (q, r) 描述：q 为列，r 沿列向下。
 
 export type Axial = [number, number];
 
+/** 六个方向：东南、东北、北、西北、西南、南 */
 export const DIRS: Axial[] = [
   [1, 0],
   [1, -1],
@@ -11,12 +13,13 @@ export const DIRS: Axial[] = [
   [0, 1],
 ];
 
+/** 列、行（偶数列下沉）→ 轴坐标 */
 export function offsetToAxial(col: number, row: number): Axial {
-  return [col - (row - (row & 1)) / 2, row];
+  return [col, row - (col + (col & 1)) / 2];
 }
 
 export function axialToOffset(q: number, r: number): [number, number] {
-  return [q + (r - (r & 1)) / 2, r];
+  return [q, r + (q + (q & 1)) / 2];
 }
 
 export function hexDistance(a: Axial, b: Axial): number {
@@ -83,16 +86,16 @@ export function orientations(shape: Axial[]): Axial[][] {
   return out;
 }
 
-/** 六边形中心的像素坐标（尖顶，边长 size） */
+/** 六边形中心的像素坐标（平顶，外接圆半径 size） */
 export function hexToPixel(q: number, r: number, size: number): [number, number] {
-  return [size * Math.sqrt(3) * (q + r / 2), size * 1.5 * r];
+  return [size * 1.5 * q, size * Math.sqrt(3) * (r + q / 2)];
 }
 
-/** 尖顶六边形的六个顶点 */
+/** 平顶六边形的六个顶点 */
 export function hexCorners(cx: number, cy: number, size: number): [number, number][] {
   const out: [number, number][] = [];
   for (let i = 0; i < 6; i++) {
-    const a = (Math.PI / 180) * (60 * i - 30);
+    const a = (Math.PI / 180) * (60 * i);
     out.push([cx + size * Math.cos(a), cy + size * Math.sin(a)]);
   }
   return out;

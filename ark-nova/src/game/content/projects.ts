@@ -1,84 +1,94 @@
-// 保护项目：需要一定数量的图标（或放归一只动物）才能支持。每一档只能由一位玩家占据，
-// 每位玩家每个项目只能支持一次。基础项目开局摆在协会版图上，其余项目在牌库中，由玩家打出。
-import type { Icon, ProjectCard, ProjectGoal, ScoringCard } from '../types';
+// 原版基础游戏的保护项目（12 个基础项目 + 20 张项目卡）与 11 张终局计分卡。
+// 支持项目：每档只能被一位玩家占据，每位玩家每个项目只能支持一次（迁徙记录例外）。
+import type { Category, Continent, Icon, ProjectCard, ProjectGoal, ProjectLevel, ScoringCard } from '../types';
 
-export const PROJECTS: ProjectCard[] = [];
+type P = Omit<ProjectCard, 'kind' | 'id'>;
 
-function P(
-  id: string,
-  name: string,
-  emoji: string,
-  goal: ProjectGoal,
-  levels: [number, number][],
-  text: string,
-  base = false,
-) {
-  PROJECTS.push({
-    kind: 'project',
-    id,
-    num: 0,
-    name,
-    emoji,
-    goal,
-    levels: levels.map(([need, cp]) => ({ need, cp })),
-    base,
-    text,
-  });
-}
-
+const lv = (pairs: [number, number][]): ProjectLevel[] => pairs.map(([need, cp]) => ({ need, cp }));
 const icon = (i: Icon): ProjectGoal => ({ k: 'icon', icon: i });
+const RELEASE = lv([
+  [0, 5],
+  [1, 4],
+  [2, 3],
+]);
+const BREED: ProjectLevel[] = [
+  { need: 1, cp: 2, rep: 2 },
+  { need: 1, cp: 1, rep: 2 },
+  { need: 1, cp: 2 },
+];
 
-// —— 牌库中的项目
-P('p_africa', '非洲保育计划', '🌍', icon('africa'), [[5, 5], [4, 4], [2, 2]], '需要非洲图标。');
-P('p_asia', '亚洲保育计划', '🏯', icon('asia'), [[5, 5], [4, 4], [2, 2]], '需要亚洲图标。');
-P('p_americas', '美洲保育计划', '🌎', icon('americas'), [[5, 5], [4, 4], [2, 2]], '需要美洲图标。');
-P('p_europe', '欧洲保育计划', '🏰', icon('europe'), [[4, 5], [3, 4], [2, 2]], '需要欧洲图标。');
-P('p_australia', '大洋洲保育计划', '🌏', icon('australia'), [[4, 5], [3, 4], [2, 2]], '需要大洋洲图标。');
-P('p_predator', '捕食者保护', '🐾', icon('predator'), [[5, 5], [4, 4], [2, 2]], '需要捕食者图标。');
-P('p_herbivore', '草食动物保护', '🌿', icon('herbivore'), [[5, 5], [4, 4], [2, 2]], '需要草食动物图标。');
-P('p_bird', '鸟类保护', '🪶', icon('bird'), [[5, 5], [4, 4], [2, 2]], '需要鸟类图标。');
-P('p_reptile', '爬行动物保护', '🐢', icon('reptile'), [[4, 5], [3, 4], [2, 2]], '需要爬行动物图标。');
-P('p_primate', '灵长类保护', '🐒', icon('primate'), [[4, 5], [3, 4], [2, 2]], '需要灵长类图标。');
-P('p_bear', '熊类保护', '🐻', icon('bear'), [[3, 5], [2, 4], [1, 2]], '需要熊图标。');
-P('p_science', '野外科研', '🔬', icon('science'), [[5, 5], [4, 4], [2, 2]], '需要研究图标。');
-P('p_petting', '亲子自然课堂', '🧸', icon('petting'), [[3, 4], [2, 3], [1, 2]], '需要宠物图标。');
-P('p_release_big', '大型动物放归', '🏞️', { k: 'release' }, [[5, 5], [4, 4], [3, 3]],'放归一只体型 ≥ 档位数字的动物：它离开你的动物园，你失去它的吸引力，围栏重新空出。');
-P('p_release_bird', '鸟类放飞', '🕊️', { k: 'release', filter: { cat: 'bird' } }, [[3, 4], [2, 3], [1, 2]], '放飞一只体型 ≥ 档位数字的鸟类：它离开你的动物园，你失去它的吸引力。');
-P('p_release_reptile', '爬行动物放归', '🦎', { k: 'release', filter: { cat: 'reptile' } }, [[3, 4], [2, 3], [1, 2]], '放归一只体型 ≥ 档位数字的爬行动物：它离开你的动物园，你失去它的吸引力。');
-P('p_waterways', '湿地修复', '💧', { k: 'metric', metric: { m: 'waterAnimals' }, label: '与水域相邻的围栏中的动物' }, [[4, 5], [3, 4], [2, 2]], '需要放在与水域相邻的建筑中的动物。');
-P('p_mountains', '高山生态', '⛰️', { k: 'metric', metric: { m: 'rockAnimals' }, label: '与岩石相邻的围栏中的动物' }, [[4, 5], [3, 4], [2, 2]], '需要放在与岩石相邻的建筑中的动物。');
-P('p_large', '大型动物保育', '🐘', { k: 'metric', metric: { m: 'animals', filter: { minSize: 4 } }, label: '体型 4 以上的动物' }, [[4, 5], [3, 4], [2, 2]], '需要体型 4 以上的动物。');
-P('p_small', '小型动物保护', '🐿️', { k: 'metric', metric: { m: 'animals', filter: { maxSize: 2 } }, label: '体型 2 以下的动物' }, [[6, 5], [4, 4], [3, 2]], '需要体型 2 以下的动物（含宠物）。');
-P('p_special', '特色场馆计划', '🏛️', { k: 'metric', metric: { m: 'specialAnimals' }, label: '特殊场馆中的动物' }, [[5, 5], [4, 4], [2, 2]], '需要住在特殊场馆中的动物。');
-P('p_universities', '高校联合研究', '🎓', { k: 'metric', metric: { m: 'universities' }, label: '大学' }, [[3, 5], [2, 3], [1, 2]], '需要合作的大学。');
-P('p_partners', '国际保育联盟', '🌐', { k: 'metric', metric: { m: 'partners' }, label: '合作动物园' }, [[4, 5], [3, 4], [2, 2]], '需要合作动物园。');
-P('p_visitors', '访客自然教育', '⛱️', { k: 'metric', metric: { m: 'pavilions' }, label: '凉亭' }, [[4, 4], [3, 3], [2, 2]], '需要凉亭。');
-P('p_full', '满员繁育计划', '🏡', { k: 'metric', metric: { m: 'fullEnclosures' }, label: '住有动物的标准围栏' }, [[7, 5], [5, 4], [3, 2]], '需要住有动物的标准围栏。');
-P('p_release_herb', '草食动物放归', '🦌', { k: 'release', filter: { cat: 'herbivore' } }, [[4, 5], [3, 3], [2, 2]], '放归一只体型 ≥ 档位数字的草食动物：它离开你的动物园，你失去它的吸引力。');
+const release = (num: number, name: string, en: string, emoji: string, i: Continent | Category): P => ({
+  num,
+  name,
+  en,
+  emoji,
+  goal: { k: 'release', icon: i },
+  levels: RELEASE,
+});
+const breed = (num: number, name: string, en: string, emoji: string, cat: Category): P => ({ num, name, en, emoji, goal: { k: 'breed', cat }, levels: BREED });
 
-// —— 基础项目（每局随机 3 个）
-P('b_species', '物种多样性', '🧩', { k: 'metric', metric: { m: 'catKinds' }, label: '不同动物种类' }, [[5, 5], [4, 3], [3, 2]], '需要不同种类的动物图标。', true);
-P('b_habitat', '栖息地多样性', '🗺️', { k: 'metric', metric: { m: 'contKinds' }, label: '不同大洲' }, [[5, 5], [4, 3], [3, 2]], '需要不同大洲的图标。', true);
-P('b_release', '放归野外', '🌲', { k: 'release' }, [[4, 5], [3, 3], [1, 2]], '放归一只体型 ≥ 档位数字的动物：它离开你的动物园，你失去它的吸引力。', true);
-P('b_network', '保护网络', '🤝', { k: 'metric', metric: { m: 'partnersUnis' }, label: '合作动物园与大学' }, [[5, 5], [4, 3], [3, 2]], '需要合作动物园和大学（合计）。', true);
-P('b_scale', '动物园规模', '🏟️', { k: 'metric', metric: { m: 'animals' }, label: '动物' }, [[9, 5], [7, 3], [5, 2]], '需要动物园中的动物数量。', true);
-P('b_research', '科学研究', '🧪', icon('science'), [[4, 4], [3, 3], [2, 2]], '需要研究图标。', true);
+const L: P[] = [
+  { num: 101, name: '物种多元化', en: 'Species Diversity', emoji: '🧩', base: true, goal: { k: 'kinds', of: 'category' }, levels: lv([[5, 5], [4, 3], [3, 2]]) },
+  { num: 102, name: '起源地多元化', en: 'Habitat Diversity', emoji: '🗺️', base: true, goal: { k: 'kinds', of: 'continent' }, levels: lv([[5, 5], [4, 3], [3, 2]]) },
+  { num: 103, name: '非洲', en: 'Africa', emoji: '🌍', base: true, goal: icon('africa'), levels: lv([[5, 5], [4, 3], [2, 2]]) },
+  { num: 104, name: '美洲', en: 'Americas', emoji: '🌎', base: true, goal: icon('americas'), levels: lv([[5, 5], [4, 3], [2, 2]]) },
+  { num: 105, name: '澳洲', en: 'Australia', emoji: '🦘', base: true, goal: icon('australia'), levels: lv([[5, 5], [4, 4], [2, 2]]) },
+  { num: 106, name: '亚洲', en: 'Asia', emoji: '🏯', base: true, goal: icon('asia'), levels: lv([[5, 5], [4, 3], [2, 2]]) },
+  { num: 107, name: '欧洲', en: 'Europe', emoji: '🏰', base: true, goal: icon('europe'), levels: lv([[5, 5], [4, 4], [2, 2]]) },
+  { num: 108, name: '灵长类', en: 'Primates', emoji: '🐒', base: true, goal: icon('primate'), levels: lv([[5, 5], [4, 4], [2, 2]]) },
+  { num: 109, name: '爬行类', en: 'Reptiles', emoji: '🦎', base: true, goal: icon('reptile'), levels: lv([[5, 5], [4, 4], [2, 2]]) },
+  { num: 110, name: '食肉类', en: 'Predators', emoji: '🐾', base: true, goal: icon('predator'), levels: lv([[5, 5], [4, 4], [2, 2]]) },
+  { num: 111, name: '食草类', en: 'Herbivores', emoji: '🌿', base: true, goal: icon('herbivore'), levels: lv([[5, 5], [4, 4], [2, 2]]) },
+  { num: 112, name: '鸟类', en: 'Birds', emoji: '🪶', base: true, goal: icon('bird'), levels: lv([[5, 5], [4, 4], [2, 2]]) },
+  release(113, '巴伐利亚森林国家公园', 'Bavarian Forest National Park', '🌲', 'europe'),
+  release(114, '优胜美地国家公园', 'Yosemite National Park', '🏞️', 'americas'),
+  release(115, '安通国家公园', 'Angthong National Park', '🏝️', 'asia'),
+  release(116, '塞伦盖蒂国家公园', 'Serengeti National Park', '🌅', 'africa'),
+  release(117, '蓝山国家公园', 'Blue Mountains National Park', '⛰️', 'australia'),
+  release(118, '热带大草原', 'Savanna', '🦁', 'predator'),
+  release(119, '低矮山脉', 'Low Mountain Range', '🕊️', 'bird'),
+  release(120, '竹林', 'Bamboo Forest', '🎋', 'herbivore'),
+  release(121, '海蚀洞', 'Sea Cave', '🌊', 'reptile'),
+  release(122, '丛林', 'Jungle', '🌴', 'primate'),
+  breed(123, '鸟类动物繁育计划', 'Bird Breeding Program', '🦩', 'bird'),
+  breed(124, '食肉类动物繁育计划', 'Predator Breeding Program', '🐯', 'predator'),
+  breed(125, '爬行类动物繁育计划', 'Reptile Breeding Program', '🐍', 'reptile'),
+  breed(126, '食草类动物繁育计划', 'Herbivore Breeding Program', '🦌', 'herbivore'),
+  breed(127, '灵长类动物繁育计划', 'Primate Breeding Program', '🐵', 'primate'),
+  { num: 128, name: '水生态', en: 'Aquatic', emoji: '💧', goal: icon('water'), levels: lv([[5, 4], [4, 3], [2, 2]]) },
+  { num: 129, name: '地质学', en: 'Geological', emoji: '🪨', goal: icon('rock'), levels: lv([[5, 4], [4, 3], [2, 2]]) },
+  { num: 130, name: '小型动物', en: 'Small Animals', emoji: '🐿️', goal: { k: 'small' }, levels: lv([[8, 4], [5, 3], [2, 2]]) },
+  { num: 131, name: '大型动物', en: 'Large Animals', emoji: '🐘', goal: { k: 'large' }, levels: lv([[4, 4], [3, 3], [2, 2]]) },
+  { num: 132, name: '科研', en: 'Research', emoji: '🔬', goal: icon('science'), levels: lv([[5, 4], [4, 3], [2, 2]]) },
+];
 
-// ———————————————————————————————————————————— 终局计分卡
+export const PROJECTS: ProjectCard[] = L.map((p) => ({ ...p, kind: 'project', id: `p${p.num}` }));
+
+// ———————————————————————————————————————————— 终局计分卡（原版数值）
 export const SCORING: ScoringCard[] = [
-  { id: 's_large', name: '大型动物专家', emoji: '🐘', metric: { m: 'animals', filter: { minSize: 4 } }, tiers: [[2, 1], [3, 2], [4, 3], [5, 4]], text: '体型 4 以上的动物' },
-  { id: 's_small', name: '小型动物乐园', emoji: '🐿️', metric: { m: 'animals', filter: { maxSize: 2 } }, tiers: [[4, 1], [6, 2], [8, 3], [10, 4]], text: '体型 2 以下的动物（含宠物）' },
-  { id: 's_science', name: '科研先锋', emoji: '🔬', metric: { m: 'icon', icon: 'science' }, tiers: [[3, 1], [4, 2], [5, 3], [6, 4]], text: '研究图标' },
-  { id: 's_network', name: '国际合作', emoji: '🤝', metric: { m: 'partnersUnis' }, tiers: [[3, 1], [4, 2], [5, 3], [6, 4]], text: '合作动物园与大学' },
-  { id: 's_full', name: '满园春色', emoji: '🏡', metric: { m: 'fullEnclosures' }, tiers: [[5, 1], [7, 2], [9, 3], [11, 4]], text: '住有动物的标准围栏' },
-  { id: 's_builder', name: '建筑大师', emoji: '🏗️', metric: { m: 'covered' }, tiers: [[32, 1], [38, 2], [44, 3], [50, 4]], text: '被建筑覆盖的格子' },
-  { id: 's_water', name: '水景动物园', emoji: '💧', metric: { m: 'waterAnimals' }, tiers: [[3, 1], [4, 2], [5, 3], [6, 4]], text: '与水域相邻的建筑中的动物' },
-  { id: 's_rock', name: '岩石园景', emoji: '⛰️', metric: { m: 'rockAnimals' }, tiers: [[3, 1], [4, 2], [5, 3], [6, 4]], text: '与岩石相邻的建筑中的动物' },
-  { id: 's_sponsors', name: '赞助网络', emoji: '💼', metric: { m: 'sponsors' }, tiers: [[3, 1], [4, 2], [5, 3], [6, 4]], text: '打出的赞助卡' },
-  { id: 's_reputation', name: '声名远扬', emoji: '⭐', metric: { m: 'rep' }, tiers: [[8, 1], [10, 2], [12, 3], [14, 4]], text: '声望' },
-  { id: 's_species', name: '物种大全', emoji: '🧩', metric: { m: 'catKinds' }, tiers: [[4, 1], [5, 2], [6, 3], [7, 4]], text: '不同的动物种类' },
-  { id: 's_world', name: '环游世界', emoji: '🌐', metric: { m: 'contKinds' }, tiers: [[2, 1], [3, 2], [4, 3], [5, 4]], text: '不同大洲（动物与合作动物园）' },
-  { id: 's_special', name: '特色场馆', emoji: '🏛️', metric: { m: 'specialAnimals' }, tiers: [[2, 1], [4, 2], [6, 3], [8, 4]], text: '住在特殊场馆中的动物' },
-  { id: 's_kiosks', name: '游客经济', emoji: '🍦', metric: { m: 'kiosks' }, tiers: [[2, 1], [3, 2], [4, 3], [5, 4]], text: '售货亭' },
-  { id: 's_upgrades', name: '高效运营', emoji: '⬆️', metric: { m: 'upgrades' }, tiers: [[2, 1], [3, 2], [4, 3], [5, 4]], text: '升级的行动卡' },
+  { id: 'e001', num: 1, name: '大型动物公园', emoji: '🐘', tiers: [[1, 1], [2, 2], [4, 3], [5, 4]], text: '大型动物（体型 ≥4）' },
+  { id: 'e002', num: 2, name: '小型动物公园', emoji: '🐿️', tiers: [[3, 1], [6, 2], [8, 3], [10, 4]], text: '小型动物（体型 ≤2）' },
+  { id: 'e003', num: 3, name: '科研动物园', emoji: '🔬', tiers: [[3, 1], [4, 2], [5, 3], [6, 4]], text: '研究图标' },
+  {
+    id: 'e004',
+    num: 4,
+    name: '主题建筑动物园',
+    emoji: '🏗️',
+    tiers: [],
+    text: '以下每满足一项获得 1 保护点数：所有水域格都与建筑相邻；所有岩石格都与建筑相邻；所有边缘格都被覆盖；整张地图都被覆盖',
+  },
+  { id: 'e005', num: 5, name: '公益保护动物园', emoji: '🌿', tiers: [[3, 1], [4, 2], [5, 3], [6, 4]], text: '支持过的保护项目' },
+  { id: 'e006', num: 6, name: '自然动物园', emoji: '🌾', tiers: [[6, 1], [12, 2], [18, 3], [24, 4]], text: '没有建筑的可建造格' },
+  { id: 'e007', num: 7, name: '人气动物园', emoji: '🎓', tiers: [[6, 1], [9, 2], [12, 3], [15, 4]], text: '声望' },
+  { id: 'e008', num: 8, name: '慈善动物园', emoji: '💼', tiers: [[3, 1], [6, 2], [8, 3], [10, 4]], text: '打出的赞助卡' },
+  {
+    id: 'e009',
+    num: 9,
+    name: '综合物种动物园',
+    emoji: '🧩',
+    tiers: [],
+    text: '每种你比右手边玩家多的动物种类图标，获得 1 保护点数（最多 4 点）',
+  },
+  { id: 'e010', num: 10, name: '岩石公园', emoji: '⛰️', tiers: [[1, 1], [3, 2], [5, 3], [7, 4]], text: '岩石图标' },
+  { id: 'e011', num: 11, name: '水生态公园', emoji: '💧', tiers: [[2, 1], [4, 2], [6, 3], [8, 4]], text: '水图标' },
 ];

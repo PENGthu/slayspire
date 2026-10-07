@@ -1,4 +1,4 @@
-// 建筑：标准围栏（1–5 格）、售货亭、凉亭、三种特殊场馆。赞助卡的专属建筑在打出时动态注册。
+// 建筑（原版形状）：标准围栏 1–5 格、售货亭、凉亭、三种特殊场馆。赞助卡的专属建筑在注册卡牌时加入。
 import type { Axial } from './hex';
 import type { SpecialKind } from './types';
 
@@ -11,6 +11,7 @@ export interface BuildingDef {
   kind: BuildingKind;
   shape: Axial[];
   special?: SpecialKind;
+  /** 特殊场馆的容量格数 */
   capacity?: number;
   /** 只能用升级后的建造行动建造 */
   needsUpgrade?: boolean;
@@ -20,56 +21,17 @@ export interface BuildingDef {
 }
 
 export const BUILDINGS: Record<string, BuildingDef> = {
-  E1: { id: 'E1', name: '1 格围栏', emoji: '▫️', kind: 'enclosure', shape: [[0, 0]], text: '标准围栏，可容纳 1 只体型不超过 1 的动物。' },
-  E2: {
-    id: 'E2',
-    name: '2 格围栏',
-    emoji: '▫️',
-    kind: 'enclosure',
-    shape: [
-      [0, 0],
-      [1, 0],
-    ],
-    text: '标准围栏，可容纳 1 只体型不超过 2 的动物。',
-  },
-  E3: {
-    id: 'E3',
-    name: '3 格围栏',
-    emoji: '▫️',
-    kind: 'enclosure',
-    shape: [
-      [0, 0],
-      [1, 0],
-      [0, 1],
-    ],
-    text: '标准围栏，可容纳 1 只体型不超过 3 的动物。',
-  },
-  E4: {
-    id: 'E4',
-    name: '4 格围栏',
-    emoji: '▫️',
-    kind: 'enclosure',
-    shape: [
-      [0, 0],
-      [1, 0],
-      [0, 1],
-      [1, 1],
-    ],
-    text: '标准围栏，可容纳 1 只体型不超过 4 的动物。',
-  },
+  E1: { id: 'E1', name: '1 格围栏', emoji: '▫️', kind: 'enclosure', shape: [[0, 0]], text: '标准围栏：可容纳 1 只体型 1 的动物。' },
+  E2: { id: 'E2', name: '2 格围栏', emoji: '▫️', kind: 'enclosure', shape: [[0, 0], [1, 0]], text: '标准围栏：可容纳 1 只体型不超过 2 的动物。' },
+  E3: { id: 'E3', name: '3 格围栏', emoji: '▫️', kind: 'enclosure', shape: [[0, 0], [0, 1], [1, 0]], text: '标准围栏：可容纳 1 只体型不超过 3 的动物。' },
+  E4: { id: 'E4', name: '4 格围栏', emoji: '▫️', kind: 'enclosure', shape: [[0, 0], [1, -1], [1, 0], [2, -1]], text: '标准围栏：可容纳 1 只体型不超过 4 的动物。' },
   E5: {
     id: 'E5',
     name: '5 格围栏',
     emoji: '▫️',
     kind: 'enclosure',
-    shape: [
-      [0, 0],
-      [1, 0],
-      [2, 0],
-      [0, 1],
-      [1, 1],
-    ],
-    text: '标准围栏，可容纳 1 只体型不超过 5 的动物。',
+    shape: [[0, 0], [1, -1], [1, 0], [2, -1], [2, 0]],
+    text: '标准围栏：可容纳 1 只体型不超过 5 的动物。',
   },
   kiosk: {
     id: 'kiosk',
@@ -77,9 +39,9 @@ export const BUILDINGS: Record<string, BuildingDef> = {
     emoji: '🍦',
     kind: 'kiosk',
     shape: [[0, 0]],
-    text: '休息时，每座相邻的建筑为它带来 1 元收入。售货亭之间至少相隔 2 格。',
+    text: '休息时，每座相邻的建筑（售货亭除外）带来 1 元收入。售货亭之间至少相隔 2 格。',
   },
-  pavilion: { id: 'pavilion', name: '凉亭', emoji: '⛱️', kind: 'pavilion', shape: [[0, 0]], text: '建成时获得 1 点吸引力。' },
+  pavilion: { id: 'pavilion', name: '凉亭', emoji: '⛱️', kind: 'pavilion', shape: [[0, 0]], text: '建成时吸引力 +1。' },
   petting: {
     id: 'petting',
     name: '儿童动物园',
@@ -88,30 +50,20 @@ export const BUILDINGS: Record<string, BuildingDef> = {
     special: 'petting',
     capacity: 3,
     unique: true,
-    shape: [
-      [0, 0],
-      [1, 0],
-      [2, 0],
-    ],
+    shape: [[0, 0], [1, -1], [2, -1]],
     text: '特殊场馆（每座动物园限 1 座）：可容纳 3 只宠物动物。',
   },
   reptile: {
     id: 'reptile',
     name: '爬行馆',
-    emoji: '🏛️',
+    emoji: '🏚️',
     kind: 'special',
     special: 'reptile',
     capacity: 5,
     unique: true,
     needsUpgrade: true,
-    shape: [
-      [0, 0],
-      [1, 0],
-      [2, 0],
-      [3, 0],
-      [1, 1],
-    ],
-    text: '特殊场馆（限 1 座，需要升级的建造行动）：容量 5，可放入标有爬行馆的爬行动物。',
+    shape: [[0, 0], [0, 1], [1, 0], [2, -1], [2, 0]],
+    text: '特殊场馆（限 1 座，需要升级的建造行动）：5 个容量格，可放入卡上标有爬行馆的爬行动物，占用卡上标示的格数。',
   },
   aviary: {
     id: 'aviary',
@@ -122,14 +74,8 @@ export const BUILDINGS: Record<string, BuildingDef> = {
     capacity: 5,
     unique: true,
     needsUpgrade: true,
-    shape: [
-      [0, 0],
-      [1, 0],
-      [1, -1],
-      [0, 1],
-      [-1, 1],
-    ],
-    text: '特殊场馆（限 1 座，需要升级的建造行动）：容量 5，可放入标有鸟舍的鸟类。',
+    shape: [[0, 0], [0, 1], [1, 0], [1, 1], [2, -1]],
+    text: '特殊场馆（限 1 座，需要升级的建造行动）：5 个容量格，可放入卡上标有鸟舍的鸟类，占用卡上标示的格数。',
   },
 };
 

@@ -131,8 +131,8 @@ export class HostRoom {
       host: cid,
       hostName: name,
       seats: [
-        { kind: 'host', cid, name, map: 'A' },
-        { kind: 'open', name: '', map: 'lake' },
+        { kind: 'host', cid, name, map: 'mA' },
+        { kind: 'open', name: '', map: 'm1' },
       ],
       shuffle: true,
       started: false,
@@ -167,8 +167,8 @@ export class HostRoom {
   setCount(n: number) {
     if (this.lobby.started) return;
     n = Math.max(2, Math.min(MAX_SEATS, n));
-    const maps = ['A', 'lake', 'mountain', 'research', 'boulevard'];
-    while (this.lobby.seats.length < n) this.lobby.seats.push({ kind: 'open', name: '', map: maps[this.lobby.seats.length] ?? 'A' });
+    const maps = ['mA', 'm1', 'm2', 'm3', 'm4'];
+    while (this.lobby.seats.length < n) this.lobby.seats.push({ kind: 'open', name: '', map: maps[this.lobby.seats.length] ?? 'mA' });
     this.lobby.seats = this.lobby.seats.slice(0, n);
     this.lobbyChanged();
   }

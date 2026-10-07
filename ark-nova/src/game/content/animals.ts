@@ -1,219 +1,134 @@
-// 动物卡。数值为原创设计，沿用原作的结构：体型（所需围栏大小）、费用、大洲与种类图标、
-// 水域 / 岩石相邻要求、声望 / 图标 / 升级要求，以及打出时获得的吸引力、保护点数、声望和能力。
-import type { Ability, AnimalCard, Category, Continent, Requirement, SpecialKind } from '../types';
+// 由 scripts/data/gen_animals.py 生成，请勿手改。
+// 原版基础游戏 128 张动物卡的功能数据（体型、费用、图标、条件、能力）；卡面文字由游戏代码生成，插图为表情符号。
+import type { AnimalCard } from '../types';
 
-const CONT: Record<string, Continent> = { af: 'africa', eu: 'europe', as: 'asia', am: 'americas', au: 'australia' };
-const CAT: Record<string, Category> = {
-  pred: 'predator',
-  herb: 'herbivore',
-  bird: 'bird',
-  rept: 'reptile',
-  prim: 'primate',
-  bear: 'bear',
-  pet: 'petting',
-};
-
-interface Opts {
-  /** 特殊场馆：r=爬行馆 a=鸟舍 p=儿童动物园，后接占用容量 */
-  sp?: string;
-  w?: number;
-  k?: number;
-  req?: Requirement[];
-  cp?: number;
-  rep?: number;
-  ab?: Ability;
-}
-
-export const ANIMALS: AnimalCard[] = [];
-
-/** 费用整体缩放（用于平衡：让一局的节奏接近原作的 30 多个回合） */
-const COST_SCALE = 0.85;
-
-function A(
-  id: string,
-  name: string,
-  en: string,
-  emoji: string,
-  size: number,
-  cost: number,
-  conts: string,
-  cats: string,
-  appeal: number,
-  o: Opts = {},
-) {
-  let special: { kind: SpecialKind; units: number } | undefined;
-  if (o.sp) {
-    const kind: SpecialKind = o.sp[0] === 'r' ? 'reptile' : o.sp[0] === 'a' ? 'aviary' : 'petting';
-    special = { kind, units: Number(o.sp.slice(1)) || 1 };
-  }
-  ANIMALS.push({
-    kind: 'animal',
-    id,
-    num: 0,
-    name,
-    en,
-    emoji,
-    size,
-    special,
-    cost: Math.max(2, Math.round(cost * COST_SCALE)),
-    continents: conts ? conts.split(' ').map((c) => CONT[c]) : [],
-    categories: cats.split(' ').map((c) => CAT[c]),
-    water: o.w,
-    rock: o.k,
-    req: o.req,
-    appeal,
-    cp: o.cp,
-    rep: o.rep,
-    ability: o.ab,
-  });
-}
-
-const II = (action: 'animals' | 'build' | 'association'): Requirement => ({ k: 'upgrade', action });
-const REP = (n: number): Requirement => ({ k: 'rep', n });
-const SCI = (n: number): Requirement => ({ k: 'icon', icon: 'science', n });
-
-// ———————————————————————————————————————————— 非洲
-A('lion', '狮子', 'Lion', '🦁', 4, 18, 'af', 'pred', 6, { ab: { k: 'pack', cat: 'predator' } });
-A('african_elephant', '非洲草原象', 'African Bush Elephant', '🐘', 5, 25, 'af', 'herb', 9, { cp: 1, req: [II('animals')] });
-A('giraffe', '网纹长颈鹿', 'Reticulated Giraffe', '🦒', 4, 17, 'af', 'herb', 6, { ab: { k: 'sprint', n: 1 } });
-A('zebra', '平原斑马', 'Plains Zebra', '🦓', 3, 12, 'af', 'herb', 4, { ab: { k: 'pack', cat: 'herbivore' } });
-A('hippo', '河马', 'Hippopotamus', '🦛', 4, 15, 'af', 'herb', 6, { w: 2 });
-A('white_rhino', '白犀', 'White Rhinoceros', '🦏', 5, 22, 'af', 'herb', 7, { cp: 2, req: [REP(3)] });
-A('cheetah', '猎豹', 'Cheetah', '🐆', 3, 15, 'af', 'pred', 5, { ab: { k: 'sprint', n: 2 } });
-A('leopard', '非洲豹', 'African Leopard', '🐆', 3, 14, 'af', 'pred', 5, { k: 1, ab: { k: 'hunter', n: 3 } });
-A('wild_dog', '非洲野犬', 'African Wild Dog', '🐕', 3, 12, 'af', 'pred', 4, { cp: 1, ab: { k: 'pack', cat: 'predator' } });
-A('hyena', '斑鬣狗', 'Spotted Hyena', '🐺', 3, 11, 'af', 'pred', 3, { ab: { k: 'scavenge', n: 4 } });
-A('meerkat', '狐獴', 'Meerkat', '🐿️', 1, 6, 'af', 'pred', 2, { ab: { k: 'sunbathe', n: 1 } });
-A('gorilla', '西部大猩猩', 'Western Gorilla', '🦍', 4, 20, 'af', 'prim', 7, { cp: 1, req: [REP(4)] });
-A('chimpanzee', '黑猩猩', 'Chimpanzee', '🐒', 3, 14, 'af', 'prim', 4, { ab: { k: 'clever' } });
-A('baboon', '阿拉伯狒狒', 'Hamadryas Baboon', '🐒', 3, 11, 'af', 'prim', 4, { k: 1, ab: { k: 'pack', cat: 'primate' } });
-A('ring_tailed_lemur', '环尾狐猴', 'Ring-tailed Lemur', '🐒', 2, 9, 'af', 'prim', 3, { ab: { k: 'sunbathe', n: 2 } });
-A('aye_aye', '指猴', 'Aye-aye', '🐒', 1, 8, 'af', 'prim', 2, { rep: 1, ab: { k: 'dig', n: 2 } });
-A('nile_crocodile', '尼罗鳄', 'Nile Crocodile', '🐊', 4, 15, 'af', 'rept', 5, { w: 1, ab: { k: 'hunter', n: 3 } });
-A('leopard_tortoise', '豹纹陆龟', 'Leopard Tortoise', '🐢', 2, 7, 'af', 'rept', 2, { sp: 'r1', ab: { k: 'xtoken', n: 1 } });
-A('rock_python', '非洲岩蟒', 'African Rock Python', '🐍', 3, 10, 'af', 'rept', 3, { sp: 'r2', ab: { k: 'constrict' } });
-A('black_mamba', '黑曼巴蛇', 'Black Mamba', '🐍', 1, 7, 'af', 'rept', 2, { sp: 'r1', ab: { k: 'venom', n: 3 } });
-A('ostrich', '鸵鸟', 'Common Ostrich', '🦤', 3, 11, 'af', 'bird', 4, { ab: { k: 'jump', n: 2 } });
-A('flamingo', '小红鹳', 'Lesser Flamingo', '🦩', 2, 9, 'af', 'bird', 3, { w: 1, ab: { k: 'pack', cat: 'bird' } });
-A('crowned_crane', '灰冠鹤', 'Grey Crowned Crane', '🐦', 2, 8, 'af', 'bird', 3, { sp: 'a1', w: 1 });
-A('african_penguin', '非洲企鹅', 'African Penguin', '🐧', 2, 9, 'af', 'bird', 3, { w: 1, cp: 1 });
-A('secretary_bird', '蛇鹫', 'Secretarybird', '🦅', 2, 10, 'af', 'bird', 3, { ab: { k: 'hunter', n: 2 } });
-A('okapi', '獾狮狓', 'Okapi', '🦓', 3, 14, 'af', 'herb', 4, { cp: 1, rep: 1 });
-A('serval', '薮猫', 'Serval', '🐈', 2, 9, 'af', 'pred', 3, { ab: { k: 'snap', n: 1 } });
-A('warthog', '疣猪', 'Common Warthog', '🐗', 2, 8, 'af', 'herb', 3, { ab: { k: 'dig', n: 1 } });
-A('wildebeest', '角马', 'Blue Wildebeest', '🐃', 3, 11, 'af', 'herb', 4, { ab: { k: 'jump', n: 2 } });
-A('fennec', '耳廓狐', 'Fennec Fox', '🦊', 1, 6, 'af', 'pred', 2, { ab: { k: 'sprint', n: 1 } });
-A('bonobo', '倭黑猩猩', 'Bonobo', '🐒', 3, 15, 'af', 'prim', 5, { cp: 1, req: [II('animals')], ab: { k: 'perception', n: 3 } });
-A('shoebill', '鲸头鹳', 'Shoebill', '🐦', 3, 13, 'af', 'bird', 4, { w: 1, rep: 1, ab: { k: 'boost', action: 'animals' } });
-
-// ———————————————————————————————————————————— 欧洲
-A('brown_bear', '棕熊', 'Brown Bear', '🐻', 4, 16, 'eu', 'bear', 6, { ab: { k: 'hunter', n: 2 } });
-A('grey_wolf', '灰狼', 'Grey Wolf', '🐺', 3, 13, 'eu', 'pred', 4, { ab: { k: 'pack', cat: 'predator' } });
-A('lynx', '欧亚猞猁', 'Eurasian Lynx', '🐈', 2, 11, 'eu', 'pred', 3, { k: 1, ab: { k: 'hunter', n: 3 } });
-A('wisent', '欧洲野牛', 'European Bison', '🦬', 4, 16, 'eu', 'herb', 5, { cp: 1 });
-A('red_deer', '马鹿', 'Red Deer', '🦌', 3, 11, 'eu', 'herb', 4, { ab: { k: 'jump', n: 1 } });
-A('red_fox', '赤狐', 'Red Fox', '🦊', 1, 7, 'eu', 'pred', 2, { ab: { k: 'clever' } });
-A('otter', '欧亚水獭', 'Eurasian Otter', '🦦', 2, 9, 'eu', 'pred', 3, { w: 1, ab: { k: 'sprint', n: 1 } });
-A('white_stork', '白鹳', 'White Stork', '🐦', 2, 8, 'eu', 'bird', 3, { sp: 'a1', ab: { k: 'jump', n: 1 } });
-A('eagle_owl', '雕鸮', 'Eurasian Eagle-Owl', '🦉', 2, 9, 'eu', 'bird', 3, { sp: 'a1', k: 1, ab: { k: 'perception', n: 3 } });
-A('golden_eagle', '金雕', 'Golden Eagle', '🦅', 3, 12, 'eu', 'bird', 4, { sp: 'a2', k: 1, ab: { k: 'snap', n: 1 } });
-A('ibex', '阿尔卑斯羱羊', 'Alpine Ibex', '🐐', 2, 8, 'eu', 'herb', 3, { k: 2, ab: { k: 'jump', n: 1 } });
-A('adder', '极北蝰', 'Common European Adder', '🐍', 1, 6, 'eu', 'rept', 2, { sp: 'r1', ab: { k: 'venom', n: 2 } });
-A('pond_turtle', '欧洲泽龟', 'European Pond Turtle', '🐢', 1, 6, 'eu', 'rept', 1, { sp: 'r1', w: 1, cp: 1 });
-A('griffon_vulture', '兀鹫', 'Griffon Vulture', '🦅', 3, 11, 'eu', 'bird', 4, { sp: 'a2', k: 1, ab: { k: 'scavenge', n: 3 } });
-A('red_squirrel', '欧亚红松鼠', 'Red Squirrel', '🐿️', 1, 5, 'eu', 'herb', 2, { ab: { k: 'dig', n: 1 } });
-A('wild_cat', '欧洲野猫', 'European Wildcat', '🐈', 1, 7, 'eu', 'pred', 2, { rep: 1 });
-A('european_hamster', '欧洲仓鼠', 'European Hamster', '🐹', 1, 5, 'eu', 'herb', 1, { cp: 1 });
-A('eurasian_crane', '灰鹤', 'Common Crane', '🐦', 3, 12, 'eu', 'bird', 4, { w: 1, ab: { k: 'boost', action: 'cards' } });
-A('moose', '驼鹿', 'Moose', '🫎', 4, 15, 'eu', 'herb', 5, { w: 1, ab: { k: 'boost', action: 'build' } });
-
-// ———————————————————————————————————————————— 亚洲
-A('bengal_tiger', '孟加拉虎', 'Bengal Tiger', '🐅', 4, 19, 'as', 'pred', 7, { cp: 1 });
-A('giant_panda', '大熊猫', 'Giant Panda', '🐼', 4, 21, 'as', 'bear', 8, { cp: 2, req: [REP(5)] });
-A('asian_elephant', '亚洲象', 'Asian Elephant', '🐘', 5, 24, 'as', 'herb', 8, { cp: 1, req: [II('animals')], ab: { k: 'boost', action: 'association' } });
-A('snow_leopard', '雪豹', 'Snow Leopard', '🐆', 3, 16, 'as', 'pred', 5, { k: 2, cp: 1 });
-A('red_panda', '小熊猫', 'Red Panda', '🦝', 2, 11, 'as', 'herb', 3, { cp: 1, ab: { k: 'iconic', cont: 'asia' } });
-A('sun_bear', '马来熊', 'Sun Bear', '🐻', 3, 13, 'as', 'bear', 4, { ab: { k: 'sunbathe', n: 2 } });
-A('sloth_bear', '懒熊', 'Sloth Bear', '🐻', 3, 12, 'as', 'bear', 4, { ab: { k: 'dig', n: 2 } });
-A('orangutan', '婆罗洲猩猩', 'Bornean Orangutan', '🦧', 4, 19, 'as', 'prim', 6, { cp: 1, ab: { k: 'clever' } });
-A('gibbon', '白掌长臂猿', 'Lar Gibbon', '🐒', 3, 13, 'as', 'prim', 4, { ab: { k: 'sprint', n: 2 } });
-A('macaque', '日本猕猴', 'Japanese Macaque', '🐵', 3, 11, 'as', 'prim', 4, { w: 1, ab: { k: 'pack', cat: 'primate' } });
-A('indian_rhino', '印度犀', 'Indian Rhinoceros', '🦏', 5, 22, 'as', 'herb', 7, { w: 1, cp: 2 });
-A('bactrian_camel', '双峰驼', 'Bactrian Camel', '🐫', 4, 14, 'as', 'herb', 5, { ab: { k: 'jump', n: 2 } });
-A('komodo', '科莫多巨蜥', 'Komodo Dragon', '🦎', 3, 14, 'as', 'rept', 4, { cp: 1, ab: { k: 'venom', n: 3 } });
-A('cobra', '印度眼镜蛇', 'Indian Cobra', '🐍', 1, 7, 'as', 'rept', 2, { sp: 'r1', ab: { k: 'hypnosis', n: 3 } });
-A('reticulated_python', '网纹蟒', 'Reticulated Python', '🐍', 3, 11, 'as', 'rept', 4, { sp: 'r2', ab: { k: 'constrict' } });
-A('peafowl', '蓝孔雀', 'Indian Peafowl', '🦚', 2, 8, 'as', 'bird', 3, { ab: { k: 'posture', n: 1 } });
-A('red_crowned_crane', '丹顶鹤', 'Red-crowned Crane', '🐦', 3, 12, 'as', 'bird', 4, { w: 1, cp: 1 });
-A('mandarin_duck', '鸳鸯', 'Mandarin Duck', '🦆', 1, 5, 'as', 'bird', 2, { sp: 'a1', w: 1 });
-A('pere_david_deer', '麋鹿', "Père David's Deer", '🦌', 3, 12, 'as', 'herb', 4, { w: 1, cp: 1 });
-A('yak', '牦牛', 'Wild Yak', '🐂', 3, 10, 'as', 'herb', 3, { k: 1, ab: { k: 'money', n: 3 } });
-A('black_bear_asia', '亚洲黑熊', 'Asian Black Bear', '🐻', 3, 13, 'as', 'bear', 4, { k: 1, ab: { k: 'hunter', n: 2 } });
-A('clouded_leopard', '云豹', 'Clouded Leopard', '🐆', 2, 11, 'as', 'pred', 3, { cp: 1, ab: { k: 'snap', n: 1 } });
-A('proboscis_monkey', '长鼻猴', 'Proboscis Monkey', '🐒', 3, 12, 'as', 'prim', 4, { w: 1, rep: 1 });
-A('star_tortoise', '印度星龟', 'Indian Star Tortoise', '🐢', 1, 6, 'as', 'rept', 2, { sp: 'r1', ab: { k: 'dig', n: 1 } });
-A('slow_loris', '懒猴', 'Slow Loris', '🐒', 1, 7, 'as', 'prim', 2, { ab: { k: 'venom', n: 1 } });
-A('malayan_tapir', '马来貘', 'Malayan Tapir', '🐗', 3, 12, 'as', 'herb', 4, { w: 1, cp: 1 });
-A('hornbill', '双角犀鸟', 'Great Hornbill', '🐦', 2, 9, 'as', 'bird', 3, { sp: 'a1', ab: { k: 'sprint', n: 1 } });
-A('golden_monkey', '川金丝猴', 'Golden Snub-nosed Monkey', '🐒', 3, 14, 'as', 'prim', 4, { k: 1, cp: 1, req: [SCI(1)], ab: { k: 'iconic', cont: 'asia' } });
-A('gharial', '恒河鳄', 'Gharial', '🐊', 4, 14, 'as', 'rept', 5, { w: 2, cp: 1, req: [SCI(1)] });
-A('pallas_cat', '兔狲', "Pallas's Cat", '🐈', 1, 7, 'as', 'pred', 2, { k: 1, ab: { k: 'trade' } });
-
-// ———————————————————————————————————————————— 美洲
-A('jaguar', '美洲豹', 'Jaguar', '🐆', 4, 18, 'am', 'pred', 6, { w: 1, ab: { k: 'hunter', n: 3 } });
-A('cougar', '美洲狮', 'Cougar', '🐆', 3, 14, 'am', 'pred', 5, { k: 1, ab: { k: 'sprint', n: 2 } });
-A('polar_bear', '北极熊', 'Polar Bear', '🐻‍❄️', 5, 23, 'am', 'bear', 8, { w: 2, cp: 1, req: [II('animals')] });
-A('black_bear', '美洲黑熊', 'American Black Bear', '🐻', 4, 15, 'am', 'bear', 5, { ab: { k: 'scavenge', n: 3 } });
-A('bison', '美洲野牛', 'American Bison', '🦬', 4, 16, 'am', 'herb', 5, { ab: { k: 'jump', n: 2 } });
-A('llama', '羊驼', 'Llama', '🦙', 2, 8, 'am', 'herb', 3, { k: 1, ab: { k: 'venom', n: 1 } });
-A('sloth', '二趾树懒', "Linnaeus's Two-toed Sloth", '🦥', 2, 9, 'am', 'herb', 3, { ab: { k: 'xtoken', n: 2 } });
-A('anteater', '大食蚁兽', 'Giant Anteater', '🐜', 3, 12, 'am', 'herb', 4, { ab: { k: 'dig', n: 2 } });
-A('capybara', '水豚', 'Capybara', '🦫', 2, 8, 'am', 'herb', 3, { w: 1, ab: { k: 'pack', cat: 'herbivore' } });
-A('capuchin', '白面卷尾猴', 'White-faced Capuchin', '🐒', 2, 9, 'am', 'prim', 3, { ab: { k: 'clever' } });
-A('lion_tamarin', '金狮狨', 'Golden Lion Tamarin', '🐒', 1, 8, 'am', 'prim', 2, { cp: 1 });
-A('howler', '黑吼猴', 'Black Howler', '🐒', 3, 12, 'am', 'prim', 4, { ab: { k: 'posture', n: 1 } });
-A('alligator', '美国短吻鳄', 'American Alligator', '🐊', 4, 15, 'am', 'rept', 5, { w: 2, ab: { k: 'hunter', n: 2 } });
-A('iguana', '绿鬣蜥', 'Green Iguana', '🦎', 1, 6, 'am', 'rept', 2, { sp: 'r1', ab: { k: 'sunbathe', n: 1 } });
-A('galapagos_tortoise', '加拉帕戈斯象龟', 'Galápagos Giant Tortoise', '🐢', 3, 13, 'am', 'rept', 4, { sp: 'r2', cp: 2 });
-A('anaconda', '绿森蚺', 'Green Anaconda', '🐍', 3, 12, 'am', 'rept', 4, { sp: 'r2', w: 1, ab: { k: 'constrict' } });
-A('dart_frog', '箭毒蛙', 'Poison Dart Frog', '🐸', 1, 6, 'am', 'rept', 2, { sp: 'r1', ab: { k: 'venom', n: 2 } });
-A('macaw', '绯红金刚鹦鹉', 'Scarlet Macaw', '🦜', 2, 9, 'am', 'bird', 3, { sp: 'a1', ab: { k: 'snap', n: 1 } });
-A('scarlet_ibis', '美洲红鹮', 'Scarlet Ibis', '🐦', 2, 8, 'am', 'bird', 3, { sp: 'a1', w: 1 });
-A('bald_eagle', '白头海雕', 'Bald Eagle', '🦅', 3, 12, 'am', 'bird', 4, { sp: 'a2', k: 1, rep: 1 });
-A('condor', '安第斯神鹫', 'Andean Condor', '🦅', 4, 15, 'am', 'bird', 5, { sp: 'a2', k: 1, cp: 1 });
-A('humboldt_penguin', '洪堡企鹅', 'Humboldt Penguin', '🐧', 2, 9, 'am', 'bird', 3, { w: 1, ab: { k: 'pack', cat: 'bird' } });
-A('raccoon', '浣熊', 'Raccoon', '🦝', 1, 6, 'am', 'pred', 2, { ab: { k: 'scavenge', n: 2 } });
-A('giant_otter', '大水獭', 'Giant Otter', '🦦', 3, 13, 'am', 'pred', 4, { w: 2, cp: 1 });
-A('armadillo', '九带犰狳', 'Nine-banded Armadillo', '🦔', 1, 6, 'am', 'herb', 2, { ab: { k: 'dig', n: 1 } });
-A('flamingo_am', '美洲红鹳', 'American Flamingo', '🦩', 2, 9, 'am', 'bird', 3, { w: 1, ab: { k: 'pack', cat: 'bird' } });
-A('sea_lion', '加州海狮', 'California Sea Lion', '🦭', 4, 16, 'am', 'pred', 6, { w: 2, ab: { k: 'posture', n: 1 } });
-
-// ———————————————————————————————————————————— 大洋洲
-A('red_kangaroo', '红袋鼠', 'Red Kangaroo', '🦘', 3, 12, 'au', 'herb', 4, { ab: { k: 'pouch' } });
-A('koala', '考拉', 'Koala', '🐨', 2, 11, 'au', 'herb', 4, { cp: 1, req: [REP(2)] });
-A('wombat', '袋熊', 'Common Wombat', '🐻', 2, 9, 'au', 'herb', 3, { ab: { k: 'dig', n: 2 } });
-A('platypus', '鸭嘴兽', 'Platypus', '🦫', 2, 10, 'au', 'pred', 3, { w: 2, cp: 1, ab: { k: 'venom', n: 1 } });
-A('tasmanian_devil', '袋獾', 'Tasmanian Devil', '😈', 2, 10, 'au', 'pred', 3, { cp: 1, ab: { k: 'scavenge', n: 2 } });
-A('dingo', '澳洲野犬', 'Dingo', '🐕', 3, 11, 'au', 'pred', 4, { ab: { k: 'pack', cat: 'predator' } });
-A('emu', '鸸鹋', 'Emu', '🐦', 3, 11, 'au', 'bird', 4, { ab: { k: 'sprint', n: 1 } });
-A('cassowary', '双垂鹤鸵', 'Southern Cassowary', '🐦', 3, 13, 'au', 'bird', 4, { ab: { k: 'assert' } });
-A('kookaburra', '笑翠鸟', 'Laughing Kookaburra', '🐦', 1, 6, 'au', 'bird', 2, { sp: 'a1', ab: { k: 'snap', n: 1 } });
-A('cockatoo', '葵花凤头鹦鹉', 'Sulphur-crested Cockatoo', '🦜', 2, 8, 'au', 'bird', 3, { sp: 'a1', ab: { k: 'clever' } });
-A('saltwater_croc', '湾鳄', 'Saltwater Crocodile', '🐊', 5, 20, 'au', 'rept', 7, { w: 2, req: [II('animals')], ab: { k: 'hunter', n: 3 } });
-A('frilled_lizard', '伞蜥', 'Frilled Lizard', '🦎', 1, 6, 'au', 'rept', 2, { sp: 'r1', ab: { k: 'posture', n: 1 } });
-A('echidna', '短吻针鼹', 'Short-beaked Echidna', '🦔', 1, 6, 'au', 'herb', 2, { ab: { k: 'dig', n: 1 } });
-A('tree_kangaroo', '树袋鼠', "Goodfellow's Tree-kangaroo", '🦘', 2, 10, 'au', 'herb', 3, { cp: 1, ab: { k: 'pouch' } });
-A('wallaby', '沙袋鼠', 'Red-necked Wallaby', '🦘', 2, 8, 'au', 'herb', 3, { ab: { k: 'pouch' } });
-A('little_penguin', '小蓝企鹅', 'Little Penguin', '🐧', 1, 6, 'au', 'bird', 2, { w: 1 });
-A('quokka', '短尾矮袋鼠', 'Quokka', '🦘', 1, 7, 'au', 'herb', 2, { rep: 1 });
-A('lace_monitor', '花斑巨蜥', 'Lace Monitor', '🦎', 3, 11, 'au', 'rept', 4, { sp: 'r2', ab: { k: 'hunter', n: 2 } });
-
-// ———————————————————————————————————————————— 宠物（只能放进儿童动物园）
-A('goat', '山羊', 'Domestic Goat', '🐐', 0, 4, '', 'pet', 1, { sp: 'p1', ab: { k: 'money', n: 2 } });
-A('sheep', '绵羊', 'Domestic Sheep', '🐑', 0, 4, '', 'pet', 1, { sp: 'p1', ab: { k: 'sprint', n: 1 } });
-A('rabbit', '家兔', 'Domestic Rabbit', '🐇', 0, 3, '', 'pet', 1, { sp: 'p1' });
-A('donkey', '驴', 'Donkey', '🫏', 0, 5, '', 'pet', 2, { sp: 'p1' });
-A('pig', '小香猪', 'Mini Pig', '🐖', 0, 4, '', 'pet', 1, { sp: 'p1', ab: { k: 'dig', n: 1 } });
-A('guinea_pig', '豚鼠', 'Guinea Pig', '🐹', 0, 3, '', 'pet', 1, { sp: 'p1', ab: { k: 'xtoken', n: 1 } });
-A('pony', '设得兰矮马', 'Shetland Pony', '🐴', 0, 5, '', 'pet', 2, { sp: 'p1', rep: 1 });
-A('chicken', '丝羽乌骨鸡', 'Silkie Chicken', '🐔', 0, 3, '', 'pet', 1, { sp: 'p1', ab: { k: 'jump', n: 1 } });
+export const ANIMALS: AnimalCard[] = [
+  {"kind": "animal", "id": "a401", "num": 401, "name": "猎豹", "en": "Cheetah", "emoji": "🐆", "size": 5, "cost": 17, "icons": ["predator", "predator", "africa"], "appeal": 6, "abilities": [{"k": "sprint", "n": 3}]},
+  {"kind": "animal", "id": "a402", "num": 402, "name": "狮子", "en": "Lion", "emoji": "🦁", "size": 4, "cost": 16, "icons": ["predator", "africa"], "appeal": 9, "req": [{"k": "icon", "icon": "predator", "n": 3}], "abilities": [{"k": "pack"}]},
+  {"kind": "animal", "id": "a403", "num": 403, "name": "花豹", "en": "Leopard", "emoji": "🐆", "size": 3, "cost": 20, "icons": ["predator", "africa"], "appeal": 7, "rock": 1, "req": [{"k": "partner"}], "cp": 1, "abilities": [{"k": "hunter", "n": 4}]},
+  {"kind": "animal", "id": "a404", "num": 404, "name": "狞猫", "en": "Caracal", "emoji": "🐈", "size": 2, "cost": 9, "icons": ["predator", "africa"], "appeal": 4, "abilities": [{"k": "hunter", "n": 2}]},
+  {"kind": "animal", "id": "a405", "num": 405, "name": "耳廓狐", "en": "Fennec Fox", "emoji": "🦊", "size": 1, "cost": 8, "icons": ["predator", "africa"], "appeal": 3, "abilities": [{"k": "clever"}]},
+  {"kind": "animal", "id": "a406", "num": 406, "name": "西伯利亚虎", "en": "Siberian Tiger", "emoji": "🐅", "size": 5, "cost": 30, "icons": ["predator", "asia"], "appeal": 10, "req": [{"k": "icon", "icon": "asia", "n": 3}], "cp": 2, "rep": 1},
+  {"kind": "animal", "id": "a407", "num": 407, "name": "苏门答腊虎", "en": "Sumatran Tiger", "emoji": "🐯", "size": 4, "cost": 26, "icons": ["predator", "asia"], "appeal": 8, "water": 2, "req": [{"k": "icon", "icon": "science", "n": 2}], "cp": 2, "rep": 1},
+  {"kind": "animal", "id": "a408", "num": 408, "name": "懒熊", "en": "Sloth Bear", "emoji": "🐻", "size": 3, "cost": 14, "icons": ["predator", "bear", "asia"], "appeal": 6, "abilities": [{"k": "boost", "action": "association"}]},
+  {"kind": "animal", "id": "a409", "num": 409, "name": "马来熊", "en": "Sun Bear", "emoji": "🐻", "size": 2, "cost": 16, "icons": ["predator", "bear", "asia"], "appeal": 5, "req": [{"k": "partner"}], "abilities": [{"k": "actionNow", "action": "association"}]},
+  {"kind": "animal", "id": "a410", "num": 410, "name": "黄喉貂", "en": "Yellow-Throated Marten", "emoji": "🦡", "size": 1, "cost": 7, "icons": ["predator", "asia"], "appeal": 3, "abilities": [{"k": "hunter", "n": 1}]},
+  {"kind": "animal", "id": "a411", "num": 411, "name": "灰棕熊", "en": "Grizzly Bear", "emoji": "🐻", "size": 5, "cost": 22, "icons": ["predator", "bear", "americas"], "appeal": 9, "req": [{"k": "icon", "icon": "predator", "n": 2}, {"k": "upgrade", "action": "animals"}], "abilities": [{"k": "inventiveBear"}, {"k": "fullThroated"}]},
+  {"kind": "animal", "id": "a412", "num": 412, "name": "美洲豹", "en": "Jaguar", "emoji": "🐆", "size": 4, "cost": 16, "icons": ["predator", "americas"], "appeal": 8, "req": [{"k": "icon", "icon": "americas", "n": 1}], "abilities": [{"k": "hunter", "n": 4}]},
+  {"kind": "animal", "id": "a413", "num": 413, "name": "美洲狮", "en": "Cougar", "emoji": "🐈", "size": 3, "cost": 10, "icons": ["predator", "americas"], "appeal": 5, "rock": 1, "abilities": [{"k": "jump", "n": 3}]},
+  {"kind": "animal", "id": "a414", "num": 414, "name": "南浣熊", "en": "South American Coati", "emoji": "🦝", "size": 2, "cost": 11, "icons": ["predator", "bear", "americas"], "appeal": 4, "rock": 1, "abilities": [{"k": "inventive", "n": 1}]},
+  {"kind": "animal", "id": "a415", "num": 415, "name": "北美浣熊", "en": "Raccoon", "emoji": "🦝", "size": 1, "cost": 11, "icons": ["predator", "bear", "americas"], "appeal": 4, "abilities": [{"k": "boost", "action": "association"}]},
+  {"kind": "animal", "id": "a416", "num": 416, "name": "普通棕熊", "en": "Eurasian Brown Bear", "emoji": "🐻", "size": 5, "cost": 20, "icons": ["predator", "bear", "europe"], "appeal": 8, "water": 1, "req": [{"k": "icon", "icon": "bear", "n": 1}, {"k": "upgrade", "action": "animals"}], "abilities": [{"k": "multiplier", "action": "association"}, {"k": "fullThroated"}]},
+  {"kind": "animal", "id": "a417", "num": 417, "name": "狼", "en": "Wolf", "emoji": "🐺", "size": 4, "cost": 12, "icons": ["predator", "europe"], "appeal": 4, "abilities": [{"k": "pack"}]},
+  {"kind": "animal", "id": "a418", "num": 418, "name": "猞猁", "en": "Eurasian Lynx", "emoji": "🐈", "size": 3, "cost": 11, "icons": ["predator", "europe"], "appeal": 2, "req": [{"k": "icon", "icon": "europe", "n": 2}], "abilities": [{"k": "iconic", "cont": "europe"}]},
+  {"kind": "animal", "id": "a419", "num": 419, "name": "欧洲獾", "en": "European Badger", "emoji": "🦡", "size": 2, "cost": 5, "icons": ["predator", "europe"], "appeal": 3, "abilities": [{"k": "boost", "action": "animals"}]},
+  {"kind": "animal", "id": "a420", "num": 420, "name": "白鼬", "en": "Stoat", "emoji": "🦦", "size": 1, "cost": 4, "icons": ["predator", "europe"], "appeal": 3, "req": [{"k": "icon", "icon": "europe", "n": 1}], "abilities": [{"k": "hunter", "n": 1}]},
+  {"kind": "animal", "id": "a421", "num": 421, "name": "新澳海狗", "en": "New Zealand Fur Seal", "emoji": "🦭", "size": 5, "cost": 17, "icons": ["predator", "australia"], "appeal": 8, "water": 1, "rock": 1, "req": [{"k": "upgrade", "action": "animals"}], "abilities": [{"k": "fullThroated"}]},
+  {"kind": "animal", "id": "a422", "num": 422, "name": "澳海狮", "en": "Australian Sea Lion", "emoji": "🦭", "size": 4, "cost": 18, "icons": ["predator", "australia"], "appeal": 7, "water": 1, "req": [{"k": "partner"}], "cp": 1, "abilities": [{"k": "sunbathe", "n": 3}]},
+  {"kind": "animal", "id": "a423", "num": 423, "name": "新西兰海狮", "en": "New Zealand Sea Lion", "emoji": "🦭", "size": 3, "cost": 17, "icons": ["predator", "australia"], "appeal": 6, "water": 1, "abilities": [{"k": "pack"}]},
+  {"kind": "animal", "id": "a424", "num": 424, "name": "澳洲野犬", "en": "Australian Dingo", "emoji": "🐕", "size": 2, "cost": 13, "icons": ["predator", "australia"], "appeal": 3, "abilities": [{"k": "pack"}]},
+  {"kind": "animal", "id": "a425", "num": 425, "name": "袋獾", "en": "Tasmanian Devil", "emoji": "🐾", "size": 1, "cost": 11, "icons": ["predator", "australia"], "appeal": 4, "req": [{"k": "icon", "icon": "science", "n": 1}], "rep": 1, "abilities": [{"k": "pouch", "n": 1}]},
+  {"kind": "animal", "id": "a426", "num": 426, "name": "非洲草原象", "en": "African Bush Elephant", "emoji": "🐘", "size": 5, "cost": 36, "icons": ["herbivore", "africa", "africa"], "appeal": 10, "req": [{"k": "upgrade", "action": "animals"}], "rep": 1, "abilities": [{"k": "resist"}]},
+  {"kind": "animal", "id": "a427", "num": 427, "name": "白犀牛", "en": "White Rhinoceros", "emoji": "🦏", "size": 4, "cost": 24, "icons": ["herbivore", "africa"], "appeal": 9, "rock": 1, "req": [{"k": "icon", "icon": "science", "n": 1}], "abilities": [{"k": "assert"}]},
+  {"kind": "animal", "id": "a428", "num": 428, "name": "长颈鹿", "en": "Giraffe", "emoji": "🦒", "size": 3, "cost": 16, "icons": ["herbivore", "africa"], "appeal": 7, "abilities": [{"k": "boost", "action": "sponsors"}]},
+  {"kind": "animal", "id": "a429", "num": 429, "name": "细纹斑马", "en": "Grevy'S Zebra", "emoji": "🦓", "size": 2, "cost": 12, "icons": ["herbivore", "africa"], "appeal": 6, "req": [{"k": "icon", "icon": "africa", "n": 3}], "rep": 1, "abilities": [{"k": "boost", "action": "sponsors"}, {"k": "flock", "n": 2}]},
+  {"kind": "animal", "id": "a430", "num": 430, "name": "倭河马", "en": "Pygmy Hippopotamus", "emoji": "🦛", "size": 2, "cost": 15, "icons": ["herbivore", "africa"], "appeal": 6, "water": 1, "req": [{"k": "partner"}], "abilities": [{"k": "actionNow", "action": "sponsors"}]},
+  {"kind": "animal", "id": "a431", "num": 431, "name": "亚洲象", "en": "Asian Elephant", "emoji": "🐘", "size": 5, "cost": 33, "icons": ["herbivore", "asia", "asia"], "appeal": 8, "water": 1, "req": [{"k": "upgrade", "action": "animals"}], "cp": 1, "abilities": [{"k": "resist"}]},
+  {"kind": "animal", "id": "a432", "num": 432, "name": "印度犀", "en": "Indian Rhinoceros", "emoji": "🦏", "size": 4, "cost": 25, "icons": ["herbivore", "asia"], "appeal": 9, "req": [{"k": "upgrade", "action": "animals"}], "abilities": [{"k": "assert"}]},
+  {"kind": "animal", "id": "a433", "num": 433, "name": "大熊猫", "en": "Giant Panda", "emoji": "🐼", "size": 3, "cost": 27, "icons": ["herbivore", "bear", "asia"], "appeal": 10, "req": [{"k": "icon", "icon": "bear", "n": 1}, {"k": "icon", "icon": "herbivore", "n": 1}, {"k": "partner"}], "cp": 2, "rep": 1},
+  {"kind": "animal", "id": "a434", "num": 434, "name": "小熊猫", "en": "Red Panda", "emoji": "🦝", "size": 2, "cost": 16, "icons": ["herbivore", "bear", "asia"], "appeal": 6, "req": [{"k": "icon", "icon": "science", "n": 2}], "abilities": [{"k": "multiplier", "action": "sponsors"}]},
+  {"kind": "animal", "id": "a435", "num": 435, "name": "亚洲貘", "en": "Malayan Tapir", "emoji": "🐗", "size": 2, "cost": 17, "icons": ["herbivore", "asia"], "appeal": 5, "rep": 1, "abilities": [{"k": "dig", "n": 3}]},
+  {"kind": "animal", "id": "a436", "num": 436, "name": "美洲野牛", "en": "American Bison", "emoji": "🦬", "size": 5, "cost": 18, "icons": ["herbivore", "americas", "americas"], "appeal": 4, "req": [{"k": "icon", "icon": "americas", "n": 3}], "abilities": [{"k": "iconic", "cont": "americas"}]},
+  {"kind": "animal", "id": "a437", "num": 437, "name": "麝牛", "en": "Muskox", "emoji": "🐂", "size": 4, "cost": 13, "icons": ["herbivore", "americas"], "appeal": 5, "req": [{"k": "icon", "icon": "americas", "n": 1}], "abilities": [{"k": "sponsorMagnet"}]},
+  {"kind": "animal", "id": "a438", "num": 438, "name": "驯鹿", "en": "Reindeer", "emoji": "🦌", "size": 3, "cost": 12, "icons": ["herbivore", "americas"], "appeal": 5, "abilities": [{"k": "flock", "n": 3}]},
+  {"kind": "animal", "id": "a439", "num": 439, "name": "大羊驼", "en": "Lama", "emoji": "🦙", "size": 2, "cost": 10, "icons": ["herbivore", "americas"], "appeal": 4, "abilities": [{"k": "flock", "n": 2}]},
+  {"kind": "animal", "id": "a440", "num": 440, "name": "山貘", "en": "Mountain Tapir", "emoji": "🐗", "size": 2, "cost": 15, "icons": ["herbivore", "americas"], "appeal": 4, "rock": 1, "cp": 1, "abilities": [{"k": "dig", "n": 2}]},
+  {"kind": "animal", "id": "a441", "num": 441, "name": "欧洲野牛", "en": "European Bison", "emoji": "🦬", "size": 5, "cost": 19, "icons": ["herbivore", "europe", "europe"], "appeal": 6, "req": [{"k": "partner"}], "abilities": [{"k": "sponsorMagnet"}]},
+  {"kind": "animal", "id": "a442", "num": 442, "name": "驼鹿", "en": "Moose", "emoji": "🦌", "size": 4, "cost": 19, "icons": ["herbivore", "europe"], "appeal": 7, "req": [{"k": "icon", "icon": "herbivore", "n": 2}], "abilities": [{"k": "multiplier", "action": "sponsors"}, {"k": "flock", "n": 4}]},
+  {"kind": "animal", "id": "a443", "num": 443, "name": "马鹿", "en": "Red Deer", "emoji": "🦌", "size": 3, "cost": 12, "icons": ["herbivore", "europe"], "appeal": 5, "abilities": [{"k": "flock", "n": 3}]},
+  {"kind": "animal", "id": "a444", "num": 444, "name": "羱羊", "en": "Alpine Ibex", "emoji": "🐐", "size": 2, "cost": 10, "icons": ["herbivore", "europe"], "appeal": 5, "rock": 2, "abilities": [{"k": "jump", "n": 2}]},
+  {"kind": "animal", "id": "a445", "num": 445, "name": "非洲冕豪猪", "en": "Crested Porcupine", "emoji": "🦔", "size": 1, "cost": 8, "icons": ["herbivore", "europe"], "appeal": 3, "abilities": [{"k": "dig", "n": 2}]},
+  {"kind": "animal", "id": "a446", "num": 446, "name": "儒艮", "en": "Dugong", "emoji": "🦭", "size": 5, "cost": 25, "icons": ["herbivore", "australia", "australia"], "appeal": 9, "water": 2, "req": [{"k": "upgrade", "action": "animals"}], "cp": 1, "abilities": [{"k": "dig", "n": 4}]},
+  {"kind": "animal", "id": "a447", "num": 447, "name": "红袋鼠", "en": "Red Kangaroo", "emoji": "🦘", "size": 4, "cost": 23, "icons": ["herbivore", "australia"], "appeal": 7, "abilities": [{"k": "pouch", "n": 2}, {"k": "flock", "n": 4}]},
+  {"kind": "animal", "id": "a448", "num": 448, "name": "树袋熊", "en": "Koala", "emoji": "🐨", "size": 3, "cost": 21, "icons": ["herbivore", "bear", "australia"], "appeal": 8, "rock": 1, "req": [{"k": "icon", "icon": "australia", "n": 1}], "rep": 1, "abilities": [{"k": "pouch", "n": 2}]},
+  {"kind": "animal", "id": "a449", "num": 449, "name": "鸭嘴兽", "en": "Platypus", "emoji": "🦫", "size": 2, "cost": 10, "icons": ["herbivore", "australia"], "appeal": 4, "water": 1, "abilities": [{"k": "venom", "n": 1}]},
+  {"kind": "animal", "id": "a450", "num": 450, "name": "塔斯马尼亚袋熊", "en": "Common Wombat", "emoji": "🐹", "size": 2, "cost": 9, "icons": ["herbivore", "australia"], "appeal": 4, "abilities": [{"k": "pouch", "n": 1}]},
+  {"kind": "animal", "id": "a451", "num": 451, "name": "长鼻猴", "en": "Proboscis Monkey", "emoji": "🐒", "size": 5, "cost": 32, "icons": ["primate", "asia"], "appeal": 10, "rock": 1, "req": [{"k": "icon", "icon": "primate", "n": 2}, {"k": "upgrade", "action": "animals"}], "cp": 2, "abilities": [{"k": "dominance"}]},
+  {"kind": "animal", "id": "a452", "num": 452, "name": "塞内加尔婴猴", "en": "Senegal Bushbaby", "emoji": "🐵", "size": 1, "cost": 10, "icons": ["primate", "africa"], "appeal": 1, "req": [{"k": "icon", "icon": "africa", "n": 2}], "abilities": [{"k": "iconic", "cont": "africa"}]},
+  {"kind": "animal", "id": "a453", "num": 453, "name": "白颈白眉猴", "en": "Collared Mangabey", "emoji": "🐒", "size": 4, "cost": 20, "icons": ["primate", "africa"], "appeal": 8, "req": [{"k": "icon", "icon": "africa", "n": 1}], "abilities": [{"k": "actionNow", "action": "cards"}]},
+  {"kind": "animal", "id": "a454", "num": 454, "name": "环尾狐猴", "en": "Ring-Tailed Lemur", "emoji": "🐒", "size": 3, "cost": 12, "icons": ["primate", "africa"], "appeal": 6, "rock": 1, "abilities": [{"k": "sunbathe", "n": 3}]},
+  {"kind": "animal", "id": "a455", "num": 455, "name": "东非黑白疣猴", "en": "Mantled Guereza", "emoji": "🐒", "size": 3, "cost": 13, "icons": ["primate", "africa"], "appeal": 6, "abilities": [{"k": "clever"}]},
+  {"kind": "animal", "id": "a456", "num": 456, "name": "地中海猕猴", "en": "Barbary Macaque", "emoji": "🐵", "size": 2, "cost": 13, "icons": ["primate", "africa"], "appeal": 6, "req": [{"k": "partner"}], "abilities": [{"k": "pilfer", "n": 1}]},
+  {"kind": "animal", "id": "a457", "num": 457, "name": "山魈", "en": "Mandrill", "emoji": "🐵", "size": 5, "cost": 28, "icons": ["primate", "primate", "africa"], "appeal": 9, "req": [{"k": "icon", "icon": "primate", "n": 3}], "cp": 2, "abilities": [{"k": "multiplier", "action": "cards"}]},
+  {"kind": "animal", "id": "a458", "num": 458, "name": "日本猕猴", "en": "Japanese Macaque", "emoji": "🐵", "size": 3, "cost": 18, "icons": ["primate", "asia"], "appeal": 7, "water": 1, "req": [{"k": "icon", "icon": "asia", "n": 1}], "abilities": [{"k": "pilfer", "n": 2}]},
+  {"kind": "animal", "id": "a459", "num": 459, "name": "红腿白臀叶猴", "en": "Red-Shanked Douc", "emoji": "🐒", "size": 4, "cost": 17, "icons": ["primate", "asia"], "appeal": 7, "req": [{"k": "icon", "icon": "science", "n": 1}], "rep": 1, "abilities": [{"k": "inventivePrimate"}]},
+  {"kind": "animal", "id": "a460", "num": 460, "name": "郁乌叶猴", "en": "Dusky-Leaf Monkey", "emoji": "🐒", "size": 2, "cost": 12, "icons": ["primate", "asia"], "appeal": 5, "abilities": [{"k": "clever"}]},
+  {"kind": "animal", "id": "a461", "num": 461, "name": "邦加跗猴", "en": "Horsfield'S Tarsier", "emoji": "🐵", "size": 1, "cost": 14, "icons": ["primate", "asia"], "appeal": 3, "req": [{"k": "partner"}], "rep": 2, "abilities": [{"k": "jump", "n": 4}]},
+  {"kind": "animal", "id": "a462", "num": 462, "name": "印度灰叶猴", "en": "Northern Plains Gray Langur", "emoji": "🐒", "size": 3, "cost": 13, "icons": ["primate", "asia"], "appeal": 6, "rock": 1, "abilities": [{"k": "jump", "n": 3}]},
+  {"kind": "animal", "id": "a463", "num": 463, "name": "巴拿马白面卷尾猴", "en": "Panamanian White-Faced Capuchin", "emoji": "🐒", "size": 2, "cost": 11, "icons": ["primate", "americas"], "appeal": 5, "req": [{"k": "partner"}], "abilities": [{"k": "pilfer", "n": 1}]},
+  {"kind": "animal", "id": "a464", "num": 464, "name": "棕蜘蛛猴", "en": "Brown Spider Monkey", "emoji": "🐒", "size": 4, "cost": 17, "icons": ["primate", "americas"], "appeal": 6, "req": [{"k": "icon", "icon": "primate", "n": 1}], "cp": 1, "abilities": [{"k": "inventivePrimate"}]},
+  {"kind": "animal", "id": "a465", "num": 465, "name": "金狮面狨", "en": "Golden Lion Tamarin", "emoji": "🐵", "size": 1, "cost": 10, "icons": ["primate", "americas"], "appeal": 4, "abilities": [{"k": "clever"}]},
+  {"kind": "animal", "id": "a466", "num": 466, "name": "玻利维亚红吼猴", "en": "Bolivian Red Howler", "emoji": "🐒", "size": 3, "cost": 12, "icons": ["primate", "americas"], "appeal": 6, "abilities": [{"k": "boost", "action": "cards"}]},
+  {"kind": "animal", "id": "a467", "num": 467, "name": "厄瓜多尔松鼠猴", "en": "Ecuadorian Squirell Monkey", "emoji": "🐵", "size": 2, "cost": 12, "icons": ["primate", "americas"], "appeal": 5, "abilities": [{"k": "clever"}]},
+  {"kind": "animal", "id": "a468", "num": 468, "name": "绒顶柽柳猴", "en": "Cotton-Top Tamarin", "emoji": "🐵", "size": 1, "cost": 15, "icons": ["primate", "americas"], "appeal": 4, "req": [{"k": "icon", "icon": "science", "n": 2}], "cp": 1, "rep": 1},
+  {"kind": "animal", "id": "a469", "num": 469, "name": "尼罗鳄", "en": "Nile Crocodile", "emoji": "🐊", "size": 5, "cost": 13, "icons": ["reptile", "africa"], "appeal": 9, "water": 1, "req": [{"k": "icon", "icon": "reptile", "n": 3}], "special": {"kind": "reptile", "units": 3}, "abilities": [{"k": "snap", "n": 2}]},
+  {"kind": "animal", "id": "a470", "num": 470, "name": "西部绿曼巴蛇", "en": "Western Green Mamba", "emoji": "🐍", "size": 2, "cost": 13, "icons": ["reptile", "africa"], "appeal": 6, "req": [{"k": "icon", "icon": "reptile", "n": 1}, {"k": "icon", "icon": "africa", "n": 1}], "special": {"kind": "reptile", "units": 1}, "abilities": [{"k": "venom", "n": 2}]},
+  {"kind": "animal", "id": "a471", "num": 471, "name": "苏卡达陆龟", "en": "African Spurred Tortoise", "emoji": "🐢", "size": 3, "cost": 22, "icons": ["reptile", "africa"], "appeal": 6, "special": {"kind": "reptile", "units": 2}, "cp": 1, "abilities": [{"k": "sunbathe", "n": 3}]},
+  {"kind": "animal", "id": "a472", "num": 472, "name": "岩巨蜥", "en": "Rock Monitor", "emoji": "🦎", "size": 2, "cost": 12, "icons": ["reptile", "africa"], "appeal": 5, "rock": 1, "special": {"kind": "reptile", "units": 1}, "abilities": [{"k": "sunbathe", "n": 3}]},
+  {"kind": "animal", "id": "a473", "num": 473, "name": "彩虹飞蜥", "en": "Common Agama", "emoji": "🦎", "size": 1, "cost": 9, "icons": ["reptile", "africa"], "appeal": 3, "special": {"kind": "reptile", "units": 0}, "abilities": [{"k": "sunbathe", "n": 2}]},
+  {"kind": "animal", "id": "a474", "num": 474, "name": "印度蟒", "en": "Indian Rock Python", "emoji": "🐍", "size": 2, "cost": 14, "icons": ["reptile", "asia"], "appeal": 7, "req": [{"k": "icon", "icon": "reptile", "n": 2}], "special": {"kind": "reptile", "units": 1}, "abilities": [{"k": "constrict"}]},
+  {"kind": "animal", "id": "a475", "num": 475, "name": "印度眼镜蛇", "en": "King Cobra", "emoji": "🐍", "size": 2, "cost": 13, "icons": ["reptile", "asia"], "appeal": 6, "req": [{"k": "icon", "icon": "science", "n": 2}, {"k": "upgrade", "action": "animals"}], "special": {"kind": "reptile", "units": 1}, "abilities": [{"k": "hypnosis", "n": 3}]},
+  {"kind": "animal", "id": "a476", "num": 476, "name": "科莫多巨蜥", "en": "Komodo Dragon", "emoji": "🦎", "size": 3, "cost": 14, "icons": ["reptile", "asia"], "appeal": 2, "req": [{"k": "icon", "icon": "asia", "n": 2}], "special": {"kind": "reptile", "units": 2}, "abilities": [{"k": "iconic", "cont": "asia"}]},
+  {"kind": "animal", "id": "a477", "num": 477, "name": "高冠变色龙", "en": "Veiled Chameleon", "emoji": "🦎", "size": 1, "cost": 14, "icons": ["reptile", "asia"], "appeal": 4, "special": {"kind": "reptile", "units": 0}, "abilities": [{"k": "snap", "n": 1}]},
+  {"kind": "animal", "id": "a478", "num": 478, "name": "长鬣蜥", "en": "Chinese Water Dragon", "emoji": "🦎", "size": 1, "cost": 8, "icons": ["reptile", "asia"], "appeal": 3, "water": 1, "special": {"kind": "reptile", "units": 0}, "abilities": [{"k": "sunbathe", "n": 2}]},
+  {"kind": "animal", "id": "a479", "num": 479, "name": "美洲短吻鳄", "en": "American Alligator", "emoji": "🐊", "size": 4, "cost": 18, "icons": ["reptile", "americas"], "appeal": 7, "water": 1, "special": {"kind": "reptile", "units": 2}, "abilities": [{"k": "snap", "n": 1}]},
+  {"kind": "animal", "id": "a480", "num": 480, "name": "宽吻凯门鳄", "en": "Broad-Snouted Caiman", "emoji": "🐊", "size": 4, "cost": 16, "icons": ["reptile", "americas"], "appeal": 6, "water": 1, "special": {"kind": "reptile", "units": 2}, "abilities": [{"k": "snap", "n": 1}]},
+  {"kind": "animal", "id": "a481", "num": 481, "name": "圣克鲁斯岛加拉帕戈斯象龟", "en": "Galapagos Giant Tortoise", "emoji": "🐢", "size": 3, "cost": 30, "icons": ["reptile", "americas"], "appeal": 8, "req": [{"k": "icon", "icon": "americas", "n": 2}, {"k": "upgrade", "action": "animals"}], "special": {"kind": "reptile", "units": 2}, "cp": 2, "rep": 1, "abilities": [{"k": "sunbathe", "n": 4}]},
+  {"kind": "animal", "id": "a482", "num": 482, "name": "亚马逊森蚺", "en": "Anaconda", "emoji": "🐍", "size": 2, "cost": 13, "icons": ["reptile", "americas"], "appeal": 6, "req": [{"k": "partner"}], "special": {"kind": "reptile", "units": 1}, "abilities": [{"k": "constrict"}]},
+  {"kind": "animal", "id": "a483", "num": 483, "name": "红尾蚺", "en": "Boa Constrictor", "emoji": "🐍", "size": 2, "cost": 16, "icons": ["reptile", "americas"], "appeal": 7, "req": [{"k": "icon", "icon": "science", "n": 2}], "special": {"kind": "reptile", "units": 1}, "abilities": [{"k": "constrict"}]},
+  {"kind": "animal", "id": "a484", "num": 484, "name": "欧洲泽龟", "en": "European Pond Turtle", "emoji": "🐢", "size": 1, "cost": 9, "icons": ["reptile", "europe"], "appeal": 4, "water": 1, "special": {"kind": "reptile", "units": 1}},
+  {"kind": "animal", "id": "a485", "num": 485, "name": "极北蝰", "en": "Common European Adder", "emoji": "🐍", "size": 1, "cost": 10, "icons": ["reptile", "europe"], "appeal": 2, "req": [{"k": "partner"}], "special": {"kind": "reptile", "units": 0}, "abilities": [{"k": "hypnosis", "n": 3}]},
+  {"kind": "animal", "id": "a486", "num": 486, "name": "普通壁蜥", "en": "Common Wall Lizard", "emoji": "🦎", "size": 1, "cost": 4, "icons": ["reptile", "europe"], "appeal": 2, "rock": 1, "special": {"kind": "reptile", "units": 0}},
+  {"kind": "animal", "id": "a487", "num": 487, "name": "领纹蛇", "en": "European Grass Snake", "emoji": "🐍", "size": 1, "cost": 8, "icons": ["reptile", "europe"], "appeal": 3, "water": 1, "special": {"kind": "reptile", "units": 0}, "abilities": [{"k": "clever"}]},
+  {"kind": "animal", "id": "a488", "num": 488, "name": "蛇蜥", "en": "Slow Worm", "emoji": "🐍", "size": 1, "cost": 4, "icons": ["reptile", "europe"], "appeal": 2, "water": 1, "special": {"kind": "reptile", "units": 0}},
+  {"kind": "animal", "id": "a489", "num": 489, "name": "湾鳄", "en": "Saltwater Crocodile", "emoji": "🐊", "size": 5, "cost": 23, "icons": ["reptile", "reptile", "australia"], "appeal": 9, "water": 1, "req": [{"k": "partner"}], "special": {"kind": "reptile", "units": 3}, "abilities": [{"k": "snap", "n": 2}]},
+  {"kind": "animal", "id": "a490", "num": 490, "name": "砂巨蜥", "en": "Gould'S Monitor", "emoji": "🦎", "size": 3, "cost": 15, "icons": ["reptile", "australia"], "appeal": 6, "special": {"kind": "reptile", "units": 2}, "abilities": [{"k": "scavenge", "n": 2}]},
+  {"kind": "animal", "id": "a491", "num": 491, "name": "伞蜥", "en": "Frilled Lizard", "emoji": "🦎", "size": 2, "cost": 12, "icons": ["reptile", "australia"], "appeal": 5, "rock": 1, "special": {"kind": "reptile", "units": 1}, "abilities": [{"k": "sprint", "n": 1}]},
+  {"kind": "animal", "id": "a492", "num": 492, "name": "细鳞太攀蛇", "en": "Inland Taipan", "emoji": "🐍", "size": 2, "cost": 10, "icons": ["reptile", "australia"], "appeal": 5, "rock": 1, "req": [{"k": "icon", "icon": "science", "n": 1}, {"k": "icon", "icon": "australia", "n": 1}], "special": {"kind": "reptile", "units": 1}, "abilities": [{"k": "venom", "n": 2}]},
+  {"kind": "animal", "id": "a493", "num": 493, "name": "棘蜥", "en": "Thorny Devil", "emoji": "🦎", "size": 1, "cost": 6, "icons": ["reptile", "australia"], "appeal": 3, "rock": 1, "special": {"kind": "reptile", "units": 0}},
+  {"kind": "animal", "id": "a494", "num": 494, "name": "非洲鸵鸟", "en": "African Ostrich", "emoji": "🐦", "size": 5, "cost": 20, "icons": ["bird", "africa"], "appeal": 8, "special": {"kind": "aviary", "units": 4}, "abilities": [{"k": "sprint", "n": 2}]},
+  {"kind": "animal", "id": "a495", "num": 495, "name": "蛇鹫", "en": "Secretary Bird", "emoji": "🦅", "size": 4, "cost": 14, "icons": ["bird", "africa"], "appeal": 4, "special": {"kind": "aviary", "units": 1}, "cp": 1},
+  {"kind": "animal", "id": "a496", "num": 496, "name": "秃鹳", "en": "Marabou", "emoji": "🐦", "size": 3, "cost": 10, "icons": ["bird", "africa"], "appeal": 4, "special": {"kind": "aviary", "units": 1}, "abilities": [{"k": "scavenge", "n": 2}]},
+  {"kind": "animal", "id": "a497", "num": 497, "name": "小红鹳", "en": "Lesser Flamingo", "emoji": "🦩", "size": 2, "cost": 15, "icons": ["bird", "africa"], "appeal": 6, "water": 1, "abilities": [{"k": "posture", "n": 1}]},
+  {"kind": "animal", "id": "a498", "num": 498, "name": "鲸头鹳", "en": "Shoebill", "emoji": "🐦", "size": 1, "cost": 9, "icons": ["bird", "africa"], "appeal": 3, "req": [{"k": "icon", "icon": "science", "n": 2}], "special": {"kind": "aviary", "units": 1}, "cp": 1},
+  {"kind": "animal", "id": "a499", "num": 499, "name": "秃鹫", "en": "Cinereous Vulture", "emoji": "🦅", "size": 5, "cost": 16, "icons": ["bird", "asia"], "appeal": 6, "special": {"kind": "aviary", "units": 1}, "abilities": [{"k": "scavenge", "n": 3}]},
+  {"kind": "animal", "id": "a500", "num": 500, "name": "长喙兀鹫", "en": "Long-Billed Vulture", "emoji": "🦅", "size": 4, "cost": 20, "icons": ["bird", "asia"], "appeal": 5, "rock": 1, "req": [{"k": "icon", "icon": "science", "n": 1}], "special": {"kind": "aviary", "units": 1}, "cp": 1, "rep": 1, "abilities": [{"k": "scavenge", "n": 3}]},
+  {"kind": "animal", "id": "a501", "num": 501, "name": "蓝孔雀", "en": "Indian Peafowl", "emoji": "🦚", "size": 3, "cost": 18, "icons": ["bird", "asia"], "appeal": 7, "req": [{"k": "icon", "icon": "asia", "n": 1}], "abilities": [{"k": "posture", "n": 2}]},
+  {"kind": "animal", "id": "a502", "num": 502, "name": "双角犀鸟", "en": "Great Hornbill", "emoji": "🐦", "size": 2, "cost": 13, "icons": ["bird", "asia"], "appeal": 6, "abilities": [{"k": "boost", "action": "build"}]},
+  {"kind": "animal", "id": "a503", "num": 503, "name": "雪鸮", "en": "Snowy Owl", "emoji": "🦉", "size": 1, "cost": 11, "icons": ["bird", "asia"], "appeal": 4, "req": [{"k": "icon", "icon": "bird", "n": 2}], "rep": 1, "abilities": [{"k": "perception", "n": 4, "keep": 2}]},
+  {"kind": "animal", "id": "a504", "num": 504, "name": "安第斯神鹫", "en": "Andean Condor", "emoji": "🦅", "size": 5, "cost": 17, "icons": ["bird", "americas"], "appeal": 7, "rock": 1, "req": [{"k": "icon", "icon": "bird", "n": 1}], "special": {"kind": "aviary", "units": 1}, "rep": 1, "abilities": [{"k": "scavenge", "n": 4}]},
+  {"kind": "animal", "id": "a505", "num": 505, "name": "白头海雕", "en": "Bald Eagle", "emoji": "🦅", "size": 4, "cost": 23, "icons": ["bird", "americas"], "appeal": 8, "water": 1, "req": [{"k": "upgrade", "action": "animals"}], "special": {"kind": "aviary", "units": 1}, "abilities": [{"k": "determination"}]},
+  {"kind": "animal", "id": "a506", "num": 506, "name": "王鹫", "en": "King Vulture", "emoji": "🦅", "size": 3, "cost": 12, "icons": ["bird", "americas"], "appeal": 9, "req": [{"k": "icon", "icon": "bird", "n": 3}], "special": {"kind": "aviary", "units": 1}, "abilities": [{"k": "scavenge", "n": 5}]},
+  {"kind": "animal", "id": "a507", "num": 507, "name": "大美洲鸵", "en": "Greater Rhea", "emoji": "🐦", "size": 2, "cost": 12, "icons": ["bird", "americas"], "appeal": 5, "abilities": [{"k": "sprint", "n": 1}]},
+  {"kind": "animal", "id": "a508", "num": 508, "name": "五彩金刚鹦鹉", "en": "Scarlet Macaw", "emoji": "🦜", "size": 1, "cost": 16, "icons": ["bird", "americas"], "appeal": 4, "req": [{"k": "partner"}], "abilities": [{"k": "posture", "n": 3}]},
+  {"kind": "animal", "id": "a509", "num": 509, "name": "金雕", "en": "Golden Eagle", "emoji": "🦅", "size": 5, "cost": 20, "icons": ["bird", "europe"], "appeal": 7, "rock": 1, "req": [{"k": "upgrade", "action": "animals"}], "special": {"kind": "aviary", "units": 1}, "abilities": [{"k": "determination"}]},
+  {"kind": "animal", "id": "a510", "num": 510, "name": "白鹳", "en": "White Stork", "emoji": "🐦", "size": 4, "cost": 9, "icons": ["bird", "europe"], "appeal": 4, "req": [{"k": "icon", "icon": "europe", "n": 1}], "special": {"kind": "aviary", "units": 1}, "abilities": [{"k": "multiplier", "action": "build"}]},
+  {"kind": "animal", "id": "a511", "num": 511, "name": "大红鹳", "en": "Greater Flamingo", "emoji": "🦩", "size": 3, "cost": 16, "icons": ["bird", "europe"], "appeal": 7, "water": 1, "abilities": [{"k": "posture", "n": 1}]},
+  {"kind": "animal", "id": "a512", "num": 512, "name": "雕鸮", "en": "Eurasian Eagle-Owl", "emoji": "🦉", "size": 2, "cost": 10, "icons": ["bird", "europe"], "appeal": 4, "req": [{"k": "partner"}], "abilities": [{"k": "perception", "n": 4, "keep": 2}]},
+  {"kind": "animal", "id": "a513", "num": 513, "name": "仓鸮", "en": "Barn Owl", "emoji": "🦉", "size": 1, "cost": 12, "icons": ["bird", "europe"], "appeal": 3, "abilities": [{"k": "perception", "n": 4, "keep": 2}]},
+  {"kind": "animal", "id": "a514", "num": 514, "name": "鸸鹋", "en": "Emu", "emoji": "🐦", "size": 5, "cost": 22, "icons": ["bird", "australia"], "appeal": 7, "req": [{"k": "icon", "icon": "australia", "n": 2}], "abilities": [{"k": "peacock"}]},
+  {"kind": "animal", "id": "a515", "num": 515, "name": "澳大利亚鹈鹕", "en": "Australian Pelican", "emoji": "🐦", "size": 4, "cost": 13, "icons": ["bird", "australia"], "appeal": 5, "water": 2, "abilities": [{"k": "actionNow", "action": "build"}]},
+  {"kind": "animal", "id": "a516", "num": 516, "name": "单垂鹤鸵", "en": "Northern Cassowary", "emoji": "🐦", "size": 3, "cost": 12, "icons": ["bird", "australia"], "appeal": 6, "req": [{"k": "partner"}], "abilities": [{"k": "multiplier", "action": "build"}]},
+  {"kind": "animal", "id": "a517", "num": 517, "name": "笑翠鸟", "en": "Laughing Kookaburra", "emoji": "🐦", "size": 2, "cost": 9, "icons": ["bird", "australia"], "appeal": 0, "req": [{"k": "icon", "icon": "australia", "n": 1}], "abilities": [{"k": "iconic", "cont": "australia"}]},
+  {"kind": "animal", "id": "a518", "num": 518, "name": "小极乐鸟", "en": "Lesser Bird-Of-Paradise", "emoji": "🐦", "size": 1, "cost": 15, "icons": ["bird", "australia"], "appeal": 5, "abilities": [{"k": "posture", "n": 1}]},
+  {"kind": "animal", "id": "a519", "num": 519, "name": "家山羊", "en": "(Domestic) Goat", "emoji": "🐐", "size": 1, "cost": 7, "icons": ["petting"], "appeal": 0, "special": {"kind": "petting", "units": 1}, "noStandard": true, "abilities": [{"k": "petting"}]},
+  {"kind": "animal", "id": "a520", "num": 520, "name": "绵羊", "en": "Sheep", "emoji": "🐑", "size": 1, "cost": 7, "icons": ["petting"], "appeal": 0, "special": {"kind": "petting", "units": 1}, "noStandard": true, "abilities": [{"k": "petting"}]},
+  {"kind": "animal", "id": "a521", "num": 521, "name": "马", "en": "Horse", "emoji": "🐎", "size": 1, "cost": 7, "icons": ["petting"], "appeal": 0, "special": {"kind": "petting", "units": 1}, "noStandard": true, "rep": 1, "abilities": [{"k": "petting"}]},
+  {"kind": "animal", "id": "a522", "num": 522, "name": "驴", "en": "Donkey", "emoji": "🐴", "size": 1, "cost": 7, "icons": ["petting"], "appeal": 0, "special": {"kind": "petting", "units": 1}, "noStandard": true, "abilities": [{"k": "inventive", "n": 1}, {"k": "petting"}]},
+  {"kind": "animal", "id": "a523", "num": 523, "name": "家兔", "en": "Domestic Rabbit", "emoji": "🐇", "size": 1, "cost": 7, "icons": ["petting"], "appeal": 0, "special": {"kind": "petting", "units": 1}, "noStandard": true, "abilities": [{"k": "petting"}]},
+  {"kind": "animal", "id": "a524", "num": 524, "name": "曼加利察猪", "en": "Mangalica", "emoji": "🐖", "size": 1, "cost": 7, "icons": ["petting"], "appeal": 0, "special": {"kind": "petting", "units": 1}, "noStandard": true, "abilities": [{"k": "dig", "n": 1}, {"k": "petting"}]},
+  {"kind": "animal", "id": "a525", "num": 525, "name": "豚鼠", "en": "Guinea Pig", "emoji": "🐹", "size": 1, "cost": 7, "icons": ["petting"], "appeal": 0, "special": {"kind": "petting", "units": 1}, "noStandard": true, "abilities": [{"k": "petting"}]},
+  {"kind": "animal", "id": "a526", "num": 526, "name": "羊驼", "en": "Alpaca", "emoji": "🦙", "size": 1, "cost": 7, "icons": ["petting"], "appeal": 0, "special": {"kind": "petting", "units": 1}, "noStandard": true, "abilities": [{"k": "petting"}]},
+  {"kind": "animal", "id": "a527", "num": 527, "name": "虹彩吸蜜鹦鹉", "en": "Coconut Lorikeet", "emoji": "🦜", "size": 1, "cost": 7, "icons": ["petting"], "appeal": 0, "special": {"kind": "petting", "units": 1}, "noStandard": true, "abilities": [{"k": "petting"}]},
+  {"kind": "animal", "id": "a528", "num": 528, "name": "红颈袋鼠", "en": "Bennett'S Wallaby", "emoji": "🦘", "size": 1, "cost": 7, "icons": ["petting"], "appeal": 0, "special": {"kind": "petting", "units": 1}, "noStandard": true, "abilities": [{"k": "pouch", "n": 1}, {"k": "petting"}]},
+];

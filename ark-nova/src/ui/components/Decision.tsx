@@ -3,11 +3,10 @@ import type { ComponentChildren } from 'preact';
 import { BUILDABLE, buildingDef } from '../../game/buildings';
 import { card, project, SCORING_CARDS } from '../../game/content';
 import { decision, optText } from '../../game/engine';
-import { animalOptions, assocMoves, buildCost, buildableTypes, canIgnoreCondition, freeWorkers, range, sponsorError, workersNeeded } from '../../game/query';
+import { animalOptions, assocMoves, buildCost, buildableTypes, freeWorkers, harborActive, range, sponsorError, taskValue, workersNeeded } from '../../game/query';
 import {
   ACTION_INFO,
   ACTION_TEXT,
-  TASK_VALUE,
   UNIVERSITIES,
   animalsCount,
   cardsDraw,
@@ -15,7 +14,7 @@ import {
   snapStrength,
 } from '../../game/rules';
 import type { ActionId, Continent, GameState, Move, TaskId } from '../../game/types';
-import { CONTINENTS } from '../../game/types';
+import { ACTIONS as ACTIONS_LIST, CONTINENTS } from '../../game/types';
 import { animal } from '../../game/content';
 import {
   anyOrientationFits,
@@ -29,7 +28,7 @@ import {
 } from '../interact';
 import { CONT_COLOR, actionName } from '../meta';
 import { act, canUndo, pendingPick, pickKey, refresh, set, state, undo } from '../store';
-import { CardView } from './CardView';
+import { CardView, levelNeedText } from './CardView';
 import { Modal, ScoringCardView } from './Common';
 
 export function DecisionBar({ g }: { g: GameState }) {
@@ -78,15 +77,19 @@ function DecisionContent({ g, f }: { g: GameState; f: Decision }) {
   const p = g.players[f.p];
   switch (f.k) {
     case 'turn':
+    case 'extra':
       return <TurnChoice g={g} />;
     case 'build': {
       const types = buildableTypes(p, f);
       return (
-        <DB title={`建造 · 强度 ${f.str}${f.up ? ' II' : ''} · 剩余 ${f.budget} 格`} hint={state.sel.build ? '在地图上点击放置（亮起的格子可以放），R 键或「旋转」改变朝向。' : '选择要建造的建筑（每格 2 元）。'}>
-          <BuildPalette types={BUILDABLE} enabled={types} costOf={buildCost} />
+        <DB
+          title={f.engineer ? '工程师：可以再建 1 座同种建筑（正常付费）' : `建造 · 强度 ${f.str}${f.up ? ' II' : ''} · 剩余 ${f.budget} 格`}
+          hint={state.sel.build ? '在地图上点击放置（亮起的格子可以放），R 键或「旋转」改变朝向。' : `选择要建造的建筑（每格 2 元）${f.up && !f.engineer ? '，可以建多座不同的建筑' : ''}。`}
+        >
+          <BuildPalette types={f.engineer ? f.built : BUILDABLE} enabled={types} costOf={buildCost} />
           <PlacementTools g={g} />
           <button class="primary" onClick={() => act({ t: 'done' })}>
-            {f.done ? '完成建造' : '不建造了'}
+            {f.engineer ? '不用了' : f.built.length ? '完成建造' : '不建造了'}
           </button>
         </DB>
       );
@@ -107,7 +110,9 @@ function DecisionContent({ g, f }: { g: GameState; f: Decision }) {
             f.left > 0
               ? state.sel.card
                 ? `把${animal(state.sel.card).name}放进哪座建筑？点击地图上高亮的建筑。`
-                : `点击手牌${f.up ? '或声望范围内的展示区' : ''}中亮边的动物，再选择建筑。${canIgnoreCondition(f) ? '本次如果只打出 1 只，可以忽略它的 1 个条件。' : ''}`
+                : f.waza228
+                  ? '世界动物园协会小型动物计划：可以再打出 1 只小型动物（正常付费）。'
+                  : `点击手牌${f.up ? '或声望范围内的展示区（额外付位置编号的钱）' : ''}中亮边的动物，再选择建筑。`
               : '已达到本次行动可打出的数量。'
           }
         >
@@ -181,9 +186,42 @@ function DecisionContent({ g, f }: { g: GameState; f: Decision }) {
       return (
         <DB
           title={f.reason}
-          hint={f.swap ? `用${card(f.swap).name}交换展示区（前 ${range(g.players[f.p])} 张）中的一张牌。` : `点击展示区${f.any ? '任意位置' : '声望范围内'}的牌拿走（${f.n} 张）。`}
+          hint={`点击展示区${f.any ? '任意位置' : `前 ${range(g.players[f.p])} 张（声望范围）`}的${f.filter === 'small' ? '小型动物' : f.filter === 'sponsor' ? '赞助卡' : '牌'}拿走${f.n > 1 ? `（还可以拿 ${f.n} 张）` : ''}${f.deck ? '，或者从牌库抽' : ''}。`}
         >
-          <button onClick={() => act({ t: 'done' })}>{f.swap ? '不交换' : '跳过'}</button>
+          {f.deck && (
+            <button class="primary" onClick={() => act({ t: 'take', slot: -1 })}>
+              从牌库抽 1 张
+            </button>
+          )}
+          <button onClick={() => act({ t: 'done' })}>跳过</button>
+        </DB>
+      );
+    case 'sponsorPay':
+      return (
+        <DB
+          title={f.reason}
+          hint={state.sel.card ? `在地图上放置专属建筑「${card(state.sel.card).name}」。` : '点击手牌中亮边的赞助卡（支付等于等级的钱，不受行动强度限制）。'}
+        >
+          {state.sel.card && <PlacementTools g={g} />}
+          {state.sel.card && (
+            <button
+              onClick={() => {
+                state.sel.card = null;
+                refresh();
+              }}
+            >
+              取消
+            </button>
+          )}
+          <button onClick={() => act({ t: 'done' })}>跳过</button>
+        </DB>
+      );
+    case 'dig':
+      return (
+        <DB title={`掘地：还可以执行 ${f.left} 次`} hint="点击展示区的牌把它弃掉并补充，或点击一张手牌把它弃掉、再从牌库抽 1 张。">
+          <button class="primary" onClick={() => act({ t: 'done' })}>
+            结束
+          </button>
         </DB>
       );
     case 'pick':
@@ -197,19 +235,45 @@ function TurnChoice({ g }: { g: GameState }) {
   const f = myDecision(g)!;
   const p = g.players[f.p];
   const a = state.sel.action;
+  const extra = f.k === 'extra' ? f : null;
+  const harbor =
+    f.p === g.current && harborActive(p) && p.harborTurn !== g.turn && p.hand.length > 0 ? (
+      <button onClick={() => set({ modal: { k: 'harbor' } })} title="商港：每回合一次，弃 1 张手牌换 3 元">
+        ⚓ 商港
+      </button>
+    ) : null;
+  const skip = extra ? <button onClick={() => act({ t: 'done' })}>不执行</button> : null;
   if (!a) {
-    return <DB title="轮到你了：选择一张行动卡" hint="行动卡所在的位置就是它的强度（1–5）。用过的卡回到 1 号位，其余的卡右移。" />;
+    return (
+      <DB
+        title={extra ? extra.reason : '轮到你了：选择一张行动卡'}
+        hint={
+          extra
+            ? extra.only
+              ? `点击「${ACTION_INFO[extra.only].name}」行动卡。`
+              : `点击${extra.except ? `「${ACTION_INFO[extra.except].name}」以外的` : '任一'}行动卡。`
+            : '行动卡所在的位置就是它的强度（1–5）。用过的卡回到 1 号位，其余的卡右移。'
+        }
+      >
+        {harbor}
+        {skip}
+      </DB>
+    );
   }
   const slot = p.actions.indexOf(a) + 1;
-  const str = slot + state.sel.x;
+  const tk = p.tokens[a] ?? {};
+  const str = Math.max(0, slot + state.sel.x - (tk.constrict ? 2 : 0));
   const up = p.upgraded[a];
+  const venomPay = !tk.venom && ACTIONS_LIST.some((x) => p.tokens[x]?.venom);
   return (
     <DB
       color={ACTION_INFO[a].color}
-      title={`${ACTION_INFO[a].emoji} ${ACTION_INFO[a].name}${up ? ' II' : ' I'} · 强度 ${str}`}
+      title={`${ACTION_INFO[a].emoji} ${ACTION_INFO[a].name}${up ? ' II' : ' I'} · 强度 ${str}${tk.mult && state.sel.mult ? ' ×2' : ''}`}
       hint={
         <>
           <ActionPreview g={g} a={a} str={str} /> {ACTION_TEXT[a][up ? 1 : 0]}
+          {tk.constrict ? ' 这张卡上有绞杀标记：强度 −2。' : ''}
+          {venomPay ? ' 你有毒液标记：使用没有毒液标记的行动卡要付 2 元。' : ''}
         </>
       }
     >
@@ -237,12 +301,29 @@ function TurnChoice({ g }: { g: GameState }) {
           </button>
         </span>
       )}
-      <button class="primary" onClick={() => act({ t: 'action', action: a, x: state.sel.x })}>
+      {tk.mult && (
+        <label class="check" title="倍增标记：这次行动执行 2 次">
+          <input
+            type="checkbox"
+            checked={state.sel.mult}
+            onChange={(e) => {
+              state.sel.mult = (e.target as HTMLInputElement).checked;
+              refresh();
+            }}
+          />
+          使用倍增
+        </label>
+      )}
+      <button class="primary" onClick={() => act({ t: 'action', action: a, x: state.sel.x, mult: tk.mult && state.sel.mult ? true : undefined })}>
         执行（强度 {str}）
       </button>
-      <button onClick={() => act({ t: 'xaction', action: a })} title="不执行行动：把这张卡移到 1 号位，获得 1 个 X 标记">
-        改拿 X 标记
-      </button>
+      {!extra && (
+        <button onClick={() => act({ t: 'xaction', action: a })} title="不执行行动：把这张卡移到 1 号位，获得 1 个 X 标记">
+          改拿 X 标记
+        </button>
+      )}
+      {harbor}
+      {skip}
     </DB>
   );
 }
@@ -254,7 +335,7 @@ function ActionPreview({ g, a, str }: { g: GameState; a: ActionId; str: number }
   let text = '';
   if (a === 'animals') {
     const n = animalsCount(str, up);
-    const opts = n > 0 ? animalOptions(g, f.p, up, !up && n >= 2) : [];
+    const opts = n > 0 ? animalOptions(g, f.p, up) : [];
     const kinds = new Set(opts.map((o) => o.card)).size;
     text = `可以打出 ${n} 只动物${n > 0 ? `（现在能打出的动物 ${kinds} 张）` : ''}。`;
   }
@@ -263,7 +344,7 @@ function ActionPreview({ g, a, str }: { g: GameState; a: ActionId; str: number }
     text = `抽 ${d.draw} 张${d.discard ? `弃 ${d.discard} 张` : ''}${str >= snapStrength(up) ? '，或抢先拿 1 张' : ''}。`;
   }
   if (a === 'build') {
-    const fake = { k: 'build' as const, p: f.p, str, up, budget: str, built: [], done: 0 };
+    const fake = { k: 'build' as const, p: f.p, str, up, budget: str, built: [], engineer: false };
     const types = buildableTypes(p, fake);
     text = `最多 ${str} 格${types.length ? '' : '（钱不够或放不下）'}。`;
   }
@@ -321,7 +402,7 @@ function AssocChoice({ g, f }: { g: GameState; f: Extract<Decision, { k: 'assoc'
   const moves = assocMoves(g, f.p, f);
   const has = (task: TaskId) => moves.some((m) => m.t === 'assoc' && m.task === task);
   const why = (task: TaskId): string => {
-    if (TASK_VALUE[task] > f.budget) return `价值 ${TASK_VALUE[task]} 超过剩余强度`;
+    if (taskValue(g.players[f.p], task) > f.budget) return `价值 ${taskValue(g.players[f.p], task)} 超过剩余强度`;
     if (f.used.includes(task)) return '本次已做过';
     if (freeWorkers(g, f.p) < workersNeeded(g, task)) return `需要 ${workersNeeded(g, task)} 名空闲工人`;
     return '没有可选的目标';
@@ -375,15 +456,14 @@ function AssocChoice({ g, f }: { g: GameState; f: Extract<Decision, { k: 'assoc'
 
 const PICK_TITLE: Record<string, (min: number, max: number) => string> = {
   discard: (n) => `弃掉 ${n} 张手牌`,
-  keep: (n) => `保留 ${n} 张牌`,
-  keepAnimal: () => '狩猎：可以保留其中 1 张动物卡',
+  keep: (n) => `保留 ${n} 张牌，其余弃掉`,
+  keepAnimal: () => '把其中 1 张动物卡加入手牌，其余弃掉',
   setup: () => '开局：从 8 张牌中保留 4 张',
   scoring: () => '选择 1 张终局计分卡（保密，游戏结束时计分）',
-  scoringKeep: () => '有玩家达到保护点数 10：保留 1 张终局计分卡，弃掉其余的',
-  sell: (_, max) => `日光浴：出售最多 ${max} 张手牌（每张 4 元）`,
-  pouch: () => '育儿袋：可以把 1 张手牌放进育儿袋（+2 吸引力）',
-  dig: (_, max) => `掘地：弃掉最多 ${max} 张手牌，再抽同样数量`,
-  trade: () => '交换：选择 1 张手牌，用来交换展示区的牌',
+  scoringDrop: () => '有玩家达到保护点数 10：弃掉 1 张终局计分卡',
+  sell: (_, max) => `出售最多 ${max} 张手牌（每张 4 元）`,
+  pouch: (_, max) => `可以把最多 ${max} 张手牌压在卡下（每张吸引力 +2）`,
+  harbor: () => '商港：弃 1 张手牌换 3 元',
 };
 
 export function PickModal({ g }: { g: GameState }) {
@@ -410,7 +490,7 @@ export function PickModal({ g }: { g: GameState }) {
     else if (picks.length < f.max) setPicks([...picks, id]);
     else if (f.max === 1) setPicks([id]);
   };
-  const scoring = f.purpose === 'scoring' || f.purpose === 'scoringKeep';
+  const scoring = f.purpose === 'scoring' || f.purpose === 'scoringDrop';
   return (
     <Modal title={`${PICK_TITLE[f.purpose](min, f.max)}`} wide>
       {pre && <p class="pre-note">还没轮到你：现在先选好，轮到你时会自动提交。</p>}
@@ -484,7 +564,7 @@ export function ChooseModal({ g }: { g: GameState }) {
       <div class="choose-list">
         {f.opts.map((o, i) => (
           <button class="choice" onClick={() => act({ t: 'choose', i })}>
-            {optText(g, o)}
+            {optText(g, o, f.p)}
           </button>
         ))}
       </div>
@@ -510,11 +590,13 @@ export function ProjectModal({ g, id, fromHand, display }: { g: GameState; id: s
                   clickProjectLevel(id, i, fromHand, display);
                 }}
               >
-                {display !== undefined ? `从展示区打出（${display + 1} 元）并支持` : fromHand ? '打出并支持' : '支持'}：{c.goal.k === 'release' ? `放归体型 ≥ ${lv.need}` : `需要 ${lv.need}`} → {lv.cp} 保护点数
+                {display !== undefined ? `从展示区打出（${display + 1} 元）并支持` : fromHand ? '打出并支持' : '支持'}：
+                {c.goal.k === 'release' ? `放归${levelNeedText(c, i)}的动物` : c.goal.k === 'breed' ? `第 ${i + 1} 档` : `需要 ${lv.need} 个`} → {lv.cp} 保护点数
+                {lv.rep ? `、声望 +${lv.rep}` : ''}
               </button>
             ))
           ) : (
-            <p class="hint">在协会行动中，用强度 5 的任务把它打出到协会版图上，并立即支持其中一档。</p>
+            <p class="hint">在协会行动中，用价值 5 的任务把它打出到协会版图旁边，并立即支持其中一档。</p>
           )}
         </div>
       </div>
@@ -538,6 +620,29 @@ export function ReleaseModal({ g, id, level, fromHand, display }: { g: GameState
             onClick={() => {
               state.modal = null;
               act(m);
+            }}
+          />
+        ))}
+      </div>
+    </Modal>
+  );
+}
+
+/** 商港：选择 1 张手牌换 3 元 */
+export function HarborModal({ g }: { g: GameState }) {
+  const f = myDecision(g);
+  if (!f) return null;
+  const p = g.players[f.p];
+  return (
+    <Modal title="商港：弃 1 张手牌换 3 元（每回合一次）" onClose={() => set({ modal: null })} wide>
+      <div class="pick-grid">
+        {p.hand.map((id) => (
+          <CardView
+            id={id}
+            size="md"
+            onClick={() => {
+              state.modal = null;
+              act({ t: 'harbor', card: id });
             }}
           />
         ))}

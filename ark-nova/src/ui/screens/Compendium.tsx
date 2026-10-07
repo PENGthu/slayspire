@@ -22,17 +22,18 @@ export function CompendiumScreen() {
   if (kind === 'animal') {
     list = ANIMALS.filter(
       (a) =>
-        (cont === 'all' || (cont === 'none' ? !a.continents.length : a.continents.includes(cont))) &&
-        (cat === 'all' || a.categories.includes(cat)) &&
+        (cont === 'all' || (cont === 'none' ? !a.icons.some((i) => (CONTINENTS as string[]).includes(i)) : a.icons.includes(cont))) &&
+        (cat === 'all' || a.icons.includes(cat)) &&
         match(a.name, a.en),
     ).map((a) => a.id);
   } else if (kind === 'sponsor') list = SPONSORS.filter((c) => match(c.name, c.text)).map((c) => c.id);
-  else if (kind === 'project') list = PROJECTS.filter((c) => match(c.name)).map((c) => c.id);
+  else if (kind === 'project') list = PROJECTS.filter((c) => match(c.name, c.en)).map((c) => c.id);
   return (
     <div class="page-screen">
       <div class="page-head">
         <button onClick={() => set({ screen: 'menu' })}>← 返回</button>
         <h2>卡牌图鉴</h2>
+        <small class="page-note">卡牌功能按原版基础游戏复刻；文字为本作撰写，插图为自绘。</small>
         <input placeholder="搜索名称…" value={q} onInput={(e) => setQ((e.target as HTMLInputElement).value)} />
       </div>
       <div class="filters">

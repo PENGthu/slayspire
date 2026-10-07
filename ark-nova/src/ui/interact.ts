@@ -9,13 +9,13 @@ import {
   assocMoves,
   buildCost,
   buildableTypes,
-  canIgnoreCondition,
   canSnap,
   mapOf,
   placementError,
   range,
   releaseCandidates,
   sponsorError,
+  sponsorLevel,
   supportError,
 } from '../game/query';
 import { cardsDraw } from '../game/rules';
@@ -37,7 +37,7 @@ export function placingType(g: GameState): string | null {
   const f = myDecision(g);
   if (!f) return null;
   if (f.k === 'build' || f.k === 'place') return state.sel.build;
-  if (f.k === 'sponsors' && state.sel.card && sponsor(state.sel.card).building) return state.sel.card;
+  if ((f.k === 'sponsors' || f.k === 'sponsorPay') && state.sel.card && sponsor(state.sel.card).building) return state.sel.card;
   return null;
 }
 
@@ -54,8 +54,9 @@ export function placementCheck(g: GameState, type: string, cells: number[] | nul
     if (!buildableTypes(p, f).includes(type)) return p.money < buildCost(type) ? '钱不够' : '现在不能建造这种建筑';
     return placementError(p, type, cells);
   }
-  if (f.k === 'place') return placementError(p, type, cells, { ignoreTypeUpgrade: true });
+  if (f.k === 'place') return placementError(p, type, cells, { ignoreTypeUpgrade: f.ignoreUpgrade });
   if (f.k === 'sponsors') return sponsorError(g, f.p, f, type, state.sel.cardFrom, cells);
+  if (f.k === 'sponsorPay') return sponsorError(g, f.p, null, type, -1, cells);
   return '现在不能放置建筑';
 }
 
@@ -64,7 +65,7 @@ export function ghostCells(g: GameState): { cells: number[]; ok: boolean; err: s
   const f = myDecision(g);
   if (!type || !f || state.sel.anchor === null) return null;
   const p = g.players[f.p];
-  const cells = placeShape(mapOf(p), state.sel.anchor, shapeFor(type, state.sel.orient));
+  const cells = placeShape(mapOf(p), shapeFor(type, state.sel.orient), state.sel.anchor);
   const err = placementCheck(g, type, cells);
   return { cells: cells ?? [state.sel.anchor], ok: err === null, err };
 }
@@ -77,8 +78,8 @@ export function validAnchors(g: GameState): Set<number> {
   const p = g.players[f.p];
   const map = mapOf(p);
   const shape = shapeFor(type, state.sel.orient);
-  for (const c of map.list) {
-    const cells = placeShape(map, c.i, shape);
+  for (const c of map.cells) {
+    const cells = placeShape(map, shape, c.i);
     if (cells && placementCheck(g, type, cells) === null) out.add(c.i);
   }
   return out;
@@ -92,8 +93,8 @@ export function anyOrientationFits(g: GameState, type: string): boolean {
   const map = mapOf(p);
   const os = orientations(BUILDINGS[type].shape);
   for (let o = 0; o < os.length; o++) {
-    for (const c of map.list) {
-      const cells = placeShape(map, c.i, os[o]);
+    for (const c of map.cells) {
+      const cells = placeShape(map, os[o], c.i);
       if (cells && placementCheck(g, type, cells) === null) return true;
     }
   }
@@ -111,8 +112,8 @@ export function selectBuild(type: string | null) {
     const map = mapOf(g.players[f.p]);
     let found = false;
     for (let o = 0; o < os.length && !found; o++) {
-      for (const c of map.list) {
-        const cells = placeShape(map, c.i, os[o]);
+      for (const c of map.cells) {
+        const cells = placeShape(map, os[o], c.i);
         if (cells && placementCheck(g, type, cells) === null) {
           state.sel.orient = o;
           found = true;
@@ -150,7 +151,7 @@ export function onMapCell(i: number) {
     return;
   }
   const p = g.players[f.p];
-  const cells = placeShape(mapOf(p), state.sel.anchor ?? i, shapeFor(type, state.sel.orient));
+  const cells = placeShape(mapOf(p), shapeFor(type, state.sel.orient), state.sel.anchor ?? i);
   const err = placementCheck(g, type, cells);
   if (err || !cells) {
     toast(err ?? '放不下', 'error');
@@ -163,7 +164,7 @@ export function confirmPlacement(cells: number[]) {
   const g = state.g!;
   const f = myDecision(g)!;
   const type = placingType(g)!;
-  if (f.k === 'sponsors') act({ t: 'sponsor', card: type, from: state.sel.cardFrom, cells });
+  if (f.k === 'sponsors' || f.k === 'sponsorPay') act({ t: 'sponsor', card: type, from: f.k === 'sponsorPay' ? -1 : state.sel.cardFrom, cells });
   else act({ t: 'build', type, cells });
 }
 
@@ -173,9 +174,8 @@ export function animalTargets(g: GameState): Set<number> {
   const f = myDecision(g);
   const out = new Set<number>();
   if (!f || f.k !== 'animals' || !state.sel.card) return out;
-  const lenient = canIgnoreCondition(f);
   for (const b of g.players[f.p].buildings) {
-    if (animalError(g, f.p, state.sel.card, state.sel.cardFrom, b.uid, f.up, lenient) === null) out.add(b.uid);
+    if (animalError(g, f.p, state.sel.card, state.sel.cardFrom, b.uid, f.up, f.onlySmall) === null) out.add(b.uid);
   }
   return out;
 }
@@ -185,7 +185,7 @@ export function animalPlayable(g: GameState, f: Extract<Frame, { k: 'animals' }>
   const p = g.players[f.p];
   let last = '没有能放下它的建筑';
   for (const b of p.buildings) {
-    const err = animalError(g, f.p, id, from, b.uid, f.up, canIgnoreCondition(f));
+    const err = animalError(g, f.p, id, from, b.uid, f.up, f.onlySmall);
     if (err === null) return null;
     if (err !== '无法放进这座建筑') last = err;
   }
@@ -226,27 +226,33 @@ export function placeAnimal(uid: number) {
 
 // ———————————————————————————————————————————— 赞助
 
-export function sponsorPlayable(g: GameState, f: Extract<Frame, { k: 'sponsors' }>, id: string, from: number): string | null {
+export function sponsorPlayable(g: GameState, f: Extract<Frame, { k: 'sponsors' | 'sponsorPay' }>, id: string, from: number): string | null {
   const c = sponsor(id);
+  const fr = f.k === 'sponsors' ? f : null;
+  if (f.k === 'sponsorPay') {
+    if (from !== -1) return '只能从手牌打出';
+    if (sponsorLevel(g.players[f.p], c) > g.players[f.p].money) return '钱不够';
+  }
   if (c.building) {
     const p = g.players[f.p];
     const map = mapOf(p);
     for (const shape of orientations(c.building.shape)) {
-      for (const cell of map.list) {
-        const cells = placeShape(map, cell.i, shape);
-        if (cells && sponsorError(g, f.p, f, id, from, cells) === null) return null;
+      for (const cell of map.cells) {
+        const cells = placeShape(map, shape, cell.i);
+        if (cells && sponsorError(g, f.p, fr, id, from, cells) === null) return null;
       }
     }
-    const err = sponsorError(g, f.p, f, id, from, []);
+    const err = sponsorError(g, f.p, fr, id, from, []);
     return err === '形状不对' || err === '需要选择建筑位置' ? '没有地方放它的专属建筑' : err;
   }
-  return sponsorError(g, f.p, f, id, from);
+  return sponsorError(g, f.p, fr, id, from);
 }
 
 export function clickSponsor(id: string, from: number) {
   const g = state.g!;
   const f = myDecision(g);
-  if (!f || f.k !== 'sponsors') return;
+  if (!f || (f.k !== 'sponsors' && f.k !== 'sponsorPay')) return;
+  const fr = f.k === 'sponsors' ? f : null;
   const err = sponsorPlayable(g, f, id, from);
   if (err) {
     toast(err, 'error');
@@ -262,9 +268,9 @@ export function clickSponsor(id: string, from: number) {
     const map = mapOf(p);
     const os = orientations(BUILDINGS[id].shape);
     outer: for (let o = 0; o < os.length; o++) {
-      for (const c of map.list) {
-        const cells = placeShape(map, c.i, os[o]);
-        if (cells && sponsorError(g, f.p, f, id, from, cells) === null) {
+      for (const c of map.cells) {
+        const cells = placeShape(map, os[o], c.i);
+        if (cells && sponsorError(g, f.p, fr, id, from, cells) === null) {
           state.sel.orient = o;
           break outer;
         }
@@ -276,6 +282,12 @@ export function clickSponsor(id: string, from: number) {
     return;
   }
   act({ t: 'sponsor', card: id, from });
+}
+
+/** 当前是否在为赞助卡（专属建筑）选位置 */
+export function sponsorPlacing(g: GameState): boolean {
+  const f = myDecision(g);
+  return !!f && (f.k === 'sponsors' || f.k === 'sponsorPay') && !!state.sel.card && !!sponsor(state.sel.card).building;
 }
 
 // ———————————————————————————————————————————— 协会
@@ -301,7 +313,7 @@ export function clickProjectLevel(id: string, level: number, fromHand: boolean, 
       const c = project(id);
       const err =
         c.goal.k === 'release'
-          ? releaseCandidates(g.players[f.p], c, c.levels[level].need).length
+          ? releaseCandidates(g.players[f.p], c, level).length
             ? null
             : '没有符合条件的动物'
           : supportError(g, f.p, id, level, fromHand, undefined, display, f.up);
@@ -324,7 +336,7 @@ export function cardsInfo(g: GameState) {
   if (!f || f.k !== 'cards') return null;
   const p = g.players[f.p];
   const { draw, discard } = cardsDraw(f.str, f.up);
-  return { draw, discard, up: f.up, snap: canSnap(p, f.str, f.up), range: Math.min(range(p), g.display.length) };
+  return { draw, discard, up: f.up, snap: canSnap(f.str, f.up), range: Math.min(range(p), g.display.length) };
 }
 
 export function toggleDisplayPick(slot: number) {

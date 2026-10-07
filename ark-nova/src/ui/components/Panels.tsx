@@ -1,22 +1,23 @@
 // 对局中的各个面板：玩家概况、行动卡、手牌、展示区、协会版图、日志。
 import { useEffect, useRef } from 'preact/hooks';
-import { card, project, SCORING_CARDS } from '../../game/content';
-import { breakIncome, decision } from '../../game/engine';
-import { handLimit, iconCounts, metric, range, workersNeeded } from '../../game/query';
+import { card, project } from '../../game/content';
+import { breakIncome, scoringMetric } from '../../game/effects';
+import { decision } from '../../game/engine';
+import { ALL_ICONS, handLimit, iconCounts, range, sponsorLevel, taskValue, workersNeeded } from '../../game/query';
 import {
   ACTION_INFO,
   ACTION_TEXT,
   DONATION_COSTS,
   MAX_X,
-  TASK_VALUE,
+  SOLO_ROUNDS,
   UNIVERSITIES,
   appealIncome,
   cpPoints,
   repRange,
   tile,
 } from '../../game/rules';
-import type { ActionId, GameState, Icon, TaskId } from '../../game/types';
-import { CATEGORIES, CONTINENTS } from '../../game/types';
+import type { ActionId, CardTokens, GameState, TaskId } from '../../game/types';
+import { CONTINENTS } from '../../game/types';
 import {
   animalPlayable,
   cardsInfo,
@@ -31,7 +32,7 @@ import {
 import { CONT_COLOR, CONT_SHORT, IconBadge } from '../meta';
 import { act, me, refresh, set, state, toast } from '../store';
 import { lobby } from '../../net/online';
-import { CardView } from './CardView';
+import { CardView, levelNeedText } from './CardView';
 import { ScoreBar, ScoringCardView, Stat } from './Common';
 
 // ———————————————————————————————————————————— 玩家
@@ -91,9 +92,7 @@ export function PlayerStats({ g, pi }: { g: GameState; pi: number }) {
       </div>
       <ScoreBar p={p} />
       <div class="ps-row icons">
-        {[...CONTINENTS, ...CATEGORIES, 'science'].map((i) =>
-          icons[i as Icon] ? <IconBadge icon={i as Icon} size={22} count={icons[i as Icon]} /> : null,
-        )}
+        {ALL_ICONS.map((i) => (icons[i] ? <IconBadge icon={i} size={22} count={icons[i]} /> : null))}
       </div>
       <div class="ps-row small">
         <span title="休息时的收入">下次休息收入：{inc.total} 元</span>
@@ -107,6 +106,16 @@ export function PlayerStats({ g, pi }: { g: GameState; pi: number }) {
           </span>
         )}
         {p.unis.length > 0 && <span>大学：{p.unis.map((u) => UNIVERSITIES.find((x) => x.id === u)!.emoji).join('')}</span>}
+        {p.ignoreTokens > 0 && <span title="打出动物时可以忽略最多 3 个条件（一次性）">🔓 忽略条件 ×{p.ignoreTokens}</span>}
+        {p.waza && <span title="世界动物园协会特别任务">📝 只打{p.waza === 'small' ? '小型' : '大型'}动物</span>}
+        {Object.entries(p.cardTokens)
+          .filter(([, n]) => n > 0)
+          .map(([id, n]) => (
+            <span title={card(id).name}>
+              {card(id).emoji} 标记 ×{n}
+            </span>
+          ))}
+        {(p.tucked.map?.length ?? 0) > 0 && <span title="压在地图下的牌">👝 地图下 {p.tucked.map!.length} 张</span>}
       </div>
     </div>
   );
@@ -117,7 +126,8 @@ export function PlayerStats({ g, pi }: { g: GameState; pi: number }) {
 export function ActionRow({ g, pi }: { g: GameState; pi: number }) {
   const p = g.players[pi];
   const f = myDecision(g);
-  const choosing = f?.k === 'turn' && f.p === pi;
+  const choosing = (f?.k === 'turn' || f?.k === 'extra') && f.p === pi;
+  const allowed = (a: ActionId) => f?.k !== 'extra' || ((!f.only || f.only === a) && (!f.except || f.except !== a));
   return (
     <div class={`action-row ${choosing ? 'choosing' : ''}`}>
       {p.actions.map((a, i) => (
@@ -125,9 +135,10 @@ export function ActionRow({ g, pi }: { g: GameState; pi: number }) {
           a={a}
           slot={i + 1}
           up={p.upgraded[a]}
+          tokens={p.tokens[a]}
           selected={choosing && state.sel.action === a}
           onClick={
-            choosing
+            choosing && allowed(a)
               ? () => {
                   state.sel.action = state.sel.action === a ? null : a;
                   state.sel.x = 0;
@@ -141,7 +152,7 @@ export function ActionRow({ g, pi }: { g: GameState; pi: number }) {
   );
 }
 
-function ActionCard({ a, slot, up, selected, onClick }: { a: ActionId; slot: number; up: boolean; selected?: boolean; onClick?: () => void }) {
+function ActionCard({ a, slot, up, tokens, selected, onClick }: { a: ActionId; slot: number; up: boolean; tokens?: CardTokens; selected?: boolean; onClick?: () => void }) {
   const info = ACTION_INFO[a];
   return (
     <div
@@ -154,6 +165,13 @@ function ActionCard({ a, slot, up, selected, onClick }: { a: ActionId; slot: num
       <span class="ac-emoji">{info.emoji}</span>
       <span class="ac-name">{info.name}</span>
       {up && <span class="ac-up">II</span>}
+      {(tokens?.venom || tokens?.constrict || tokens?.mult) && (
+        <span class="ac-tokens">
+          {tokens.venom ? <i title="毒液标记：使用其他行动卡时要付 2 元；使用这张卡时移除">☠️</i> : null}
+          {tokens.constrict ? <i title="绞杀标记：使用这张卡时强度 −2">🪢</i> : null}
+          {tokens.mult ? <i title="倍增标记：使用这张卡时可以执行 2 次">×2</i> : null}
+        </span>
+      )}
     </div>
   );
 }
@@ -184,9 +202,12 @@ export function HandPanel({ g, pi }: { g: GameState; pi: number }) {
           if (f.k === 'animals' && c.kind === 'animal') {
             playable = animalPlayable(g, f, id, -1) === null;
             onClick = () => clickAnimal(id, -1);
-          } else if (f.k === 'sponsors' && c.kind === 'sponsor') {
+          } else if ((f.k === 'sponsors' || f.k === 'sponsorPay') && c.kind === 'sponsor') {
             playable = sponsorPlayable(g, f, id, -1) === null;
             onClick = () => clickSponsor(id, -1);
+          } else if (f.k === 'dig') {
+            playable = true;
+            onClick = () => act({ t: 'cards', cards: [id] });
           } else if (f.k === 'assoc' && c.kind === 'project') {
             playable = c.levels.some((_, lv) => projectLevelMoves(g, id, lv, true).length > 0);
             onClick = () => set({ modal: { k: 'project', id, fromHand: true } });
@@ -198,7 +219,8 @@ export function HandPanel({ g, pi }: { g: GameState; pi: number }) {
             size="sm"
             playable={playable}
             selected={state.sel.card === id && state.sel.cardFrom === -1}
-            dim={!!f && f.p === pi && ['animals', 'sponsors', 'assoc'].includes(f.k) && !playable}
+            dim={!!f && f.p === pi && ['animals', 'sponsors', 'sponsorPay', 'assoc'].includes(f.k) && !playable}
+            badge={f?.k === 'sponsorPay' && c.kind === 'sponsor' ? `${sponsorLevel(p, c)}元` : undefined}
             onClick={onClick ?? (() => set({ modal: { k: 'card', id } }))}
             onInfo={() => set({ modal: { k: 'card', id } })}
           />
@@ -241,9 +263,13 @@ export function DisplayPanel({ g }: { g: GameState }) {
               playable = c.levels.some((_, lv) => projectLevelMoves(g, id, lv, false, i).length > 0);
               onClick = () => set({ modal: { k: 'project', id, fromHand: false, display: i } });
               badge = `${i + 1} · +${i + 1}元`;
-            } else if (f.k === 'display' && (f.any || inRange)) {
+            } else if (f.k === 'display' && (f.any || inRange) && displayOk(f.filter, id)) {
               playable = true;
               onClick = () => act({ t: 'take', slot: i });
+            } else if (f.k === 'dig') {
+              playable = true;
+              onClick = () => act({ t: 'take', slot: i });
+              badge = `${i + 1} · 弃掉`;
             } else if (info && inRange) {
               if (info.snap) {
                 playable = true;
@@ -281,6 +307,13 @@ export function DisplayPanel({ g }: { g: GameState }) {
   );
 }
 
+function displayOk(filter: 'sponsor' | 'small' | undefined, id: string): boolean {
+  const c = card(id);
+  if (filter === 'sponsor') return c.kind === 'sponsor';
+  if (filter === 'small') return c.kind === 'animal' && c.size <= 2;
+  return true;
+}
+
 // ———————————————————————————————————————————— 协会版图
 
 const TASK_LABEL: Record<TaskId, string> = { rep: '声望 +2', partner: '合作动物园', university: '大学', project: '保护项目' };
@@ -295,8 +328,8 @@ export function AssocPanel({ g }: { g: GameState }) {
       <div class="panel-title">协会版图</div>
       <div class="tasks">
         {(['rep', 'partner', 'university', 'project'] as TaskId[]).map((t) => (
-          <div class={`task ${assoc && TASK_VALUE[t] <= assoc.budget && !assoc.used.includes(t) ? 'avail' : ''}`}>
-            <span class="tv">{TASK_VALUE[t]}</span>
+          <div class={`task ${assoc && taskValue(p, t) <= assoc.budget && !assoc.used.includes(t) ? 'avail' : ''}`}>
+            <span class="tv">{taskValue(p, t)}</span>
             <span class="tl">{TASK_LABEL[t]}</span>
             <span class="workers">
               {g.tasks[t].map((w) => (
@@ -336,7 +369,8 @@ export function AssocPanel({ g }: { g: GameState }) {
                 <span class="emoji">{c.emoji}</span>
                 <b>{c.name}</b>
                 {c.goal.k === 'icon' && <IconBadge icon={c.goal.icon} size={18} />}
-                {p.projects.includes(bp.id) && <span class="done">已支持</span>}
+                {(c.goal.k === 'release' || c.goal.k === 'breed') && <IconBadge icon={c.goal.k === 'release' ? c.goal.icon : c.goal.cat} size={18} />}
+                {p.supported.some((x) => x.id === bp.id) && <span class="done">已支持</span>}
               </div>
               <div class="proj-levels">
                 {c.levels.map((lv, i) => {
@@ -348,9 +382,9 @@ export function AssocPanel({ g }: { g: GameState }) {
                       disabled={!assoc || by !== null}
                       style={by !== null ? { '--pc': g.players[by].color } : undefined}
                       onClick={() => clickProjectLevel(bp.id, i, false)}
-                      title={c.goal.k === 'release' ? `放归体型 ≥ ${lv.need} 的动物，获得 ${lv.cp} 保护点数` : `需要 ${lv.need}，获得 ${lv.cp} 保护点数`}
+                      title={`${c.goal.k === 'release' ? `放归${levelNeedText(c, i)}的动物` : c.goal.k === 'breed' ? `第 ${i + 1} 档` : `需要 ${lv.need} 个`}：获得 ${lv.cp} 保护点数${lv.rep ? `、声望 +${lv.rep}` : ''}`}
                     >
-                      <span>{c.goal.k === 'release' ? `≥${lv.need}` : `×${lv.need}`}</span>
+                      <span>{c.goal.k === 'breed' ? (lv.rep ? `+${lv.rep}⭐` : '') : levelNeedText(c, i)}</span>
                       <b class="r-cp">{lv.cp}</b>
                       {by !== null && <i style={{ background: g.players[by].color }} />}
                     </button>
@@ -404,7 +438,7 @@ export function PlayerDetail({ g, pi }: { g: GameState; pi: number }) {
       </div>
       <div class="sub-title">终局计分卡</div>
       <div class="mini-cards">
-        {showScoring ? p.scoring.map((id) => <ScoringCardView id={id} current={metric(g, p, SCORING_CARDS[id].metric)} />) : <span class="empty">{p.scoring.length} 张（保密）</span>}
+        {showScoring ? p.scoring.map((id) => <ScoringCardView id={id} current={scoringMetric(g, pi, id)} />) : <span class="empty">{p.scoring.length} 张（保密）</span>}
       </div>
     </div>
   );
@@ -434,6 +468,19 @@ export function LogPanel({ g }: { g: GameState }) {
 }
 
 export function BreakTrack({ g }: { g: GameState }) {
+  if (g.solo) {
+    return (
+      <div class="break-track" title="单人挑战：共 6 轮，每轮结束时休息">
+        <span>☕ 第 {Math.min(g.solo.round + 1, SOLO_ROUNDS.length)}/{SOLO_ROUNDS.length} 轮</span>
+        <div class="bt">
+          {Array.from({ length: SOLO_ROUNDS[g.solo.round] ?? 0 }, (_, i) => (
+            <i class={i < (SOLO_ROUNDS[g.solo!.round] ?? 0) - g.solo!.left ? 'on' : ''} />
+          ))}
+        </div>
+        <small>本轮还剩 {g.solo.left} 个回合</small>
+      </div>
+    );
+  }
   return (
     <div class="break-track" title={`休息标记 ${g.breakPos}/${g.breakMax}：到达终点时触发休息（收入、弃牌到上限、工人回收、展示区更新）`}>
       <span>☕ 休息</span>
@@ -444,7 +491,7 @@ export function BreakTrack({ g }: { g: GameState }) {
       </div>
       <small>
         {g.breakPos}/{g.breakMax}
-        {g.solo ? ` · 第 ${g.breaks}/5 次` : g.breaks ? ` · 已休息 ${g.breaks} 次` : ''}
+        {g.breaks ? ` · 已休息 ${g.breaks} 次` : ''}
       </small>
     </div>
   );

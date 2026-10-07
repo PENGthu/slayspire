@@ -23,6 +23,8 @@ export interface Selection {
   /** 选中的行动卡（回合开始时） */
   action: ActionId | null;
   x: number;
+  /** 使用行动卡上的倍增标记 */
+  mult: boolean;
   /** 建造：选中的建筑与朝向 */
   build: string | null;
   orient: number;
@@ -45,6 +47,7 @@ export type Modal =
   | { k: 'player'; p: number }
   | { k: 'guide' }
   | { k: 'room' }
+  | { k: 'harbor' }
   | { k: 'confirm'; text: string; yes: string; onYes: () => void };
 
 export interface Toast {
@@ -110,7 +113,7 @@ function loadSettings(): Settings {
 }
 
 export function emptySel(): Selection {
-  return { action: null, x: 0, build: null, orient: 0, anchor: null, card: null, cardFrom: -1, picks: [], displayPicks: [] };
+  return { action: null, x: 0, mult: true, build: null, orient: 0, anchor: null, card: null, cardFrom: -1, picks: [], displayPicks: [] };
 }
 
 export const state: AppState = {
@@ -607,7 +610,7 @@ export function pendingPick(g: GameState): PickFrame | null {
   if (top && top.p === seat) return null;
   for (let i = g.stack.length - 1; i >= 0; i--) {
     const f = g.stack[i];
-    if (f.k === 'pick' && f.p === seat && (f.purpose === 'setup' || f.purpose === 'discard' || f.purpose === 'scoringKeep')) return f;
+    if (f.k === 'pick' && f.p === seat && (f.purpose === 'setup' || f.purpose === 'discard' || f.purpose === 'scoringDrop')) return f;
     // 只看紧接着的一串选牌，不往更后面的回合里找
     if (f.k !== 'pick') break;
   }

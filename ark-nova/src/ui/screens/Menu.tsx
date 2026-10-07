@@ -1,6 +1,7 @@
 // 主菜单与开局设置。
 import { useState } from 'preact/hooks';
 import { MAPS, MAP_IDS } from '../../game/maps';
+import { SOLO_ROUNDS } from '../../game/rules';
 import type { AiLevel } from '../../game/types';
 import { loadSaved, resumeGame, set, startGame, state, useStore } from '../store';
 
@@ -43,7 +44,7 @@ export function MenuScreen() {
           建造你的现代动物园：修建围栏、引进动物、结交合作伙伴、支持野生动物保护项目。1–4 人（另有 5 人扩展），可以和 AI 对战、多人同屏轮流，也可以开房间用各自的设备联机。进度自动保存在本机浏览器。
         </p>
         <p class="note small">
-          粉丝自制的非商业作品，规则结构参考原作《方舟动物园》（Ark Nova，Mathias Wigge 设计，Feuerland Spiele 出版），卡牌数值与美术均为原创的简化表现，与原作出版方无关。喜欢的话请支持正版桌游。
+          粉丝自制的非商业作品，复刻原作《方舟动物园》（Ark Nova，Mathias Wigge 设计，Feuerland Spiele 出版）基础游戏的规则、地图与卡牌功能；卡牌文字由本作重新撰写，插图为自绘，与原作出版方无关。喜欢的话请支持正版桌游。
         </p>
       </div>
     </div>
@@ -62,12 +63,13 @@ export function SetupScreen() {
   useStore();
   const [count, setCount] = useState(2);
   const [seats, setSeats] = useState<Seat[]>([
-    { name: '你', kind: 'human', map: 'A' },
-    { name: AI_NAMES[0], kind: 'normal', map: 'lake' },
-    { name: AI_NAMES[1], kind: 'normal', map: 'mountain' },
-    { name: AI_NAMES[2], kind: 'normal', map: 'research' },
-    { name: AI_NAMES[3], kind: 'normal', map: 'boulevard' },
+    { name: '你', kind: 'human', map: 'mA' },
+    { name: AI_NAMES[0], kind: 'normal', map: 'm1' },
+    { name: AI_NAMES[1], kind: 'normal', map: 'm2' },
+    { name: AI_NAMES[2], kind: 'normal', map: 'm3' },
+    { name: AI_NAMES[3], kind: 'normal', map: 'm4' },
   ]);
+  const [soloAppeal, setSoloAppeal] = useState(10);
   const [shuffleOrder, setShuffleOrder] = useState(true);
   const upd = (i: number, patch: Partial<Seat>) => setSeats(seats.map((s, j) => (j === i ? { ...s, ...patch } : s)));
   const start = () => {
@@ -82,7 +84,7 @@ export function SetupScreen() {
         .sort((a, b) => a.r - b.r)
         .map((x) => x.p);
     }
-    startGame({ players, seed: (Math.random() * 2 ** 32) >>> 0 });
+    startGame({ players, seed: (Math.random() * 2 ** 32) >>> 0, soloAppeal: count === 1 ? soloAppeal : undefined });
   };
   return (
     <div class="menu-screen">
@@ -98,7 +100,23 @@ export function SetupScreen() {
         </div>
         {count === 5 && <p class="hint">原作支持 1–4 人。5 人是扩展玩法：休息轨延长到 19 格，其余规则不变，一局会比较长。</p>}
         {count === 1 && (
-          <p class="hint">单人挑战：每个回合结束时休息标记自动前进 1 格，在第 5 次休息结束前让吸引力与保护点数两个标记相遇（得分 ≥ 0）即获胜。</p>
+          <>
+            <p class="hint">单人挑战（原版规则）：共 6 轮，每轮 {SOLO_ROUNDS.join(' / ')} 个回合，每轮结束休息。最后一次休息后得分 ≥ 0 即获胜。</p>
+            <div class="setup-row">
+              起始吸引力（难度）：
+              {[
+                [20, '入门'],
+                [15, '简单'],
+                [10, '普通'],
+                [5, '困难'],
+                [0, '专家'],
+              ].map(([v, label]) => (
+                <button class={soloAppeal === v ? 'on' : ''} onClick={() => setSoloAppeal(v as number)}>
+                  {label}（{v}）
+                </button>
+              ))}
+            </div>
+          </>
         )}
         <div class="seats">
           {seats.slice(0, count).map((s, i) => (

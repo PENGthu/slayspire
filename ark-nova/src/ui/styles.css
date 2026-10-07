@@ -1101,9 +1101,48 @@ small {
   text-anchor: middle;
   pointer-events: none;
 }
-.zoo-map .bonus {
+.zoo-map .bonus,
+.zoo-map .feature {
   text-anchor: middle;
   pointer-events: none;
+}
+.zoo-map .coin {
+  fill: #f2c94c;
+  stroke: #b8891f;
+  stroke-width: 1.5;
+}
+.zoo-map .coin-num {
+  text-anchor: middle;
+  font-size: 12px;
+  font-weight: 900;
+  fill: #6b4a0e;
+}
+.zoo-map .left-token rect {
+  fill: #f3e3a6;
+  stroke: #c9ad5a;
+  stroke-width: 1.5;
+}
+.zoo-map .left-token.recurring rect {
+  fill: #dccaf0;
+  stroke: #9b7cc4;
+}
+.zoo-map .left-token .lt-icon {
+  text-anchor: middle;
+  font-size: 15px;
+  font-weight: 800;
+  fill: #4b3a20;
+}
+.zoo-map .left-token.present .lt-icon {
+  font-size: 11px;
+  opacity: 0.85;
+}
+.zoo-map .left-token .lt-disc {
+  stroke: #fff;
+  stroke-width: 2;
+  opacity: 0.88;
+}
+.zoo-map .left-token.taken rect {
+  stroke-width: 2.5;
 }
 .zoo-map .building {
   cursor: default;
@@ -1729,6 +1768,41 @@ small {
   font-size: 11px;
   border-radius: 4px;
   padding: 0 4px;
+}
+.action-card .ac-tokens {
+  position: absolute;
+  bottom: 3px;
+  right: 4px;
+  display: flex;
+  gap: 2px;
+}
+.action-card .ac-tokens i {
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 900;
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 4px;
+  padding: 0 2px;
+  color: #6b2a2a;
+}
+.card .card-art-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+.card .card-art > :not(.card-art-bg) {
+  z-index: 1;
+}
+.card .card-art > .emoji,
+.card .card-art > .goal {
+  position: relative;
+}
+.page-note {
+  color: #8a7a5a;
+  margin-left: 8px;
 }
 .action-card.up {
   background: linear-gradient(160deg, color-mix(in srgb, var(--ac) 45%, #fff6d0), color-mix(in srgb, var(--ac) 80%, #fff));

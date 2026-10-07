@@ -2,7 +2,7 @@
 import { useEffect } from 'preact/hooks';
 import { decision, ranking } from '../../game/engine';
 import { getMap } from '../../game/maps';
-import { scoringCp } from '../../game/engine';
+import { scoringCp } from '../../game/effects';
 import { cpPoints } from '../../game/rules';
 import type { GameState } from '../../game/types';
 import {
@@ -22,6 +22,7 @@ import {
   CardModal,
   ChooseModal,
   DecisionBar,
+  HarborModal,
   PickModal,
   ProjectModal,
   ReleaseModal,
@@ -107,7 +108,8 @@ export function GameScreen() {
         <span>💧 水域</span>
         <span>🪨 岩石</span>
         <span class="lg-upg">II 需要升级的建造</span>
-        <span>💰🃏⭐✖️ 覆盖后获得奖励</span>
+        <span>覆盖带图标的格子获得放置奖励</span>
+        <span>左侧圆片：支持保护项目时拿走一个，获得露出的奖励（紫色每次休息再给一次）</span>
       </div>
     </div>
   );
@@ -239,6 +241,7 @@ function Overlays({ g }: { g: GameState }) {
       <PickModal g={g} />
       <ChooseModal g={g} />
       {m?.k === 'card' && <CardModal id={m.id} />}
+      {m?.k === 'harbor' && <HarborModal g={g} />}
       {m?.k === 'project' && <ProjectModal g={g} id={m.id} fromHand={m.fromHand} display={m.display} />}
       {m?.k === 'release' && <ReleaseModal g={g} id={m.id} level={m.level} fromHand={m.fromHand} display={m.display} />}
       {m?.k === 'rules' && (
@@ -465,11 +468,14 @@ function GameOver({ g }: { g: GameState }) {
                     {p.cp}（{cpPoints(p.cp)} 分）
                   </td>
                   <td class="bd">
-                    {p.final?.breakdown.filter((b) => b.cp).map((b) => (
-                      <div>
-                        {b.label} +{b.cp}
-                      </div>
-                    ))}
+                    {p.final?.breakdown
+                      .filter((b) => b.cp || b.appeal)
+                      .map((b) => (
+                        <div>
+                          {b.label} {b.cp ? `+${b.cp} 保护点数` : ''}
+                          {b.appeal ? `+${b.appeal} 吸引力` : ''}
+                        </div>
+                      ))}
                   </td>
                   <td>
                     <b class={(p.final?.score ?? 0) >= 0 ? 'pos' : 'neg'}>{p.final?.score}</b>

@@ -142,7 +142,7 @@ describe('MQTT 编码', () => {
   });
 
   it('快照压缩后可以还原，指纹与属性顺序无关', async () => {
-    const g = createGame({ seed: 9, players: [{ name: 'A', ai: null, map: 'A' }, { name: 'B', ai: null, map: 'lake' }] });
+    const g = createGame({ seed: 9, players: [{ name: 'A', ai: null, map: 'mA' }, { name: 'B', ai: null, map: 'm1' }] });
     const packed = await packBig({ g });
     expect(packed[0]).toBe(0x1f);
     const back = await unpackBig<{ g: GameState }>(packed);
