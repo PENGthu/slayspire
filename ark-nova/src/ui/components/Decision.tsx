@@ -3,7 +3,7 @@ import type { ComponentChildren } from 'preact';
 import { BUILDABLE, buildingDef } from '../../game/buildings';
 import { card, project, SCORING_CARDS } from '../../game/content';
 import { decision, optText } from '../../game/engine';
-import { assocMoves, buildCost, buildableTypes, canIgnoreCondition, freeWorkers, range, workersNeeded } from '../../game/query';
+import { animalOptions, assocMoves, buildCost, buildableTypes, canIgnoreCondition, freeWorkers, range, sponsorError, workersNeeded } from '../../game/query';
 import {
   ACTION_INFO,
   ACTION_TEXT,
@@ -251,14 +251,36 @@ function ActionPreview({ g, a, str }: { g: GameState; a: ActionId; str: number }
   const p = g.players[f.p];
   const up = p.upgraded[a];
   let text = '';
-  if (a === 'animals') text = `可以打出 ${animalsCount(str, up)} 只动物。`;
+  if (a === 'animals') {
+    const n = animalsCount(str, up);
+    const opts = n > 0 ? animalOptions(g, f.p, up, !up && n >= 2) : [];
+    const kinds = new Set(opts.map((o) => o.card)).size;
+    text = `可以打出 ${n} 只动物${n > 0 ? `（现在能打出的动物 ${kinds} 张）` : ''}。`;
+  }
   if (a === 'cards') {
     const d = cardsDraw(str, up);
     text = `抽 ${d.draw} 张${d.discard ? `弃 ${d.discard} 张` : ''}${str >= snapStrength(up) ? '，或抢先拿 1 张' : ''}。`;
   }
-  if (a === 'build') text = `最多 ${str} 格。`;
-  if (a === 'association') text = `任务价值 ≤ ${str}，空闲工人 ${freeWorkers(g, f.p)}。`;
-  if (a === 'sponsors') text = `等级 ≤ ${up ? str + 1 : str}，或拿 ${up ? 2 * str : str} 元。`;
+  if (a === 'build') {
+    const fake = { k: 'build' as const, p: f.p, str, up, budget: str, built: [], done: 0 };
+    const types = buildableTypes(p, fake);
+    text = `最多 ${str} 格${types.length ? '' : '（钱不够或放不下）'}。`;
+  }
+  if (a === 'association') {
+    const fake = { k: 'assoc' as const, p: f.p, str, up, budget: str, used: [], donated: false };
+    const moves = assocMoves(g, f.p, fake);
+    const proj = moves.filter((m) => m.t === 'assoc' && m.task === 'project').length;
+    text = `任务价值 ≤ ${str}，空闲工人 ${freeWorkers(g, f.p)}${proj ? `，可以支持 ${proj} 个项目档位` : ''}。`;
+  }
+  if (a === 'sponsors') {
+    const budget = up ? str + 1 : str;
+    const fake = { k: 'sponsors' as const, p: f.p, str, up, budget, played: 0 };
+    const playable = p.hand.filter((id) => card(id).kind === 'sponsor' && sponsorError(g, f.p, fake, id, -1, []) !== '等级超过行动强度').filter((id) => {
+      const c = card(id);
+      return c.kind === 'sponsor' && c.level <= budget;
+    }).length;
+    text = `等级 ≤ ${budget}${playable ? `（手牌中 ${playable} 张够等级）` : ''}，或拿 ${up ? 2 * str : str} 元。`;
+  }
   return <b class="preview">{text}</b>;
 }
 
