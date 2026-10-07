@@ -76,6 +76,7 @@ export function GameScreen() {
       <div class="map-wrap">
         <ZooMap
           p={viewP}
+          fresh={s.fresh}
           ghost={ghost}
           anchors={anchors}
           targets={targets}
@@ -301,6 +302,19 @@ function MenuModal() {
               {{ fast: '快', normal: '正常', slow: '慢' }[v]}
             </button>
           ))}
+        </div>
+        <div class="setting">
+          音效：
+          <button
+            class={s.settings.sound ? 'on' : ''}
+            onClick={() => {
+              s.settings.sound = !s.settings.sound;
+              set({});
+              saveSettings();
+            }}
+          >
+            {s.settings.sound ? '开' : '关'}
+          </button>
         </div>
         <div class="setting">
           同屏换人时遮挡手牌：

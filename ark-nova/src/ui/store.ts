@@ -3,6 +3,7 @@ import { useEffect, useState } from 'preact/hooks';
 import { aiMove } from '../game/ai';
 import { apply, clone, createGame, decision, RuleError, STATE_VERSION } from '../game/engine';
 import type { ActionId, GameOptions, GameState, Move } from '../game/types';
+import { sfx } from './sound';
 
 const SAVE_KEY = 'ark-nova/save';
 const SETTINGS_KEY = 'ark-nova/settings';
@@ -12,6 +13,7 @@ export type AiSpeed = 'fast' | 'normal' | 'slow';
 
 export interface Settings {
   aiSpeed: AiSpeed;
+  sound: boolean;
   /** 同屏多人时，换人前遮住手牌 */
   cover: boolean;
 }
@@ -66,6 +68,8 @@ export interface AppState {
   modal: Modal | null;
   toasts: Toast[];
   feed: FeedItem[];
+  /** 刚刚建成或放入动物的建筑（短暂高亮） */
+  fresh: number[];
   /** 同屏多人：遮挡中，等待该玩家确认 */
   cover: number | null;
   lastHuman: number | null;
@@ -76,7 +80,7 @@ export interface AppState {
 }
 
 function loadSettings(): Settings {
-  const def: Settings = { aiSpeed: 'normal', cover: true };
+  const def: Settings = { aiSpeed: 'normal', cover: true, sound: true };
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
     return raw ? { ...def, ...JSON.parse(raw) } : def;
@@ -99,6 +103,7 @@ export const state: AppState = {
   modal: null,
   toasts: [],
   feed: [],
+  fresh: [],
   cover: null,
   lastHuman: null,
   tab: 'public',
@@ -260,6 +265,7 @@ export function act(m: Move): boolean {
   try {
     apply(next, m);
   } catch (e) {
+    sfx('error');
     if (e instanceof RuleError) toast(e.message, 'error');
     else {
       console.error(e);
@@ -269,6 +275,8 @@ export function act(m: Move): boolean {
   }
   const human = !g.players[f.p].ai;
   if (!human) pushFeed(g, next, f.p);
+  markFresh(g, next);
+  playFor(g, next, f.p);
   if (human) {
     state.undo = [...state.undo.slice(-40), g];
     state.lastHuman = f.p;
@@ -277,6 +285,41 @@ export function act(m: Move): boolean {
   state.sel = emptySel();
   afterChange();
   return true;
+}
+
+/** 找出这一步新建的建筑、新放入动物的建筑 */
+function markFresh(before: GameState, after: GameState) {
+  const fresh: number[] = [];
+  after.players.forEach((p, i) => {
+    const old = new Map(before.players[i].buildings.map((b) => [b.uid, b.animals.length]));
+    for (const b of p.buildings) {
+      const n = old.get(b.uid);
+      if (n === undefined || n !== b.animals.length) fresh.push(b.uid);
+    }
+  });
+  if (!fresh.length) return;
+  state.fresh = fresh;
+  setTimeout(() => {
+    if (state.fresh === fresh) {
+      state.fresh = [];
+      refresh();
+    }
+  }, 1400);
+}
+
+/** 根据这一步的变化播放音效 */
+function playFor(before: GameState, after: GameState, pi: number) {
+  const a = after.players[pi];
+  const b = before.players[pi];
+  if (after.over && !before.over) return sfx('end');
+  if (a.cp > b.cp) return sfx('cp');
+  if (a.stats.animals > b.stats.animals) return sfx('animal');
+  if (a.buildings.length > b.buildings.length) return sfx('build');
+  if (a.appeal > b.appeal) return sfx('appeal');
+  if (after.breaks > before.breaks) return sfx('coin');
+  if (a.hand.length > b.hand.length) return sfx('card');
+  if (a.money > b.money) return sfx('coin');
+  sfx('click');
 }
 
 let feedKey = 0;

@@ -27,6 +27,8 @@ const KIND_FILL: Record<string, string> = {
 
 interface Props {
   p: PlayerState;
+  /** 刚刚变化的建筑（高亮动画） */
+  fresh?: number[];
   /** 放置预览 */
   ghost?: { cells: number[]; ok: boolean } | null;
   /** 可以作为放置锚点的格子 */
@@ -39,7 +41,7 @@ interface Props {
   compact?: boolean;
 }
 
-export function ZooMap({ p, ghost, anchors, targets, onCell, onHover, onBuilding, compact }: Props) {
+export function ZooMap({ p, ghost, anchors, targets, onCell, onHover, onBuilding, compact, fresh }: Props) {
   const map = getMap(p.map);
   const pos = new Map<number, [number, number]>();
   let minX = Infinity;
@@ -114,6 +116,7 @@ export function ZooMap({ p, ghost, anchors, targets, onCell, onHover, onBuilding
           poly={poly}
           owner={owner}
           target={targets?.has(b.uid)}
+          fresh={fresh?.includes(b.uid)}
           dim={!!targets && !targets.has(b.uid)}
           onClick={onBuilding ? () => onBuilding(b.uid) : undefined}
           onCell={onCell}
@@ -133,11 +136,13 @@ function BuildingShape({
   poly,
   owner,
   target,
+  fresh,
   dim,
   onClick,
   onCell,
 }: {
   b: Building;
+  fresh?: boolean;
   pos: Map<number, [number, number]>;
   poly: (i: number, shrink?: number) => string;
   owner: Map<number, Building>;
@@ -182,7 +187,7 @@ function BuildingShape({
         : def.emoji;
   const fontSize = b.animals.length > 2 ? 15 : b.animals.length === 2 ? 19 : def.kind === 'enclosure' ? 26 : 22;
   return (
-    <g class={`building ${target ? 'target' : ''} ${dim ? 'dim' : ''} ${def.kind}`} onClick={onClick}>
+    <g class={`building ${target ? 'target' : ''} ${dim ? 'dim' : ''} ${fresh ? 'fresh' : ''} ${def.kind}`} onClick={onClick}>
       {b.cells.map((i) => (
         <polygon points={poly(i)} fill={fill} stroke={fill} stroke-width="1" onClick={() => !onClick && onCell?.(i)} />
       ))}
