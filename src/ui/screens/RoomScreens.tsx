@@ -10,6 +10,7 @@ import { act, deleteSave, state, refresh } from '../store';
 import { eventArtUrl } from '../art/cardArt';
 import { figureUrl } from '../art/figureArt';
 import { serviceArtUrl } from '../art/itemArt';
+import { flyGain, gainTargets } from '../gainFx';
 
 export function relicTip(id: string) {
   const d = RELICS[id];
@@ -31,18 +32,47 @@ function cardHover(c: Card) {
 export function RewardScreen({ run }: { run: Run }) {
   const sc = run.screen;
   const [cardIdx, setCardIdx] = useState<number | null>(null);
+  /** 刚领取、正在收起的奖励（播完收起动画再从列表里去掉） */
+  const [leaving, setLeaving] = useState<number[]>([]);
   if (sc.s !== 'reward') return null;
   const rewards = sc.rewards;
   const pickCard = cardIdx !== null ? rewards[cardIdx] : null;
+
+  /** 领取奖励：成功时让这一项收起，并让图标（或选中的牌）飞向顶栏对应的位置 */
+  const take = (i: number, cardIndex = -1, fly?: { el: Element | null; to: () => Element | null; endScale?: number; hide?: boolean }) => {
+    // 收起动画要从这一项当前的高度开始
+    const item = document.querySelector(`.rewards [data-ri="${i}"]`) as HTMLElement | null;
+    if (item) item.style.setProperty('--h', `${item.offsetHeight}px`);
+    let ok = false;
+    act(() => {
+      ok = run.takeReward(i, cardIndex);
+    });
+    if (!ok) return;
+    setLeaving((l) => [...l, i]);
+    if (fly?.el) flyGain(fly.el, fly.to, { endScale: fly.endScale, hideTarget: fly.hide });
+  };
+  const iconOf = (e: Event) => (e.currentTarget as Element).querySelector('.ri');
+  const done = (i: number) => setLeaving((l) => l.filter((x) => x !== i));
+  let shown = 0;
+
   return (
     <div class="room">
       <div class="rewards panel">
         <h2>战利品</h2>
         {rewards.map((r, i) => {
-          if (r.taken) return null;
+          const going = r.taken && leaving.includes(i);
+          if (r.taken && !going) return null;
+          const common = {
+            key: i,
+            'data-ri': i,
+            class: `reward-item ${going ? 'taking' : ''}`,
+            style: { '--i': String(shown++) } as Record<string, string>,
+            disabled: going,
+            onAnimationEnd: (e: AnimationEvent) => e.target === e.currentTarget && going && done(i),
+          };
           if (r.type === 'gold')
             return (
-              <button key={i} class="reward-item" onClick={() => act(() => run.takeReward(i))}>
+              <button {...common} onClick={(e) => take(i, -1, { el: iconOf(e), to: gainTargets.gold })}>
                 <span class="ri">🪙</span>
                 <span class="num" style={{ color: 'var(--gold)' }}>
                   {r.n}
@@ -53,7 +83,14 @@ export function RewardScreen({ run }: { run: Run }) {
           if (r.type === 'relic') {
             const d = RELICS[r.id];
             return (
-              <button key={i} class="reward-item" onClick={() => act(() => run.takeReward(i))} {...tipProps(relicTip(r.id), 'right')}>
+              <button
+                {...common}
+                onClick={(e) => {
+                  hideTip();
+                  take(i, -1, { el: iconOf(e), to: gainTargets.relic(r.id), hide: true });
+                }}
+                {...tipProps(relicTip(r.id), 'right')}
+              >
                 <span class="ri">
                   <RelicIcon id={r.id} />
                 </span>
@@ -68,9 +105,12 @@ export function RewardScreen({ run }: { run: Run }) {
             const d = POTIONS[r.id];
             return (
               <button
-                key={i}
-                class="reward-item"
-                onClick={() => act(() => run.takeReward(i))}
+                {...common}
+                onClick={(e) => {
+                  hideTip();
+                  const slot = run.potions.findIndex((p) => p === null);
+                  take(i, -1, { el: iconOf(e), to: gainTargets.potion(slot), hide: true });
+                }}
                 {...tipProps([{ title: d.name, body: d.desc }], 'right')}
               >
                 <span class="ri">
@@ -85,7 +125,7 @@ export function RewardScreen({ run }: { run: Run }) {
             );
           }
           return (
-            <button key={i} class="reward-item" onClick={() => setCardIdx(i)}>
+            <button {...common} onClick={() => setCardIdx(i)}>
               <span class="ri">🂠</span>
               <span>将一张牌加入牌组</span>
             </button>
@@ -104,10 +144,14 @@ export function RewardScreen({ run }: { run: Run }) {
                 key={c.uid}
                 card={c}
                 size={stageInfo.w < stageInfo.h ? 'md' : 'lg'}
-                onClick={() => {
+                onClick={(e: MouseEvent) => {
+                  const el = e.currentTarget as HTMLElement;
+                  const idx = cardIdx!;
                   setCardIdx(null);
                   hideTip();
-                  act(() => run.takeReward(cardIdx!, j));
+                  // 选中的牌飞进牌组；弹窗淡出时这张牌已经不在原处
+                  take(idx, j, { el, to: gainTargets.deck, endScale: 0.18 });
+                  el.style.visibility = 'hidden';
                 }}
                 {...cardHover(c)}
               />
@@ -120,8 +164,9 @@ export function RewardScreen({ run }: { run: Run }) {
             <button
               class="btn"
               onClick={() => {
+                const idx = cardIdx!;
                 setCardIdx(null);
-                act(() => run.takeReward(cardIdx!, -1));
+                take(idx, -1);
               }}
             >
               跳过{run.hasRelic('singing_bowl') ? '（最大生命 +2）' : ''}

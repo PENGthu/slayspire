@@ -1954,6 +1954,11 @@ button {
   flex-direction: column;
   gap: 10px;
 }
+/* 横屏时固定在上方：领取后下面的项上移，面板本身不跟着重新居中而下沉 */
+.landscape .rewards {
+  align-self: flex-start;
+  margin-top: 48px;
+}
 .rewards h2 {
   text-align: center;
   font-family: var(--f-display);
@@ -1983,8 +1988,67 @@ button {
   width: 34px;
   text-align: center;
 }
-.reward-item.taken {
-  display: none;
+/* 奖励逐项滑入；领取后向右淡出并收起高度，下面的项平滑上移 */
+.reward-item {
+  animation: ri-in 0.34s cubic-bezier(0.2, 0.7, 0.3, 1) backwards;
+  animation-delay: calc(var(--i, 0) * 70ms + 120ms);
+}
+@keyframes ri-in {
+  from {
+    opacity: 0;
+    transform: translateX(-18px);
+  }
+}
+.reward-item.taking {
+  pointer-events: none;
+  overflow: hidden;
+  animation: ri-out 0.36s ease-in forwards;
+  animation-delay: 0s;
+}
+@keyframes ri-out {
+  0% {
+    opacity: 1;
+    transform: none;
+    max-height: var(--h, 80px);
+  }
+  45% {
+    opacity: 0;
+    transform: translateX(28px);
+    max-height: var(--h, 80px);
+    margin-bottom: 0;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(28px);
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    border-width: 0;
+    margin-bottom: -10px;
+  }
+}
+.stage.fast .reward-item {
+  animation-duration: 0.2s;
+  animation-delay: calc(var(--i, 0) * 35ms);
+}
+.stage.fast .reward-item.taking {
+  animation-duration: 0.22s;
+  animation-delay: 0s;
+}
+
+/* 收获飞向顶栏，落地时目标弹一下（见 gainFx.ts） */
+.gain-fly {
+  transition: none !important;
+  animation: none !important;
+}
+.gain-pop {
+  animation: gain-pop 0.45s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+@keyframes gain-pop {
+  40% {
+    transform: scale(1.3);
+    filter: brightness(1.5) drop-shadow(0 0 8px rgba(255, 220, 140, 0.9));
+  }
 }
 .reward-item .rt {
   display: flex;

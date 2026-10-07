@@ -101,6 +101,7 @@ export function TopBar({ run }: { run: Run }) {
           return (
             <div
               key={r.id}
+              data-relic={r.id}
               class={`relic ${r.used ? 'used' : ''}`}
               {...tipProps([{ title: d.name, sub: TIER_NAMES[d.tier], body: d.desc + (d.flavor ? `\n\n${d.flavor}` : '') }], 'bottom')}
             >
