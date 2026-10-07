@@ -1,0 +1,22 @@
+{
+  "name": "ark-nova-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "方舟动物园（Ark Nova）网页同人版：1–4 人，支持 AI 对手与同屏多人",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && node scripts/inline.mjs",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "preact": "^11.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2",
+    "vite": "^8.3.2",
+    "vitest": "^5.0.3"
+  }
+}
