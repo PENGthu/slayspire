@@ -10,7 +10,7 @@ import { act, deleteSave, state, refresh } from '../store';
 import { eventArtUrl } from '../art/cardArt';
 import { figureUrl } from '../art/figureArt';
 import { serviceArtUrl } from '../art/itemArt';
-import { deny, flyGain, gainGoldFx, gainTargets, spendGold } from '../gainFx';
+import { actWithGains, deny, flyGain, gainGoldFx, gainTargets, spendGold } from '../gainFx';
 
 export function relicTip(id: string) {
   const d = RELICS[id];
@@ -314,7 +314,7 @@ export function RestScreen({ run }: { run: Run }) {
       {!sc.done ? (
         <div class="rest-opts">
           {opts.map((o) => (
-            <button key={o.id} class="rest-opt" disabled={o.ok !== true} title={o.ok === true ? '' : o.ok} onClick={() => act(() => run.restAction(o.id))}>
+            <button key={o.id} class="rest-opt" disabled={o.ok !== true} title={o.ok === true ? '' : o.ok} onClick={(e) => actWithGains(run, e.currentTarget as Element, () => run.restAction(o.id))}>
               <span class="ico">{o.ico}</span>
               <span class="lbl">{o.lbl}</span>
               <span class="desc">{o.ok === true ? o.desc : o.ok}</span>
@@ -350,7 +350,7 @@ export function EventScreen({ run }: { run: Run }) {
         <div class="event-text">{v.text}</div>
         <div class="event-opts">
           {v.options.map((o, i) => (
-            <button key={i} class={`event-opt ${o.tone ?? ''}`} disabled={!!o.disabled} onClick={() => act(() => o.go())}>
+            <button key={i} class={`event-opt ${o.tone ?? ''}`} disabled={!!o.disabled} onClick={(e) => actWithGains(run, e.currentTarget as Element, () => o.go())}>
               <span class="lbl">【{o.label}】</span>
               {(o.hint || o.disabled) && <span class="hint">{o.disabled ? o.disabled : o.hint}</span>}
             </button>
@@ -500,7 +500,7 @@ export function AncientScreen({ run }: { run: Run }) {
                 key={bid}
                 class={`blessing ${b.tone === 'trade' ? 'trade' : ''} ${picked === i ? 'chosen' : ''}`}
                 disabled={picked !== undefined}
-                onClick={() => act(() => run.chooseBlessing(i))}
+                onClick={(e) => actWithGains(run, e.currentTarget as Element, () => run.chooseBlessing(i))}
               >
                 <span class="lbl">{b.label}</span>
                 <span class="desc">{b.desc}</span>

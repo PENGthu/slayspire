@@ -2050,6 +2050,17 @@ button {
     filter: brightness(1.5) drop-shadow(0 0 8px rgba(255, 220, 140, 0.9));
   }
 }
+/* 战斗外的生命变化：在生命值下方飘字 */
+.hp-float {
+  font-family: var(--f-num);
+  font-weight: 700;
+  font-size: 26px;
+  white-space: nowrap;
+  text-shadow: 0 0 4px #000, 0 2px 2px #000;
+}
+.hp-float.heal { color: #8df07a; }
+.hp-float.hurt { color: #ff6b5a; }
+.hp-float.max { color: #ffe08a; font-family: var(--f-serif); font-size: 20px; }
 .reward-item .rt {
   display: flex;
   flex-direction: column;

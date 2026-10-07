@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Reveal, RevealKind, Run } from '../../game/run';
+import { flyGain, gainTargets } from '../gainFx';
 import { refresh } from '../store';
 import { CardView } from './CardView';
 import { stageInfo } from './Tooltip';
@@ -15,8 +16,20 @@ const TITLES: Record<RevealKind, string> = {
 export function CardReveal({ run }: { run: Run }) {
   const rv: Reveal | undefined = run.reveals[0];
   const [leaving, setLeaving] = useState(false);
+  const panel = useRef<HTMLDivElement>(null);
+  const flown = useRef<number | null>(null);
   if (rv) rv.shown = true;
+  /** 展示结束时，这些牌（变化、升级后的样子）飞进牌组 */
+  const flyAway = () => {
+    if (!rv || flown.current === rv.id) return;
+    flown.current = rv.id;
+    panel.current?.querySelectorAll('.rv-cards .card:not(.rv-old)').forEach((el, k) => {
+      flyGain(el, gainTargets.deck, { endScale: 0.16, duration: 520, delay: k * 70 });
+      (el as HTMLElement).style.visibility = 'hidden';
+    });
+  };
   const close = () => {
+    flyAway();
     if (run.reveals[0] === rv) run.reveals.shift();
     setLeaving(false);
     refresh();
@@ -25,7 +38,10 @@ export function CardReveal({ run }: { run: Run }) {
     if (!rv) return;
     setLeaving(false);
     const hold = 1500 + rv.cards.length * 300 + (rv.from ? 600 : 0);
-    const t1 = setTimeout(() => setLeaving(true), hold);
+    const t1 = setTimeout(() => {
+      flyAway();
+      setLeaving(true);
+    }, hold);
     const t2 = setTimeout(close, hold + 280);
     return () => {
       clearTimeout(t1);
@@ -40,7 +56,7 @@ export function CardReveal({ run }: { run: Run }) {
   const size = many ? 'sm' : 'md';
   return (
     <div class={`card-reveal ${leaving ? 'leaving' : ''}`}>
-      <div class="rv-panel" onClick={close}>
+      <div class="rv-panel" key={rv.id} ref={panel} onClick={close}>
         <h3>{TITLES[rv.kind]}</h3>
         <div class="rv-cards">
           {rv.cards.map((c, i) =>

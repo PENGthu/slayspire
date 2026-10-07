@@ -16,7 +16,7 @@ import { Bestiary } from './Bestiary';
 import { AchievementsOverlay } from './Achievements';
 import { SlotsOverlay } from './SaveSlots';
 import { enterFullscreen, exitFullscreen, isFullscreen, needsHomeScreen, showFullscreenButton } from '../fullscreen';
-import { burnAway } from '../gainFx';
+import { actWithGains, burnAway } from '../gainFx';
 
 const TYPE_ORDER: Record<string, number> = { attack: 0, skill: 1, power: 2, status: 3, curse: 4 };
 
@@ -259,12 +259,13 @@ export function SelectionOverlay({ run }: { run: Run }) {
   const [hoverUid, setHoverUid] = useState<number | null>(null);
   if (!s) return null;
   const single = s.min === 1 && s.max === 1;
-  const done = (sel: Card[]) => {
+  const done = (sel: Card[], src: Element | null) => {
     setPicked([]);
     hideTip();
     // 先记下选中的牌在界面上的位置：确认后若它们被移出了牌组，就在原处烧掉
     const els = sel.map((c) => document.querySelector(`.overlay [data-card="${c.uid}"]`));
-    act(() => run.resolveSelection(sel));
+    // 选牌后得到的金币、遗物等从点下的牌（或确认按钮）飞出
+    actWithGains(run, src, () => run.resolveSelection(sel));
     sel.forEach((c, k) => {
       const el = els[k];
       if (el && !run.deck.includes(c)) burnAway(el);
@@ -289,7 +290,7 @@ export function SelectionOverlay({ run }: { run: Run }) {
               dataUid
               cls={picked.includes(c.uid) ? 'picked' : ''}
               onClick={() => {
-                if (single) return done([c]);
+                if (single) return done([c], document.querySelector(`.overlay [data-card="${c.uid}"]`));
                 setPicked((p) => (p.includes(c.uid) ? p.filter((u) => u !== c.uid) : p.length < s.max ? [...p, c.uid] : p));
               }}
               onPointerEnter={(e) => {
@@ -323,7 +324,7 @@ export function SelectionOverlay({ run }: { run: Run }) {
           <button
             class="btn primary"
             disabled={picked.length < s.min || picked.length > s.max}
-            onClick={() => done(s.cards.filter((c) => picked.includes(c.uid)))}
+            onClick={(e) => done(s.cards.filter((c) => picked.includes(c.uid)), e.currentTarget as Element)}
           >
             确认（{picked.length}/{s.max}）
           </button>
