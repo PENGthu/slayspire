@@ -2088,6 +2088,72 @@ button {
   width: var(--sz, 210px);
   height: var(--sz, 210px);
 }
+/* 宝箱：打开前晃一晃，打开时一道光 */
+.chest-art {
+  position: relative;
+}
+.chest-art.shake {
+  animation: chest-shake 0.38s ease-in-out;
+}
+@keyframes chest-shake {
+  15% {
+    transform: rotate(-4deg) translateY(-3px);
+  }
+  30% {
+    transform: rotate(4deg) translateY(-5px);
+  }
+  45% {
+    transform: rotate(-3deg) translateY(-3px);
+  }
+  60% {
+    transform: rotate(3deg) translateY(-2px);
+  }
+  80% {
+    transform: rotate(-1deg);
+  }
+}
+.chest-burst {
+  position: absolute;
+  inset: -30%;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 42%, rgba(255, 236, 170, 0.95) 0%, rgba(255, 200, 90, 0.55) 22%, rgba(255, 180, 60, 0) 55%);
+  mix-blend-mode: screen;
+  animation: chest-burst 0.9s ease-out forwards;
+}
+@keyframes chest-burst {
+  from {
+    opacity: 1;
+    transform: scale(0.5);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.25);
+  }
+}
+.chest-loot,
+.chest-next {
+  animation: fadein 0.4s ease 0.35s backwards;
+}
+
+/* 首领遗物：选中的放大发光，其余退下 */
+.boss-pick {
+  transition: transform 0.28s ease, opacity 0.28s ease, box-shadow 0.28s ease, border-color 0.28s ease;
+}
+.rest-opt.boss-pick:disabled {
+  cursor: default;
+  opacity: 1;
+}
+.rest-opt.boss-pick.chosen {
+  transform: scale(1.08);
+  border-color: var(--gold);
+  box-shadow: 0 0 28px rgba(226, 176, 74, 0.55);
+  opacity: 1;
+}
+.rest-opt.boss-pick.passed {
+  transform: scale(0.94) translateY(10px);
+  opacity: 0.3;
+}
+
 .figure-img {
   display: block;
   pointer-events: none;

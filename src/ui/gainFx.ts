@@ -4,6 +4,19 @@
  */
 import { rectInStage, stageInfo } from './components/Tooltip';
 
+export interface Rect {
+  l: number;
+  t: number;
+  r: number;
+  b: number;
+}
+
+const centered = (r: Rect, w: number, h: number): Rect => {
+  const cx = (r.l + r.r) / 2;
+  const cy = (r.t + r.b) / 2;
+  return { l: cx - w / 2, t: cy - h / 2, r: cx + w / 2, b: cy + h / 2 };
+};
+
 /** 让元素弹一下（重复触发时从头播放） */
 export function pop(el: Element) {
   el.classList.remove('gain-pop');
@@ -19,14 +32,16 @@ export function pop(el: Element) {
 export function flyGain(
   src: Element,
   findTarget: () => Element | null,
-  opts: { endScale?: number; duration?: number; delay?: number; hideTarget?: boolean } = {},
+  opts: { endScale?: number; duration?: number; delay?: number; hideTarget?: boolean; from?: Rect } = {},
 ) {
   const stage = stageInfo.el;
   if (!stage || typeof (src as HTMLElement).animate !== 'function') return;
-  const from = rectInStage(src);
-  const w = from.r - from.l;
-  const h = from.b - from.t;
+  const own = rectInStage(src);
+  const w = own.r - own.l;
+  const h = own.b - own.t;
   if (w <= 0 || h <= 0) return;
+  // 可以从别处出发（例如从宝箱里升起）：保持 src 的大小，中心放在 opts.from 的中心
+  const from = opts.from ? centered(opts.from, w, h) : own;
   const ghost = src.cloneNode(true) as HTMLElement;
   ghost.classList.remove('hovered', 'picked', 'dragging');
   ghost.classList.add('gain-fly');
@@ -81,13 +96,10 @@ export function flyGain(
   );
 }
 
-/** 付钱：几枚金币从顶栏的金币数飞向买下的东西，金币数闪一下 */
-export function spendGold(to: Element, coins = 3) {
+/** 一串金币从 a 飞向 b（舞台坐标）；全部落地后调用 onLand */
+function coinShower(a: Rect, b: Rect, coins: number, onLand?: () => void) {
   const stage = stageInfo.el;
-  const from = document.querySelector('.topbar .tb-gold .ico');
-  if (!stage || !from || typeof (to as HTMLElement).animate !== 'function') return;
-  const a = rectInStage(from);
-  const b = rectInStage(to);
+  if (!stage || typeof stage.animate !== 'function') return;
   const dx = (b.l + b.r) / 2 - (a.l + a.r) / 2;
   const dy = (b.t + b.b) / 2 - (a.t + a.b) / 2;
   for (let k = 0; k < coins; k++) {
@@ -105,9 +117,19 @@ export function spendGold(to: Element, coins = 3) {
       ],
       { duration: 420, delay: k * 70, fill: 'backwards', easing: 'cubic-bezier(0.4, 0, 0.3, 1)' },
     );
-    anim.onfinish = () => coin.remove();
-    setTimeout(() => coin.remove(), 900);
+    anim.onfinish = () => {
+      coin.remove();
+      if (k === coins - 1) onLand?.();
+    };
+    setTimeout(() => coin.remove(), 420 + k * 70 + 400);
   }
+}
+
+/** 付钱：几枚金币从顶栏的金币数飞向买下的东西，金币数闪一下 */
+export function spendGold(to: Element, coins = 3) {
+  const from = document.querySelector('.topbar .tb-gold .ico');
+  if (!from) return;
+  coinShower(rectInStage(from), rectInStage(to), coins);
   const counter = document.querySelector('.topbar .tb-gold');
   if (counter) {
     counter.classList.remove('spend-flash');
@@ -115,6 +137,14 @@ export function spendGold(to: Element, coins = 3) {
     counter.classList.add('spend-flash');
     setTimeout(() => counter.classList.remove('spend-flash'), 600);
   }
+}
+
+/** 得到金币：一串金币从 from（元素或舞台坐标）飞向顶栏的金币数，落地时金币数弹一下 */
+export function gainGoldFx(from: Element | Rect, coins = 5) {
+  const counter = document.querySelector('.topbar .tb-gold');
+  if (!counter) return;
+  const a = from instanceof Element ? rectInStage(from) : from;
+  coinShower(a, rectInStage(counter), coins, () => pop(counter));
 }
 
 /** 买不起：轻轻摇一下 */

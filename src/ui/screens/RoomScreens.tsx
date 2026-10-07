@@ -1,16 +1,16 @@
-import { useState } from 'preact/hooks';
+import { useRef, useState } from 'preact/hooks';
 import { CHARACTERS } from '../../game/characters';
 import { ANCIENTS, EVENTS, POTIONS, RELICS } from '../../game/registry';
 import type { Run } from '../../game/run';
 import type { Card } from '../../game/types';
 import { PotionIcon, Portrait, RelicIcon } from '../components/Art';
 import { CardView, cardTips } from '../components/CardView';
-import { hideTip, pointer, showTip, stageInfo, tipProps } from '../components/Tooltip';
+import { hideTip, pointer, rectInStage, showTip, stageInfo, tipProps } from '../components/Tooltip';
 import { act, deleteSave, state, refresh } from '../store';
 import { eventArtUrl } from '../art/cardArt';
 import { figureUrl } from '../art/figureArt';
 import { serviceArtUrl } from '../art/itemArt';
-import { deny, flyGain, gainTargets, spendGold } from '../gainFx';
+import { deny, flyGain, gainGoldFx, gainTargets, spendGold } from '../gainFx';
 
 export function relicTip(id: string) {
   const d = RELICS[id];
@@ -364,28 +364,59 @@ export function EventScreen({ run }: { run: Run }) {
 // ============================================================ 宝箱
 export function TreasureScreen({ run }: { run: Run }) {
   const sc = run.screen;
+  const [opening, setOpening] = useState(false);
+  const chestRef = useRef<HTMLDivElement>(null);
   if (sc.s !== 'treasure') return null;
   const names = { small: '小宝箱', medium: '宝箱', large: '大宝箱' };
+  /** 先晃一晃，再打开：遗物从箱子里升起飞向遗物栏，金币飞向金币数 */
+  const open = () => {
+    if (sc.opened || opening) return;
+    setOpening(true);
+    setTimeout(() => {
+      const gold0 = run.gold;
+      const relic = sc.relic;
+      act(() => run.openChest());
+      setOpening(false);
+      // 等打开后的画面渲染出来（遗物行里的图标就是飞行物的样子）
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          const chest = chestRef.current?.querySelector('.figure-img') ?? chestRef.current;
+          if (!chest) return;
+          const box = rectInStage(chest);
+          const mouth = { l: box.l, r: box.r, t: box.t + (box.b - box.t) * 0.25, b: box.t + (box.b - box.t) * 0.55 };
+          const icon = document.querySelector('.chest-loot .item-icon');
+          if (icon) flyGain(icon, gainTargets.relic(relic), { from: mouth, hideTarget: true, delay: 120, duration: 700 });
+          if (run.gold > gold0) gainGoldFx(mouth, 6);
+        }),
+      );
+    }, 380);
+  };
   return (
     <div class="room" style={{ flexDirection: 'column' }}>
-      <div class="big-art chest-art" style={{ '--sz': sc.size === 'large' ? '240px' : sc.size === 'medium' ? '210px' : '180px', cursor: sc.opened ? 'default' : 'pointer' } as Record<string, string>} onClick={() => act(() => run.openChest())}>
+      <div
+        ref={chestRef}
+        class={`big-art chest-art ${opening ? 'shake' : ''}`}
+        style={{ '--sz': sc.size === 'large' ? '240px' : sc.size === 'medium' ? '210px' : '180px', cursor: sc.opened ? 'default' : 'pointer' } as Record<string, string>}
+        onClick={open}
+      >
         <img class="figure-img" src={figureUrl(sc.opened ? 'chest_open' : 'chest_closed')!} alt="" draggable={false} />
+        {sc.opened && <div class="chest-burst" />}
       </div>
       <h2>{names[sc.size]}</h2>
       {!sc.opened ? (
-        <button class="btn primary" onClick={() => act(() => run.openChest())}>
+        <button class="btn primary" disabled={opening} onClick={open}>
           打开
         </button>
       ) : (
         <>
-          <div style={{ display: 'flex', gap: '16px', alignItems: 'center', fontSize: '18px' }}>
+          <div class="chest-loot" style={{ display: 'flex', gap: '16px', alignItems: 'center', fontSize: '18px' }}>
             <span {...tipProps(relicTip(sc.relic), 'right')} style={{ fontSize: '40px' }}>
               <RelicIcon id={sc.relic} />
             </span>
             <span>获得「{RELICS[sc.relic].name}」</span>
             {sc.gold > 0 && !run.hasRelic('ectoplasm') && <span style={{ color: 'var(--gold)' }}>以及 {sc.gold} 金币</span>}
           </div>
-          <button class="btn" onClick={() => act(() => run.leaveRoom())}>
+          <button class="btn chest-next" onClick={() => act(() => run.leaveRoom())}>
             继续前进
           </button>
         </>
@@ -397,7 +428,20 @@ export function TreasureScreen({ run }: { run: Run }) {
 // ============================================================ 首领遗物
 export function BossRelicScreen({ run }: { run: Run }) {
   const sc = run.screen;
+  /** 已选中的遗物：放大发光、其余两件退下，随后飞向遗物栏并进入下一幕 */
+  const [chosen, setChosen] = useState<number | null>(null);
   if (sc.s !== 'bossRelic') return null;
+  const pick = (i: number, e: Event) => {
+    if (chosen !== null) return;
+    hideTip();
+    setChosen(i);
+    const icon = (e.currentTarget as Element).querySelector('.item-icon');
+    const id = sc.choices[i];
+    setTimeout(() => {
+      act(() => run.pickBossRelic(i));
+      if (icon) flyGain(icon, gainTargets.relic(id), { hideTarget: true, duration: 650 });
+    }, 320);
+  };
   return (
     <div class="room" style={{ flexDirection: 'column' }}>
       <h2>首领的宝藏</h2>
@@ -406,7 +450,13 @@ export function BossRelicScreen({ run }: { run: Run }) {
         {sc.choices.map((id, i) => {
           const d = RELICS[id];
           return (
-            <button key={id} class="rest-opt" style={{ width: '220px' }} onClick={() => act(() => run.pickBossRelic(i))}>
+            <button
+              key={id}
+              class={`rest-opt boss-pick ${chosen === i ? 'chosen' : chosen !== null ? 'passed' : ''}`}
+              style={{ width: '220px' }}
+              disabled={chosen !== null}
+              onClick={(e) => pick(i, e)}
+            >
               <span class="ico" style={{ fontSize: '60px' }}>
                 <RelicIcon id={id} />
               </span>
@@ -418,7 +468,7 @@ export function BossRelicScreen({ run }: { run: Run }) {
           );
         })}
       </div>
-      <button class="btn ghost" onClick={() => act(() => run.pickBossRelic(-1))}>
+      <button class="btn ghost" disabled={chosen !== null} onClick={() => act(() => run.pickBossRelic(-1))}>
         不拿
       </button>
     </div>
