@@ -3,7 +3,7 @@
 // 这样多步行动、触发的奖励、休息时的弃牌都能统一处理，AI 和界面也走同一条路径。
 import { buildingDef } from './buildings';
 import { animal, baseProjects, card, deckCards, project, sponsor, SCORING, SCORING_CARDS } from './content';
-import { BONUS_INFO } from './maps';
+import { BONUS_INFO, getMap } from './maps';
 import {
   animalCost,
   animalError,
@@ -60,7 +60,7 @@ export const STATE_VERSION = 2;
 export const PLAYER_COLORS = ['#d9534f', '#3b7dd8', '#e0a526', '#4caf6a'];
 
 /** 每位玩家最多回合数（防止异常对局无限进行） */
-const TURN_LIMIT = 80;
+const TURN_LIMIT = 120;
 
 const AUTO_KINDS = new Set<Frame['k']>(['endTurn', 'afterTurn', 'finishAction', 'animalsEnd', 'breakFinish', 'begin', 'hypnoEnd']);
 
@@ -246,6 +246,10 @@ export function createGame(opts: GameOptions): GameState {
     });
   });
   refillDisplay(g);
+  for (const p of g.players) {
+    const ab = getMap(p.map).ability;
+    if (ab.k === 'startMoney') p.money += ab.n;
+  }
 
   const setup: Frame[] = [];
   g.players.forEach((_, i) => {
@@ -798,6 +802,8 @@ export function breakIncome(g: GameState, pi: number): { total: number; parts: {
 
 function doEndTurn(g: GameState, pi: number) {
   g.players[pi].stats.turns++;
+  // 单人挑战：时间不等人，每个回合结束时休息标记自动前进 1 格
+  if (g.solo) advanceBreak(g, 1);
   if (g.breakPos >= g.breakMax) {
     log(g, pi, '休息标记到达终点：触发休息');
     const fs: Frame[] = [];

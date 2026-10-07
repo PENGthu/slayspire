@@ -37,15 +37,23 @@ export type Modal =
   | { k: 'card'; id: string }
   | { k: 'menu' }
   | { k: 'rules' }
-  | { k: 'project'; id: string; fromHand: boolean }
-  | { k: 'release'; id: string; level: number; fromHand: boolean }
+  | { k: 'project'; id: string; fromHand: boolean; display?: number }
+  | { k: 'release'; id: string; level: number; fromHand: boolean; display?: number }
   | { k: 'player'; p: number }
+  | { k: 'guide' }
   | { k: 'confirm'; text: string; yes: string; onYes: () => void };
 
 export interface Toast {
   key: number;
   text: string;
   kind: 'error' | 'info';
+}
+
+/** AI 行动的动态（右上角，几秒后消失） */
+export interface FeedItem {
+  key: number;
+  p: number;
+  text: string;
 }
 
 export interface AppState {
@@ -57,6 +65,7 @@ export interface AppState {
   thinking: boolean;
   modal: Modal | null;
   toasts: Toast[];
+  feed: FeedItem[];
   /** 同屏多人：遮挡中，等待该玩家确认 */
   cover: number | null;
   lastHuman: number | null;
@@ -89,6 +98,7 @@ export const state: AppState = {
   thinking: false,
   modal: null,
   toasts: [],
+  feed: [],
   cover: null,
   lastHuman: null,
   tab: 'public',
@@ -196,6 +206,24 @@ export function me(): number {
   return humans(g)[0] ?? 0;
 }
 
+const GUIDE_KEY = 'ark-nova/guide-seen';
+
+export function guideSeen(): boolean {
+  try {
+    return localStorage.getItem(GUIDE_KEY) === '1';
+  } catch {
+    return true;
+  }
+}
+
+export function markGuideSeen() {
+  try {
+    localStorage.setItem(GUIDE_KEY, '1');
+  } catch {
+    /* 忽略 */
+  }
+}
+
 export function startGame(opts: GameOptions) {
   const g = createGame(opts);
   state.g = g;
@@ -206,6 +234,7 @@ export function startGame(opts: GameOptions) {
   state.cover = null;
   state.lastHuman = null;
   state.view = humans(g)[0] ?? 0;
+  if (!guideSeen()) state.modal = { k: 'guide' };
   afterChange();
 }
 
@@ -239,6 +268,7 @@ export function act(m: Move): boolean {
     return false;
   }
   const human = !g.players[f.p].ai;
+  if (!human) pushFeed(g, next, f.p);
   if (human) {
     state.undo = [...state.undo.slice(-40), g];
     state.lastHuman = f.p;
@@ -247,6 +277,32 @@ export function act(m: Move): boolean {
   state.sel = emptySel();
   afterChange();
   return true;
+}
+
+let feedKey = 0;
+
+/** 把 AI 这一步产生的日志放进动态栏 */
+function pushFeed(before: GameState, after: GameState, p: number) {
+  const last = before.log[before.log.length - 1];
+  let start = 0;
+  if (last) {
+    for (let i = after.log.length - 1; i >= 0; i--) {
+      const l = after.log[i];
+      if (l.text === last.text && l.turn === last.turn && l.p === last.p) {
+        start = i + 1;
+        break;
+      }
+    }
+  }
+  const fresh = after.log.slice(start).filter((l) => l.p === p);
+  if (!fresh.length) return;
+  const items = fresh.slice(0, 4).map((l) => ({ key: ++feedKey, p: l.p!, text: l.text }));
+  state.feed = [...state.feed, ...items].slice(-6);
+  const keys = new Set(items.map((x) => x.key));
+  setTimeout(() => {
+    state.feed = state.feed.filter((x) => !keys.has(x.key));
+    refresh();
+  }, 6000);
 }
 
 export function canUndo(): boolean {

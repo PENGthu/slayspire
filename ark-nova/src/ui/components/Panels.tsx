@@ -1,8 +1,8 @@
 // 对局中的各个面板：玩家概况、行动卡、手牌、展示区、协会版图、日志。
 import { useEffect, useRef } from 'preact/hooks';
-import { card, project } from '../../game/content';
+import { card, project, SCORING_CARDS } from '../../game/content';
 import { breakIncome, decision } from '../../game/engine';
-import { handLimit, iconCounts, range, workersNeeded } from '../../game/query';
+import { handLimit, iconCounts, metric, range, workersNeeded } from '../../game/query';
 import {
   ACTION_INFO,
   ACTION_TEXT,
@@ -70,10 +70,10 @@ export function PlayerStats({ g, pi }: { g: GameState; pi: number }) {
   return (
     <div class="player-stats" style={{ '--pc': p.color }}>
       <div class="ps-row main">
-        <Stat icon="💰" value={p.money} title="钱" cls="money" />
-        <Stat icon="🎟️" value={p.appeal} title={`吸引力（休息收入 ${appealIncome(p.appeal)} 元）`} cls="appeal" />
-        <Stat icon="🌿" value={p.cp} title={`保护点数（${cpPoints(p.cp)} 分）`} cls="cp" />
-        <Stat icon="⭐" value={p.rep} title={`声望（展示区范围 ${range(p)}）`} cls="rep" />
+        <Stat icon="💰" value={p.money} num={p.money} owner={pi} title="钱" cls="money" />
+        <Stat icon="🎟️" value={p.appeal} num={p.appeal} owner={pi} title={`吸引力（休息收入 ${appealIncome(p.appeal)} 元）`} cls="appeal" />
+        <Stat icon="🌿" value={p.cp} num={p.cp} owner={pi} title={`保护点数（${cpPoints(p.cp)} 分）`} cls="cp" />
+        <Stat icon="⭐" value={p.rep} num={p.rep} owner={pi} title={`声望（展示区范围 ${range(p)}）`} cls="rep" />
         <Stat icon="✖️" value={`${p.x}/${MAX_X}`} title="X 标记：每个可以让行动强度 +1" />
         <Stat icon="👤" value={`${p.workers - used}/${p.workers}`} title="协会工人（空闲/总数）" />
         <Stat icon="🃏" value={`${p.hand.length}/${handLimit(p)}`} title="手牌（休息时的上限）" />
@@ -226,6 +226,10 @@ export function DisplayPanel({ g }: { g: GameState }) {
               playable = sponsorPlayable(g, f, id, i) === null;
               onClick = () => clickSponsor(id, i);
               badge = `${i + 1} · +${i + 1}元`;
+            } else if (f.k === 'assoc' && f.up && c.kind === 'project' && inRange) {
+              playable = c.levels.some((_, lv) => projectLevelMoves(g, id, lv, false, i).length > 0);
+              onClick = () => set({ modal: { k: 'project', id, fromHand: false, display: i } });
+              badge = `${i + 1} · +${i + 1}元`;
             } else if (f.k === 'display' && (f.any || inRange)) {
               playable = true;
               onClick = () => act({ t: 'take', slot: i });
@@ -352,10 +356,11 @@ export function AssocPanel({ g }: { g: GameState }) {
           <span class={`don ${i < g.donationStep ? 'used' : i === g.donationStep ? 'next' : ''}`}>{c}</span>
         ))}
       </div>
-      <div class="sub-title">保护点数 8 的奖励板块</div>
+      <div class="sub-title">保护点数奖励板块（到达 5 / 8 时可选，每块限一人）</div>
       <div class="tiles">
         {g.tiles.map((t) => (
           <span class={`tile ${t.by !== null ? 'taken' : ''}`} title={tile(t.id).text}>
+            <b class="tile-at">{t.at}</b>
             {tile(t.id).emoji} {tile(t.id).name}
             {t.by !== null && <i style={{ background: g.players[t.by].color }} />}
           </span>
@@ -388,7 +393,7 @@ export function PlayerDetail({ g, pi }: { g: GameState; pi: number }) {
       </div>
       <div class="sub-title">终局计分卡</div>
       <div class="mini-cards">
-        {showScoring ? p.scoring.map((id) => <ScoringCardView id={id} />) : <span class="empty">{p.scoring.length} 张（保密）</span>}
+        {showScoring ? p.scoring.map((id) => <ScoringCardView id={id} current={metric(g, p, SCORING_CARDS[id].metric)} />) : <span class="empty">{p.scoring.length} 张（保密）</span>}
       </div>
     </div>
   );

@@ -16,7 +16,7 @@ import {
   rotate,
   validAnchors,
 } from '../interact';
-import { act, me, quitToMenu, saveSettings, set, state, uncover, useStore } from '../store';
+import { act, markGuideSeen, me, quitToMenu, saveSettings, set, state, uncover, useStore } from '../store';
 import { ScoreBar } from '../components/Common';
 import {
   CardModal,
@@ -104,7 +104,7 @@ export function GameScreen() {
         <span>💧 水域</span>
         <span>🪨 岩石</span>
         <span class="lg-upg">II 需要升级的建造</span>
-        <span>💰🃏⭐✖️⬆️👤 覆盖后获得奖励</span>
+        <span>💰🃏⭐✖️ 覆盖后获得奖励</span>
       </div>
     </div>
   );
@@ -234,14 +234,15 @@ function Overlays({ g }: { g: GameState }) {
       <PickModal g={g} />
       <ChooseModal g={g} />
       {m?.k === 'card' && <CardModal id={m.id} />}
-      {m?.k === 'project' && <ProjectModal g={g} id={m.id} fromHand={m.fromHand} />}
-      {m?.k === 'release' && <ReleaseModal g={g} id={m.id} level={m.level} fromHand={m.fromHand} />}
+      {m?.k === 'project' && <ProjectModal g={g} id={m.id} fromHand={m.fromHand} display={m.display} />}
+      {m?.k === 'release' && <ReleaseModal g={g} id={m.id} level={m.level} fromHand={m.fromHand} display={m.display} />}
       {m?.k === 'rules' && (
         <Modal title="规则速查" onClose={() => set({ modal: null })} wide>
           <RulesContent />
         </Modal>
       )}
       {m?.k === 'menu' && <MenuModal />}
+      {m?.k === 'guide' && <GuideModal />}
       {m?.k === 'confirm' && (
         <Modal title={m.text} onClose={() => set({ modal: null })}>
           <div class="modal-actions">
@@ -280,6 +281,9 @@ function MenuModal() {
   return (
     <Modal title="菜单" onClose={() => set({ modal: null })}>
       <div class="choose-list">
+        <button class="choice" onClick={() => set({ modal: { k: 'guide' } })}>
+          🧭 新手指引
+        </button>
         <button class="choice" onClick={() => set({ modal: { k: 'rules' } })}>
           📖 规则速查
         </button>
@@ -319,6 +323,45 @@ function MenuModal() {
           }}
         >
           🏠 回到主菜单（进度已自动保存）
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+function GuideModal() {
+  const close = () => {
+    markGuideSeen();
+    set({ modal: null });
+  };
+  return (
+    <Modal title="🧭 新手指引" onClose={close}>
+      <div class="guide">
+        <div class="guide-step">
+          <b>🎯 目标</b>
+          <p>吸引力（🎟️，主要来自动物）从左往右走，保护点数（🌿，主要来自保护项目）从右往左走。两个标记相遇就触发终局，交错得越多分越高。</p>
+        </div>
+        <div class="guide-step">
+          <b>🃏 每回合选一张行动卡</b>
+          <p>底部 5 张行动卡，位置 1–5 就是强度。用过的卡回到 1 号位，没用的卡会慢慢变强。点一张卡，确认强度后执行。</p>
+        </div>
+        <div class="guide-step">
+          <b>🏗️ 先建围栏，再放动物</b>
+          <p>建造时在底部选建筑，再在地图上点亮的格子放下（R 键旋转）。动物需要足够大的空围栏，有的还要靠近水 💧 或岩石 🪨。</p>
+        </div>
+        <div class="guide-step">
+          <b>🤝 协会拿保护点数</b>
+          <p>协会行动派工人去拿声望、合作动物园、大学，或者在右侧协会版图上支持保护项目——这是保护点数的主要来源。</p>
+        </div>
+        <div class="guide-step">
+          <b>☕ 休息与收入</b>
+          <p>抽牌和赞助拿钱会推动顶部的休息标记。到头时所有人按吸引力拿收入，手牌弃到上限。</p>
+        </div>
+        <p class="hint">右键或点卡牌上的 i 查看详情；点顶部玩家查看他们的动物园；随时可以从 ☰ 菜单打开规则速查。</p>
+      </div>
+      <div class="modal-actions">
+        <button class="primary" onClick={close}>
+          开始吧
         </button>
       </div>
     </Modal>
@@ -384,14 +427,26 @@ function GameOver({ g }: { g: GameState }) {
 }
 
 function Toasts() {
+  const g = state.g;
   return (
-    <div class="toasts">
-      {state.toasts.map((t) => (
-        <div class={`toast ${t.kind}`} key={t.key}>
-          {t.text}
+    <>
+      <div class="toasts">
+        {state.toasts.map((t) => (
+          <div class={`toast ${t.kind}`} key={t.key}>
+            {t.text}
+          </div>
+        ))}
+      </div>
+      {g && (
+        <div class="feed">
+          {state.feed.map((x) => (
+            <div class="feed-item" key={x.key} style={{ '--pc': g.players[x.p].color }}>
+              <b>{g.players[x.p].name}</b> {x.text}
+            </div>
+          ))}
         </div>
-      ))}
-    </div>
+      )}
+    </>
   );
 }
 

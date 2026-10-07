@@ -233,3 +233,54 @@ S('library', '自然历史图书馆', '📖', 2, '手牌上限 +2。立即抽 1 
   effects: [{ k: 'handLimit', n: 2 }],
 });
 S('scouts', '物种侦察队', '🔭', 2, '你的声望范围（可以拿取的展示区位置）+1。', { effects: [{ k: 'range', n: 1 }] });
+
+// —— 扩充
+S('zoo_shop', '园区便利店', '🏪', 1, '休息时，额外获得 2 元。', { effects: [{ k: 'income', money: 2 }] });
+S('adoption', '动物认养计划', '💌', 2, '休息时，你每有 4 只动物，额外获得 2 元。', {
+  effects: [{ k: 'incomePer', metric: { m: 'animals' }, per: 4, money: 2 }],
+});
+S('research_grant', '科研经费', '💶', 2, '立即：你每有 1 个研究图标，获得 3 元（最多 12 元）。', {
+  gainPer: { metric: { m: 'icon', icon: 'science' }, per: 1, gain: { money: 3 }, max: 4 },
+});
+S('children_day', '儿童节活动', '🎈', 2, '立即：你每有 1 个宠物图标，获得 2 点吸引力（最多 6 点）。', {
+  icons: ['petting'],
+  gainPer: { metric: { m: 'icon', icon: 'petting' }, per: 1, gain: { appeal: 2 }, max: 3 },
+});
+S('bird_show', '飞禽表演', '🦜', 3, '立即：你每有 1 个鸟类图标，获得 1 点吸引力（最多 5 点）。', {
+  icons: ['bird'],
+  gainPer: { metric: { m: 'icon', icon: 'bird' }, per: 1, gain: { appeal: 1 }, max: 5 },
+});
+S('documentary', '纪录片拍摄', '🎥', 3, '声望 +1。立即：你的动物园中每有 1 个不同大洲的图标，获得 1 点吸引力。', {
+  gain: { rep: 1 },
+  gainPer: { metric: { m: 'contKinds' }, per: 1, gain: { appeal: 1 }, max: 5 },
+});
+S('zoo_school', '动物园学校', '🎒', 3, '立即抽 2 张牌，获得 1 个 X 标记。', { icons: ['science'], gain: { cards: 2, x: 1 } });
+S('sustainability', '可持续发展计划', '♻️', 3, '终局：你每有 2 个凉亭，获得 1 保护点数（最多 3）。', {
+  effects: [{ k: 'end', metric: { m: 'pavilions' }, per: 2, cp: 1, max: 3 }],
+});
+S('safari_train', '游园小火车', '🚂', 3, '专属建筑（3 格，一条直线）。获得 2 点吸引力。休息时额外获得 2 元。', {
+  gain: { appeal: 2 },
+  effects: [{ k: 'income', money: 2 }],
+  building: {
+    shape: [
+      [0, 0],
+      [1, 0],
+      [2, 0],
+    ],
+  },
+});
+S('predator_deck', '猛兽观赏台', '🔭', 4, '专属建筑（1 格）。立即：你每有 1 个捕食者图标，获得 1 点吸引力（最多 5 点）。', {
+  icons: ['predator'],
+  gainPer: { metric: { m: 'icon', icon: 'predator' }, per: 1, gain: { appeal: 1 }, max: 5 },
+  building: { shape: [[0, 0]] },
+});
+S('reptile_naming', '爬行馆冠名', '🐊', 4, '立即：特殊场馆中每有 1 只动物，获得 1 点吸引力（最多 6 点）。', {
+  icons: ['reptile'],
+  gainPer: { metric: { m: 'specialAnimals' }, per: 1, gain: { appeal: 1 }, max: 6 },
+});
+S('conservation_lab', '物种保护实验室', '🧫', 5, '每当你支持一个保护项目，额外获得 1 保护点数。', {
+  icons: ['science'],
+  req: [SCI(2)],
+  effects: [{ k: 'onProject', gain: { cp: 1 } }],
+});
+

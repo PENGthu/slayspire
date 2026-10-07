@@ -1,9 +1,9 @@
 // 通用小组件：终局计分卡、玩家标记条、按钮组、弹窗外壳。
 import type { ComponentChildren } from 'preact';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { SCORING_CARDS } from '../../game/content';
 import { cpPoints, END_THRESHOLD } from '../../game/rules';
 import type { PlayerState } from '../../game/types';
-import { metricText } from '../meta';
 
 export function ScoringCardView({ id, selected, onClick, current }: { id: string; selected?: boolean; onClick?: () => void; current?: number }) {
   const s = SCORING_CARDS[id];
@@ -13,7 +13,7 @@ export function ScoringCardView({ id, selected, onClick, current }: { id: string
         <span class="emoji">{s.emoji}</span>
         <b>{s.name}</b>
       </div>
-      <div class="sc-text">终局：{s.text}（{metricText(s.metric)}）</div>
+      <div class="sc-text">终局计分：{s.text}</div>
       <div class="sc-tiers">
         {s.tiers.map(([need, cp]) => (
           <span class={current !== undefined && current >= need ? 'hit' : ''}>
@@ -71,11 +71,44 @@ export function Modal({ title, children, onClose, wide }: { title?: ComponentChi
   );
 }
 
-export function Stat({ icon, value, title, cls }: { icon: string; value: ComponentChildren; title: string; cls?: string }) {
+export function Stat({
+  icon,
+  value,
+  title,
+  cls,
+  num,
+  owner,
+}: {
+  icon: string;
+  value: ComponentChildren;
+  title: string;
+  cls?: string;
+  /** 数值：变化时浮出 +n / −n */
+  num?: number;
+  /** 数值属于谁（切换查看的玩家时不显示变化） */
+  owner?: number;
+}) {
+  const prev = useRef<{ num?: number; owner?: number }>({ num, owner });
+  const [deltas, setDeltas] = useState<{ key: number; d: number }[]>([]);
+  useEffect(() => {
+    const p = prev.current;
+    if (num !== undefined && p.num !== undefined && p.owner === owner && num !== p.num) {
+      const key = Date.now() + Math.random();
+      const d = num - p.num;
+      setDeltas((xs) => [...xs, { key, d }]);
+      setTimeout(() => setDeltas((xs) => xs.filter((x) => x.key !== key)), 1600);
+    }
+    prev.current = { num, owner };
+  }, [num, owner]);
   return (
     <span class={`stat ${cls ?? ''}`} title={title}>
       <i>{icon}</i>
       {value}
+      {deltas.map((x) => (
+        <em class={`delta ${x.d > 0 ? 'up' : 'down'}`} key={x.key}>
+          {x.d > 0 ? `+${x.d}` : x.d}
+        </em>
+      ))}
     </span>
   );
 }

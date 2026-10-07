@@ -3,7 +3,7 @@ import type { ComponentChildren } from 'preact';
 import { BUILDABLE, buildingDef } from '../../game/buildings';
 import { card, project, SCORING_CARDS } from '../../game/content';
 import { decision, optText } from '../../game/engine';
-import { assocMoves, buildCost, buildableTypes, freeWorkers, range, workersNeeded } from '../../game/query';
+import { assocMoves, buildCost, buildableTypes, canIgnoreCondition, freeWorkers, range, workersNeeded } from '../../game/query';
 import {
   ACTION_INFO,
   ACTION_TEXT,
@@ -106,7 +106,7 @@ function DecisionContent({ g, f }: { g: GameState; f: Decision }) {
             f.left > 0
               ? state.sel.card
                 ? `把${animal(state.sel.card).name}放进哪座建筑？点击地图上高亮的建筑。`
-                : `点击手牌${f.up ? '或声望范围内的展示区' : ''}中亮边的动物，再选择建筑。`
+                : `点击手牌${f.up ? '或声望范围内的展示区' : ''}中亮边的动物，再选择建筑。${canIgnoreCondition(f) ? '本次如果只打出 1 只，可以忽略它的 1 个条件。' : ''}`
               : '已达到本次行动可打出的数量。'
           }
         >
@@ -426,7 +426,7 @@ export function ChooseModal({ g }: { g: GameState }) {
   );
 }
 
-export function ProjectModal({ g, id, fromHand }: { g: GameState; id: string; fromHand: boolean }) {
+export function ProjectModal({ g, id, fromHand, display }: { g: GameState; id: string; fromHand: boolean; display?: number }) {
   const c = project(id);
   const f = myDecision(g);
   const close = () => set({ modal: null });
@@ -441,10 +441,10 @@ export function ProjectModal({ g, id, fromHand }: { g: GameState; id: string; fr
                 class="choice"
                 onClick={() => {
                   state.modal = null;
-                  clickProjectLevel(id, i, fromHand);
+                  clickProjectLevel(id, i, fromHand, display);
                 }}
               >
-                {fromHand ? '打出并支持' : '支持'}：{c.goal.k === 'release' ? `放归体型 ≥ ${lv.need}` : `需要 ${lv.need}`} → {lv.cp} 保护点数
+                {display !== undefined ? `从展示区打出（${display + 1} 元）并支持` : fromHand ? '打出并支持' : '支持'}：{c.goal.k === 'release' ? `放归体型 ≥ ${lv.need}` : `需要 ${lv.need}`} → {lv.cp} 保护点数
               </button>
             ))
           ) : (
@@ -456,11 +456,11 @@ export function ProjectModal({ g, id, fromHand }: { g: GameState; id: string; fr
   );
 }
 
-export function ReleaseModal({ g, id, level, fromHand }: { g: GameState; id: string; level: number; fromHand: boolean }) {
+export function ReleaseModal({ g, id, level, fromHand, display }: { g: GameState; id: string; level: number; fromHand: boolean; display?: number }) {
   const f = myDecision(g);
   if (!f || f.k !== 'assoc') return null;
   const moves = assocMoves(g, f.p, f).filter(
-    (m) => m.t === 'assoc' && m.task === 'project' && m.project === id && m.level === level && m.fromHand === fromHand,
+    (m) => m.t === 'assoc' && m.task === 'project' && m.project === id && m.level === level && m.fromHand === fromHand && m.display === display,
   ) as Extract<Move, { task: 'project' }>[];
   return (
     <Modal title="选择要放归的动物（会失去它的吸引力）" onClose={() => set({ modal: null })}>

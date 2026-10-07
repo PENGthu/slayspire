@@ -47,6 +47,14 @@ P('p_release_bird', '鸟类放飞', '🕊️', { k: 'release', filter: { cat: 'b
 P('p_release_reptile', '爬行动物放归', '🦎', { k: 'release', filter: { cat: 'reptile' } }, [[3, 4], [2, 3], [1, 2]], '放归一只体型 ≥ 档位数字的爬行动物：它离开你的动物园，你失去它的吸引力。');
 P('p_waterways', '湿地修复', '💧', { k: 'metric', metric: { m: 'waterAnimals' }, label: '与水域相邻的围栏中的动物' }, [[4, 5], [3, 4], [2, 2]], '需要放在与水域相邻的建筑中的动物。');
 P('p_mountains', '高山生态', '⛰️', { k: 'metric', metric: { m: 'rockAnimals' }, label: '与岩石相邻的围栏中的动物' }, [[4, 5], [3, 4], [2, 2]], '需要放在与岩石相邻的建筑中的动物。');
+P('p_large', '大型动物保育', '🐘', { k: 'metric', metric: { m: 'animals', filter: { minSize: 4 } }, label: '体型 4 以上的动物' }, [[4, 5], [3, 4], [2, 2]], '需要体型 4 以上的动物。');
+P('p_small', '小型动物保护', '🐿️', { k: 'metric', metric: { m: 'animals', filter: { maxSize: 2 } }, label: '体型 2 以下的动物' }, [[6, 5], [4, 4], [3, 2]], '需要体型 2 以下的动物（含宠物）。');
+P('p_special', '特色场馆计划', '🏛️', { k: 'metric', metric: { m: 'specialAnimals' }, label: '特殊场馆中的动物' }, [[5, 5], [4, 4], [2, 2]], '需要住在特殊场馆中的动物。');
+P('p_universities', '高校联合研究', '🎓', { k: 'metric', metric: { m: 'universities' }, label: '大学' }, [[3, 5], [2, 3], [1, 2]], '需要合作的大学。');
+P('p_partners', '国际保育联盟', '🌐', { k: 'metric', metric: { m: 'partners' }, label: '合作动物园' }, [[4, 5], [3, 4], [2, 2]], '需要合作动物园。');
+P('p_visitors', '访客自然教育', '⛱️', { k: 'metric', metric: { m: 'pavilions' }, label: '凉亭' }, [[4, 4], [3, 3], [2, 2]], '需要凉亭。');
+P('p_full', '满员繁育计划', '🏡', { k: 'metric', metric: { m: 'fullEnclosures' }, label: '住有动物的标准围栏' }, [[7, 5], [5, 4], [3, 2]], '需要住有动物的标准围栏。');
+P('p_release_herb', '草食动物放归', '🦌', { k: 'release', filter: { cat: 'herbivore' } }, [[4, 5], [3, 3], [2, 2]], '放归一只体型 ≥ 档位数字的草食动物：它离开你的动物园，你失去它的吸引力。');
 
 // —— 基础项目（每局随机 3 个）
 P('b_species', '物种多样性', '🧩', { k: 'metric', metric: { m: 'catKinds' }, label: '不同动物种类' }, [[5, 5], [4, 3], [3, 2]], '需要不同种类的动物图标。', true);

@@ -285,24 +285,31 @@ export function assocOptions(g: GameState): Move[] {
   return assocMoves(g, f.p, f);
 }
 
-export function projectLevelMoves(g: GameState, id: string, level: number, fromHand: boolean): Move[] {
-  return assocOptions(g).filter((m) => m.t === 'assoc' && m.task === 'project' && m.project === id && m.level === level && m.fromHand === fromHand);
+export function projectLevelMoves(g: GameState, id: string, level: number, fromHand: boolean, display?: number): Move[] {
+  return assocOptions(g).filter(
+    (m) => m.t === 'assoc' && m.task === 'project' && m.project === id && m.level === level && m.fromHand === fromHand && m.display === display,
+  );
 }
 
-export function clickProjectLevel(id: string, level: number, fromHand: boolean) {
+export function clickProjectLevel(id: string, level: number, fromHand: boolean, display?: number) {
   const g = state.g!;
-  const moves = projectLevelMoves(g, id, level, fromHand);
+  const moves = projectLevelMoves(g, id, level, fromHand, display);
   if (!moves.length) {
     const f = myDecision(g);
     if (f && f.k === 'assoc') {
       const c = project(id);
-      const err = c.goal.k === 'release' ? (releaseCandidates(g.players[f.p], c, c.levels[level].need).length ? null : '没有符合条件的动物') : supportError(g, f.p, id, level, fromHand);
+      const err =
+        c.goal.k === 'release'
+          ? releaseCandidates(g.players[f.p], c, c.levels[level].need).length
+            ? null
+            : '没有符合条件的动物'
+          : supportError(g, f.p, id, level, fromHand, undefined, display, f.up);
       toast(err ?? '现在不能支持这个项目', 'error');
     }
     return;
   }
   if (project(id).goal.k === 'release' && moves.length > 1) {
-    state.modal = { k: 'release', id, level, fromHand };
+    state.modal = { k: 'release', id, level, fromHand, display };
     refresh();
     return;
   }

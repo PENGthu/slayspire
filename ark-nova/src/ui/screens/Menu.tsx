@@ -91,7 +91,7 @@ export function SetupScreen() {
           ))}
         </div>
         {count === 1 && (
-          <p class="hint">单人挑战：在第 5 次休息结束前让吸引力与保护点数两个标记相遇（得分 ≥ 0）即获胜。</p>
+          <p class="hint">单人挑战：每个回合结束时休息标记自动前进 1 格，在第 5 次休息结束前让吸引力与保护点数两个标记相遇（得分 ≥ 0）即获胜。</p>
         )}
         <div class="seats">
           {seats.slice(0, count).map((s, i) => (

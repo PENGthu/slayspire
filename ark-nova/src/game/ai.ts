@@ -29,6 +29,35 @@ import { appealIncome, cpPoints, progress, repRange } from './rules';
 import type { Ability, ActionId, AiLevel, AnimalCard, Frame, GameState, Move, Opt, PlayerState, SponsorCard } from './types';
 import { ACTIONS } from './types';
 
+/** AI 估值参数（经自我对弈调参） */
+export const AI_PARAMS = {
+  /** 预计一局的回合数 */
+  turns: 32,
+  /** 钱的价值：基础 + 随剩余回合增加的部分 */
+  vmBase: 0.04,
+  vmScale: 0.18,
+  /** 一个行动的机会成本 */
+  vpa: 2.2,
+  /** 已得分的额外权重 */
+  tempo: 0.5,
+  /** 两步前瞻的收益折扣 */
+  lookahead: 0.5,
+  /** 手牌中已有围栏 / 没有围栏的动物按净收益计入的比例 */
+  matched: 0.55,
+  unmatched: 0.2,
+  /** 每张手牌的选择价值 */
+  option: 0.4,
+  /** 空围栏每格的选择价值 */
+  emptyCell: 0.25,
+  /** 新抽到（未知）的牌的平均价值 */
+  drawValue: 0.85,
+  /** 升级、工人、保护项目潜力、售货亭收入的权重 */
+  upgrade: 1,
+  worker: 1.6,
+  projects: 1,
+  kiosk: 1,
+};
+
 // ———————————————————————————————————————————— 局面估值
 
 interface Ctx {
@@ -49,23 +78,26 @@ function context(g: GameState, pi: number): Ctx {
   const n = g.players.length;
   const me = g.players[pi];
   const oppProg = Math.max(0, ...g.players.filter((_, i) => i !== pi).map((p) => progress(p.appeal, p.cp)));
-  let R = Math.max(0, 24 - me.stats.turns);
+  const myProg = progress(me.appeal, me.cp);
+  // 按回合数估计（一局约 32 回合），但离终局还远时不能让估计降到 0。
+  // 注意：搜索中所有叶子局面都使用决策时（根局面）算出的这份估计，否则“得分让游戏更快结束”会反过来惩罚得分。
+  let R = Math.max(AI_PARAMS.turns - me.stats.turns, (100 - Math.max(myProg, oppProg)) / 4.5, 0);
   if (n > 1) R = Math.min(R, Math.max(0, (100 - oppProg) / 4.0));
   const perBreakTurns = g.breakMax / (1.5 * Math.max(1, n));
   if (g.solo) {
-    const left = (5 - g.breaks) * perBreakTurns - g.breakPos / 1.5;
+    const left = (5 - g.breaks) * (g.breakMax / 1.6) - g.breakPos / 1.6;
     R = Math.max(0, Math.min(R, left));
   }
   if (g.endBy !== null) R = 0;
   R = Math.min(25, R);
   const breaks = Math.max(0, (R - (1 - g.breakPos / g.breakMax) * perBreakTurns) / perBreakTurns + 1);
   const late = (k: number) => Math.max(0, Math.min(1, R / k));
-  const vm = 0.04 + 0.18 * late(10);
+  const vm = AI_PARAMS.vmBase + AI_PARAMS.vmScale * late(10);
   const a = g.players[pi].appeal;
   const marginal = a < 10 ? 1 : a < 40 ? 0.5 : a < 70 ? 0.33 : 0;
   const va = 1 + marginal * Math.min(breaks, R / perBreakTurns) * vm;
   const vr = 0.35 * late(8);
-  const vpa = 2.2 * late(1.5);
+  const vpa = AI_PARAMS.vpa * late(1.5);
   return { R, breaks: Math.min(breaks, R / perBreakTurns + 0.5), vm, va, vr, vpa, late };
 }
 
@@ -251,7 +283,7 @@ function handPotential(g: GameState, p: PlayerState, ctx: Ctx): { total: number;
   if (hidden.length) {
     const visible = { ...p, hand: p.hand.filter((id) => knownCards!.has(id)) };
     const r = handPotential(g, visible, ctx);
-    return { total: r.total + hidden.length * 0.85 * ctx.late(4), matched: r.matched };
+    return { total: r.total + hidden.length * AI_PARAMS.drawValue * ctx.late(4), matched: r.matched };
   }
   const free = p.buildings.filter((b) => {
     const d = buildingDef(b.type);
@@ -265,7 +297,7 @@ function handPotential(g: GameState, p: PlayerState, ctx: Ctx): { total: number;
     .map((id) => animal(id))
     .map((a) => ({ a, net: animalNet(g, p, a, ctx) * animalFeasibility(p, a) }))
     .sort((x, y) => y.net - x.net);
-  const option = 0.4 * ctx.late(4);
+  const option = AI_PARAMS.option * ctx.late(4);
   // 按收益从高到低依次“预留”买动物的钱：钱不够的动物要等下次休息，价值打折
   let budget = p.money;
   for (const { a, net } of animals) {
@@ -276,10 +308,10 @@ function handPotential(g: GameState, p: PlayerState, ctx: Ctx): { total: number;
     if (b) {
       if (buildingDef(b.type).kind === 'enclosure') used.add(b.uid);
       matched++;
-      vals.push(Math.max(0, net * 0.45 - ctx.vpa * 0.6) * afford + option);
+      vals.push(Math.max(0, net * AI_PARAMS.matched - ctx.vpa * 0.6) * afford + option);
     } else {
       const encl = a.size > 0 ? a.size * 2 * ctx.vm : 6 * ctx.vm;
-      vals.push(Math.max(0, net * 0.25 - encl * 0.5 - ctx.vpa * 0.6) * afford + option);
+      vals.push(Math.max(0, net * AI_PARAMS.unmatched - encl * 0.5 - ctx.vpa * 0.6) * afford + option);
     }
   }
   for (const id of p.hand) {
@@ -296,23 +328,32 @@ function handPotential(g: GameState, p: PlayerState, ctx: Ctx): { total: number;
   for (const b of free) {
     if (used.has(b.uid)) continue;
     const d = buildingDef(b.type);
-    if (d.kind === 'enclosure') total += 0.25 * b.cells.length * ctx.late(4);
+    if (d.kind === 'enclosure') total += AI_PARAMS.emptyCell * b.cells.length * ctx.late(4);
   }
   return { total, matched };
 }
 
+/** 决策时根局面的时间估计（搜索期间固定） */
+let rootCtx: { pi: number; ctx: Ctx } | null = null;
+
+function ctxFor(g: GameState, pi: number): Ctx {
+  if (rootCtx && rootCtx.pi === pi && g.endBy === null) return rootCtx.ctx;
+  return context(g, pi);
+}
+
 export function evaluate(g: GameState, pi: number): number {
   const p = g.players[pi];
-  const ctx = context(g, pi);
+  const ctx = ctxFor(g, pi);
   if (g.over) return (p.final?.score ?? progress(p.appeal, p.cp) - 100) * 3;
-  let v = p.appeal * ctx.va + cpPoints(p.cp);
+  // 已经拿到的分数比“潜力”更可靠：额外加权，让 AI 倾向于把资源兑现成分数
+  let v = p.appeal * ctx.va + cpPoints(p.cp) + AI_PARAMS.tempo * (p.appeal + cpPoints(p.cp));
   // 钱的边际价值递减：剩余回合里花不完的钱不太值钱
   const cap = 12 + 5 * ctx.R;
   v += Math.min(p.money, cap) * ctx.vm + Math.max(0, p.money - cap) * ctx.vm * 0.25;
   v += Math.min(p.rep, 15) * ctx.vr + repRange(p.rep) * 0.25 * ctx.late(6);
   v += p.x * 0.6 * ctx.late(3);
-  v += (p.workers - 1) * 1.6 * ctx.late(8);
-  for (const a of ACTIONS) if (p.upgraded[a]) v += UPGRADE_VALUE[a] * ctx.late(10);
+  v += (p.workers - 1) * AI_PARAMS.worker * ctx.late(8);
+  for (const a of ACTIONS) if (p.upgraded[a]) v += UPGRADE_VALUE[a] * AI_PARAMS.upgrade * ctx.late(10);
   // 售货亭与赞助卡带来的未来收入
   let kioskIncome = 0;
   const map = mapOf(p);
@@ -325,7 +366,7 @@ export function evaluate(g: GameState, pi: number): number {
     }
     kioskIncome += adj.size;
   }
-  v += kioskIncome * ctx.breaks * ctx.vm;
+  v += kioskIncome * AI_PARAMS.kiosk * ctx.breaks * ctx.vm;
   for (const sid of p.sponsors) for (const e of sponsor(sid).effects ?? []) v += effectValue(g, p, e, ctx);
 
   const hand = handPotential(g, p, ctx);
@@ -351,7 +392,7 @@ export function evaluate(g: GameState, pi: number): number {
     pots.push(Math.max(0, best));
   }
   pots.sort((a, b) => b - a);
-  v += pots.slice(0, 3).reduce((s, x, i) => s + x * (i === 0 ? 1 : 0.6), 0) * ctx.late(2);
+  v += pots.slice(0, 3).reduce((s, x, i) => s + x * (i === 0 ? 1 : 0.6), 0) * AI_PARAMS.projects * ctx.late(2);
 
   // 终局计分卡
   for (const id of p.scoring) {
@@ -691,6 +732,7 @@ export interface AiThinking {
   score: number;
 }
 
+
 export const aiDebug: { on: boolean; last: unknown } = { on: false, last: null };
 
 /** 把模拟局面推进到下一个回合开始，并让 pi 再行动一次 */
@@ -730,6 +772,7 @@ export function aiMove(g: GameState, level: AiLevel = 'normal'): Move {
   const rnd = new Rng(hashSeed(g.rng, g.turn, g.stack.length, f.k));
   knownCards = new Set([...g.players[f.p].hand, ...g.display, ...(f.k === 'pick' ? f.cards : [])]);
   knownFor = f.p;
+  rootCtx = { pi: f.p, ctx: context(g, f.p) };
   if (f.k !== 'turn') return bestSubMove(g, f, level, rnd);
   const pi = f.p;
   const cands = turnCandidates(g, pi, level);
@@ -771,7 +814,8 @@ export function aiMove(g: GameState, level: AiLevel = 'normal'): Move {
       const c2 = simulateLine(c, pi, m2, 'easy', rnd);
       if (c2) best = Math.max(best, evaluate(c2, pi));
     }
-    return { move: s.move, score: best === -Infinity ? s.score : best };
+    // 前瞻收益打折：只看两步时，最后一步总会被拿来“兑现”最强的行动，导致关键行动被一再推迟
+    return { move: s.move, score: best === -Infinity ? s.score : s.score + AI_PARAMS.lookahead * (best - s.score) };
   });
   expanded.sort((a, b) => b.score - a.score);
   if (aiDebug.on) aiDebug.last = { first: first.map((x) => ({ move: x.move, score: x.score })), expanded };

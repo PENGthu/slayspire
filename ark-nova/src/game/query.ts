@@ -299,6 +299,7 @@ export function animalCost(g: GameState, p: PlayerState, a: AnimalCard, from: nu
   }
   const ab = mapOf(p).ability;
   if (ab.k === 'rockDiscount' && (a.rock ?? 0) > 0) cost -= ab.n;
+  if (ab.k === 'waterDiscount' && (a.water ?? 0) > 0) cost -= ab.n;
   if (from >= 0) cost += from + 1;
   void g;
   return Math.max(0, cost);

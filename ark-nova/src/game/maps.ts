@@ -28,6 +28,7 @@ export type MapAbility =
   | { k: 'none' }
   | { k: 'waterBuild'; money: number }
   | { k: 'rockDiscount'; n: number }
+  | { k: 'waterDiscount'; n: number }
   | { k: 'science' }
   | { k: 'kioskIncome'; n: number }
   | { k: 'projectMoney'; n: number }
@@ -152,6 +153,36 @@ const SPECS: MapSpec[] = [
       '.. .. .. r. .. .. .. w. .$',
       '2. .. .. r. .. .. w. w. ..',
       '2x .. .p .. .. .. .. .. 2$',
+    ],
+  },
+  {
+    id: 'coast',
+    name: '地图 6 · 海岸动物园',
+    desc: '海湾环绕的园区。打出需要水域的动物时，费用减少 3 元。',
+    ability: { k: 'waterDiscount', n: 3 },
+    rows: [
+      'w. w. .. .. .p .. .. .. 2c',
+      'w. .. .. .. .. .. r. .. ..',
+      '.. .$ .. .. .. .. r. .. .x',
+      '.. .. .. w. .. .. .. .. 2.',
+      '.x .. .. w. .. .c .. .. ..',
+      '2. .. .. .. .. .. .. r. .$',
+      '2$ .. .p .. .. .. .. r. 2.',
+    ],
+  },
+  {
+    id: 'capital',
+    name: '地图 7 · 城市动物园',
+    desc: '位于市中心，客流稳定。开局额外获得 10 元。',
+    ability: { k: 'startMoney', n: 10 },
+    rows: [
+      '2. .. .. .. .. .$ .. .. 2.',
+      '.. r. .. w. .. .. .. .. .p',
+      '.. r. .. w. w. .. r. .. ..',
+      '.c .. .. .. .. .. r. .. 2.',
+      '.. .. .x .. .. .. .. w. ..',
+      '2. .. .. .. .p .. .. w. .c',
+      '2x .. .. .. .. .. .. .. 2.',
     ],
   },
 ];

@@ -17,8 +17,8 @@ export const END_THRESHOLD = 100;
 export const SOLO_BREAKS = 5;
 
 export function breakLength(players: number, solo: boolean): number {
-  if (solo) return 9;
-  return [0, 9, 12, 15, 18][players] ?? 18;
+  if (solo) return 12;
+  return [0, 9, 10, 13, 16][players] ?? 16;
 }
 
 /** 保护点数换算成分数：前 10 点每点 2 分，之后每点 3 分 */
@@ -36,10 +36,10 @@ export function finalScore(appeal: number, cp: number): number {
 
 /** 吸引力对应的休息收入 */
 export function appealIncome(a: number): number {
-  if (a <= 5) return 5 + a;
-  if (a <= 25) return 10 + Math.floor((a - 5) / 2);
-  if (a <= 55) return 20 + Math.floor((a - 25) / 3);
-  return Math.min(40, 30 + Math.floor((a - 55) / 4));
+  if (a <= 10) return 5 + a;
+  if (a <= 40) return 15 + Math.floor((a - 10) / 2);
+  if (a <= 70) return 30 + Math.floor((a - 40) / 3);
+  return Math.min(45, 40 + Math.floor((a - 70) / 4));
 }
 
 /** 声望范围：可以拿取的展示区位置数量 */
