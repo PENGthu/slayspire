@@ -26,6 +26,11 @@ export function MenuScreen() {
           )}
           <button class={saved ? 'big' : 'primary big'} onClick={() => set({ screen: 'setup' })}>
             新游戏
+            <small>和 AI 对战，或多人同屏轮流</small>
+          </button>
+          <button class="big" onClick={() => set({ screen: 'online' })}>
+            🌐 联机对战
+            <small>每人用自己的手机或电脑，开房间一起玩</small>
           </button>
           <button class="big" onClick={() => set({ screen: 'rules' })}>
             规则说明
@@ -35,7 +40,7 @@ export function MenuScreen() {
           </button>
         </div>
         <p class="note">
-          建造你的现代动物园：修建围栏、引进动物、结交合作伙伴、支持野生动物保护项目。1–4 人，可以和 AI 对战，也可以多人同屏轮流。进度自动保存在本机浏览器。
+          建造你的现代动物园：修建围栏、引进动物、结交合作伙伴、支持野生动物保护项目。1–4 人（另有 5 人扩展），可以和 AI 对战、多人同屏轮流，也可以开房间用各自的设备联机。进度自动保存在本机浏览器。
         </p>
         <p class="note small">
           粉丝自制的非商业作品，规则结构参考原作《方舟动物园》（Ark Nova，Mathias Wigge 设计，Feuerland Spiele 出版），卡牌数值与美术均为原创的简化表现，与原作出版方无关。喜欢的话请支持正版桌游。
@@ -51,7 +56,7 @@ interface Seat {
   map: string;
 }
 
-const AI_NAMES = ['小熊猫园长', '企鹅园长', '树懒园长'];
+const AI_NAMES = ['小熊猫园长', '企鹅园长', '树懒园长', '狐獴园长'];
 
 export function SetupScreen() {
   useStore();
@@ -61,6 +66,7 @@ export function SetupScreen() {
     { name: AI_NAMES[0], kind: 'normal', map: 'lake' },
     { name: AI_NAMES[1], kind: 'normal', map: 'mountain' },
     { name: AI_NAMES[2], kind: 'normal', map: 'research' },
+    { name: AI_NAMES[3], kind: 'normal', map: 'boulevard' },
   ]);
   const [shuffleOrder, setShuffleOrder] = useState(true);
   const upd = (i: number, patch: Partial<Seat>) => setSeats(seats.map((s, j) => (j === i ? { ...s, ...patch } : s)));
@@ -84,12 +90,13 @@ export function SetupScreen() {
         <h2>新游戏</h2>
         <div class="setup-row">
           玩家人数：
-          {[1, 2, 3, 4].map((n) => (
+          {[1, 2, 3, 4, 5].map((n) => (
             <button class={count === n ? 'on' : ''} onClick={() => setCount(n)}>
-              {n === 1 ? '1（单人挑战）' : n}
+              {n === 1 ? '1（单人挑战）' : n === 5 ? '5（扩展）' : n}
             </button>
           ))}
         </div>
+        {count === 5 && <p class="hint">原作支持 1–4 人。5 人是扩展玩法：休息轨延长到 19 格，其余规则不变，一局会比较长。</p>}
         {count === 1 && (
           <p class="hint">单人挑战：每个回合结束时休息标记自动前进 1 格，在第 5 次休息结束前让吸引力与保护点数两个标记相遇（得分 ≥ 0）即获胜。</p>
         )}

@@ -30,10 +30,20 @@ import {
 } from '../interact';
 import { CONT_COLOR, CONT_SHORT, IconBadge } from '../meta';
 import { act, me, refresh, set, state, toast } from '../store';
+import { lobby } from '../../net/online';
 import { CardView } from './CardView';
 import { ScoreBar, ScoringCardView, Stat } from './Common';
 
 // ———————————————————————————————————————————— 玩家
+
+/** 联机时：玩家是否在线 */
+function netDot(i: number) {
+  const L = state.net ? lobby() : null;
+  const owner = L?.owners[i];
+  if (!L || !owner) return null;
+  const on = L.online.includes(owner);
+  return <span class={`dot ${on ? 'on' : ''}`} title={on ? '在线' : '离线'} />;
+}
 
 export function PlayerChips({ g }: { g: GameState }) {
   const f = decision(g);
@@ -47,6 +57,7 @@ export function PlayerChips({ g }: { g: GameState }) {
           title={`查看 ${p.name} 的动物园`}
         >
           <span class="pname">
+            {netDot(i)}
             {p.ai ? '🤖' : '🧑'} {p.name}
             {g.first === i && <span class="first" title="起始玩家">①</span>}
           </span>

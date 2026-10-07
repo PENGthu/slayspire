@@ -76,4 +76,18 @@ describe('AI', () => {
     expect(g.over).toBe(true);
     for (const p of g.players) expect(p.final).toBeDefined();
   });
+
+  it('5 人扩展局可以正常结束', () => {
+    const maps = ['A', 'lake', 'mountain', 'research', 'boulevard'];
+    const g = createGame({ seed: 8, players: maps.map((map, i) => ({ name: `P${i}`, ai: 'easy' as const, map })) });
+    expect(g.breakMax).toBe(19);
+    expect(new Set(g.players.map((p) => p.color)).size).toBe(5);
+    let steps = 0;
+    while (!g.over && steps < 12000) {
+      decision(g);
+      apply(g, aiMove(g, 'easy'));
+      steps++;
+    }
+    expect(g.over).toBe(true);
+  }, 60000);
 });

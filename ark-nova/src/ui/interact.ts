@@ -27,6 +27,7 @@ export type Decision = NonNullable<ReturnType<typeof decision>>;
 export function myDecision(g: GameState): Decision | null {
   const f = decision(g);
   if (!f || g.players[f.p].ai || state.cover !== null) return null;
+  if (state.net && f.p !== state.net.seat) return null;
   if (f.p !== me()) return null;
   return f;
 }

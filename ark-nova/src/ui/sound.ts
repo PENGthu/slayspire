@@ -31,7 +31,7 @@ function tone(freq: number, start: number, dur: number, type: OscillatorType = '
   o.stop(t + dur + 0.02);
 }
 
-export type Sfx = 'click' | 'build' | 'animal' | 'appeal' | 'cp' | 'coin' | 'card' | 'error' | 'end';
+export type Sfx = 'click' | 'build' | 'animal' | 'appeal' | 'cp' | 'coin' | 'card' | 'error' | 'end' | 'turn';
 
 export function sfx(kind: Sfx) {
   switch (kind) {
@@ -66,6 +66,10 @@ export function sfx(kind: Sfx) {
       break;
     case 'error':
       tone(160, 0, 0.16, 'sawtooth', 0.03, 0.7);
+      break;
+    case 'turn':
+      tone(784, 0, 0.16, 'sine', 0.07);
+      tone(1175, 0.14, 0.28, 'sine', 0.07);
       break;
     case 'end':
       [523, 659, 784, 1047].forEach((f, i) => tone(f, i * 0.12, 0.3, 'triangle', 0.06));

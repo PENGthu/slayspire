@@ -57,7 +57,7 @@ import type { ActionId, Frame, Gain, GameOptions, GameState, Move, Opt, PlayerSt
 import { ACTIONS } from './types';
 
 export const STATE_VERSION = 2;
-export const PLAYER_COLORS = ['#d9534f', '#3b7dd8', '#e0a526', '#4caf6a'];
+export const PLAYER_COLORS = ['#d9534f', '#3b7dd8', '#e0a526', '#4caf6a', '#9b6ad6'];
 
 /** 每位玩家最多回合数（防止异常对局无限进行） */
 const TURN_LIMIT = 120;
@@ -171,7 +171,7 @@ export function moveAction(p: PlayerState, a: ActionId, toIndex: number) {
 
 export function createGame(opts: GameOptions): GameState {
   const n = opts.players.length;
-  if (n < 1 || n > 4) throw new Error('需要 1–4 名玩家');
+  if (n < 1 || n > 5) throw new Error('需要 1–5 名玩家');
   const solo = n === 1;
   const g: GameState = {
     v: STATE_VERSION,

@@ -18,7 +18,8 @@ export const SOLO_BREAKS = 5;
 
 export function breakLength(players: number, solo: boolean): number {
   if (solo) return 12;
-  return [0, 9, 10, 13, 16][players] ?? 16;
+  // 5 人为扩展玩法（原作 1–4 人），按每多一人 +3 格延长
+  return [0, 9, 10, 13, 16, 19][players] ?? 19;
 }
 
 /** 保护点数换算成分数：前 10 点每点 2 分，之后每点 3 分 */

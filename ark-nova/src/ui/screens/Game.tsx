@@ -30,6 +30,8 @@ import { ActionRow, AssocPanel, BreakTrack, DisplayPanel, HandPanel, LogPanel, P
 import { ZooMap } from '../components/ZooMap';
 import { Modal } from '../components/Common';
 import { RulesContent } from './Rules';
+import { NetBanner, OnlineBadge, RoomModal } from './Online';
+import { hostBackToLobby, leaveRoom } from '../../net/online';
 
 export function GameScreen() {
   const s = useStore();
@@ -138,6 +140,7 @@ export function GameScreen() {
 
   const bottom = (
     <div class="bottom">
+      <NetBanner g={g} />
       <DecisionBar g={g} />
       <div class="bottom-row">
         <div class="my-actions">
@@ -162,6 +165,7 @@ export function GameScreen() {
         </button>
         <BreakTrack g={g} />
         <PlayerChips g={g} />
+        <OnlineBadge />
         <div class="top-buttons">
           <button onClick={() => set({ modal: { k: 'rules' } })} title="规则说明">
             ？
@@ -244,6 +248,7 @@ function Overlays({ g }: { g: GameState }) {
       )}
       {m?.k === 'menu' && <MenuModal />}
       {m?.k === 'guide' && <GuideModal />}
+      {m?.k === 'room' && <RoomModal g={g} />}
       {m?.k === 'confirm' && (
         <Modal title={m.text} onClose={() => set({ modal: null })}>
           <div class="modal-actions">
@@ -288,6 +293,11 @@ function MenuModal() {
         <button class="choice" onClick={() => set({ modal: { k: 'rules' } })}>
           📖 规则速查
         </button>
+        {s.net && (
+          <button class="choice" onClick={() => set({ modal: { k: 'room' } })}>
+            🌐 房间与玩家
+          </button>
+        )}
         <div class="setting">
           AI 速度：
           {(['fast', 'normal', 'slow'] as const).map((v) => (
@@ -316,7 +326,7 @@ function MenuModal() {
             {s.settings.sound ? '开' : '关'}
           </button>
         </div>
-        <div class="setting">
+        <div class="setting" hidden={!!s.net}>
           同屏换人时遮挡手牌：
           <button
             class={s.settings.cover ? 'on' : ''}
@@ -329,15 +339,56 @@ function MenuModal() {
             {s.settings.cover ? '开' : '关'}
           </button>
         </div>
-        <button
-          class="choice"
-          onClick={() => {
-            set({ modal: null });
-            quitToMenu();
-          }}
-        >
-          🏠 回到主菜单（进度已自动保存）
-        </button>
+        {!s.net && (
+          <button
+            class="choice"
+            onClick={() => {
+              set({ modal: null });
+              quitToMenu();
+            }}
+          >
+            🏠 回到主菜单（进度已自动保存）
+          </button>
+        )}
+        {s.net?.role === 'guest' && (
+          <button
+            class="choice"
+            onClick={() => {
+              set({ modal: null });
+              leaveRoom();
+            }}
+          >
+            🚪 离开房间（可以用邀请链接回来）
+          </button>
+        )}
+        {s.net?.role === 'host' && (
+          <>
+            <button
+              class="choice"
+              onClick={() => {
+                set({ modal: null });
+                leaveRoom();
+              }}
+            >
+              ⏸ 暂时离开（所有人暂停，之后可以在「联机对战」里继续主持）
+            </button>
+            <button
+              class="choice"
+              onClick={() =>
+                set({
+                  modal: {
+                    k: 'confirm',
+                    text: '解散房间？对局会结束，其他玩家会被送回主菜单。',
+                    yes: '解散',
+                    onYes: () => leaveRoom(true),
+                  },
+                })
+              }
+            >
+              🛑 解散房间
+            </button>
+          </>
+        )}
       </div>
     </Modal>
   );
@@ -429,12 +480,30 @@ function GameOver({ g }: { g: GameState }) {
           </tbody>
         </table>
         <p class="hint">得分 = 吸引力 + 保护点数换算分 − 100（两个标记交错的距离）。</p>
-        <div class="modal-actions">
-          <button onClick={() => set({ screen: 'menu' })}>主菜单</button>
-          <button class="primary" onClick={() => set({ screen: 'setup' })}>
-            再来一局
-          </button>
-        </div>
+        {state.net ? (
+          <div class="modal-actions">
+            {state.net.role === 'host' ? (
+              <>
+                <button onClick={() => leaveRoom(true)}>解散房间</button>
+                <button class="primary" onClick={hostBackToLobby}>
+                  再来一局（回到房间）
+                </button>
+              </>
+            ) : (
+              <>
+                <span>等房主开始下一局…</span>
+                <button onClick={() => leaveRoom()}>离开房间</button>
+              </>
+            )}
+          </div>
+        ) : (
+          <div class="modal-actions">
+            <button onClick={() => set({ screen: 'menu' })}>主菜单</button>
+            <button class="primary" onClick={() => set({ screen: 'setup' })}>
+              再来一局
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -28,7 +28,7 @@ import {
   type Decision,
 } from '../interact';
 import { CONT_COLOR, actionName } from '../meta';
-import { act, canUndo, refresh, set, state, undo } from '../store';
+import { act, canUndo, pendingPick, pickKey, refresh, set, state, undo } from '../store';
 import { CardView } from './CardView';
 import { Modal, ScoringCardView } from './Common';
 
@@ -45,6 +45,7 @@ export function DecisionBar({ g }: { g: GameState }) {
         <span>
           <b style={{ color: p.color }}>{p.name}</b> {p.ai ? '正在思考…' : '正在行动…'}
         </span>
+        <PrePickNote g={g} />
       </div>
     );
   }
@@ -386,22 +387,33 @@ const PICK_TITLE: Record<string, (min: number, max: number) => string> = {
 };
 
 export function PickModal({ g }: { g: GameState }) {
-  const f = myDecision(g);
-  if (!f || f.k !== 'pick') return null;
+  const mine = myDecision(g);
+  // 联机：还没轮到时可以提前选
+  const pending = mine ? null : pendingPick(g);
+  const pre = !!pending;
+  const f = mine?.k === 'pick' ? mine : pending;
+  if (!f) return null;
+  const key = pre ? pickKey(g, f) : '';
+  if (pre && (state.prePick?.key === key || state.preSkip === key)) return null;
   const p = g.players[f.p];
   const pool = f.cards.length ? f.cards : p.hand;
   const min = Math.min(f.min, pool.length);
-  const picks = state.sel.picks;
+  const picks = pre ? state.preSel : state.sel.picks;
+  const setPicks = (x: string[]) => {
+    if (pre) state.preSel = x;
+    else state.sel.picks = x;
+    refresh();
+  };
   const ok = picks.length >= min && picks.length <= f.max;
   const toggle = (id: string) => {
-    if (picks.includes(id)) state.sel.picks = picks.filter((x) => x !== id);
-    else if (picks.length < f.max) state.sel.picks = [...picks, id];
-    else if (f.max === 1) state.sel.picks = [id];
-    refresh();
+    if (picks.includes(id)) setPicks(picks.filter((x) => x !== id));
+    else if (picks.length < f.max) setPicks([...picks, id]);
+    else if (f.max === 1) setPicks([id]);
   };
   const scoring = f.purpose === 'scoring' || f.purpose === 'scoringKeep';
   return (
     <Modal title={`${PICK_TITLE[f.purpose](min, f.max)}`} wide>
+      {pre && <p class="pre-note">还没轮到你：现在先选好，轮到你时会自动提交。</p>}
       {f.purpose === 'setup' && <p class="hint">开局选牌：建议保留便宜、能尽快打出的动物和有用的赞助卡。</p>}
       {f.purpose === 'discard' && <p class="hint">休息时手牌超过上限，或卡牌行动需要弃牌。</p>}
       <div class="pick-grid">
@@ -424,12 +436,44 @@ export function PickModal({ g }: { g: GameState }) {
         <span>
           已选 {picks.length} / {min === f.max ? f.max : `${min}–${f.max}`}
         </span>
-        <button class="primary" disabled={!ok} onClick={() => act({ t: 'cards', cards: picks })}>
-          确定
-        </button>
+        {pre ? (
+          <>
+            <button onClick={() => set({ preSkip: key })}>稍后再选</button>
+            <button class="primary" disabled={!ok} onClick={() => set({ prePick: { key, cards: picks }, preSel: [] })}>
+              选好了
+            </button>
+          </>
+        ) : (
+          <button class="primary" disabled={!ok} onClick={() => act({ t: 'cards', cards: picks })}>
+            确定
+          </button>
+        )}
       </div>
     </Modal>
   );
+}
+
+/** 等待别人时：提前选牌的状态 */
+function PrePickNote({ g }: { g: GameState }) {
+  const f = pendingPick(g);
+  if (!f) return null;
+  const key = pickKey(g, f);
+  if (state.prePick?.key === key)
+    return (
+      <span class="pre-status">
+        ✅ 已选好，轮到你时自动提交
+        <button class="mini" onClick={() => set({ preSel: state.prePick?.cards ?? [], prePick: null, preSkip: null })}>
+          修改
+        </button>
+      </span>
+    );
+  if (state.preSkip === key)
+    return (
+      <button class="mini" onClick={() => set({ preSkip: null })}>
+        提前选牌
+      </button>
+    );
+  return null;
 }
 
 export function ChooseModal({ g }: { g: GameState }) {

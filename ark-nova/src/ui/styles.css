@@ -2189,3 +2189,264 @@ small {
     display: none;
   }
 }
+
+/* ——————————————————————————————— 联机 */
+
+.online-box {
+  max-width: 640px;
+}
+.field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  margin: 10px 0;
+}
+.field input,
+.field select {
+  flex: 1;
+  min-width: 0;
+  font-weight: 400;
+}
+.field.small {
+  font-size: 13px;
+  margin: 4px 0;
+}
+.online-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 12px 0;
+}
+.online-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  background: var(--paper2);
+  border-radius: 12px;
+  padding: 12px;
+}
+.online-card h3 {
+  margin: 0;
+  font-size: 16px;
+}
+.online-card .hint {
+  margin: 0;
+}
+.online-card button.big {
+  margin-top: auto;
+}
+.code-input {
+  width: 100%;
+  min-width: 0;
+  font-size: 22px;
+  letter-spacing: 4px;
+  text-align: center;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+.resume-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.resume-row button {
+  flex: 1;
+}
+.connecting,
+.waiting-host {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.connecting .spinner,
+.waiting-host .spinner {
+  border-top-color: var(--appeal);
+  flex: none;
+}
+.lobby-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.lobby-head h2 {
+  margin: 0;
+}
+.room-code {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 12px 0 4px;
+  padding: 10px 14px;
+  background: var(--paper2);
+  border-radius: 12px;
+}
+.room-code small {
+  display: block;
+  color: var(--ink2);
+}
+.room-code b {
+  font-size: 30px;
+  letter-spacing: 6px;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+}
+.room-share {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.lobby-seats {
+  margin: 10px 0;
+}
+.lobby-seat {
+  grid-template-columns: 26px 1.4fr 1fr 1.2fr;
+  padding: 4px 6px;
+  border-radius: 10px;
+  min-height: 40px;
+}
+.lobby-seat.mine {
+  background: #fff3d6;
+}
+.seat-who {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.seat-who input {
+  width: 100%;
+  min-width: 0;
+}
+.seat-kind {
+  min-width: 0;
+}
+.seat-kind select,
+.seat-kind button {
+  width: 100%;
+}
+.dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #9a9184;
+  flex: none;
+  margin-right: 3px;
+  vertical-align: middle;
+}
+.dot.on {
+  background: #3cc46b;
+  box-shadow: 0 0 0 2px rgba(60, 196, 107, 0.25);
+}
+.link-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 400;
+  white-space: nowrap;
+}
+.link-dot i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #3cc46b;
+}
+.link-dot.connecting i,
+.link-dot.away i {
+  background: #f0b64a;
+}
+.link-dot.offline i {
+  background: var(--danger);
+}
+.online-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--paper);
+  font-weight: 700;
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+.online-badge:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.22);
+}
+.net-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 4px 10px;
+  margin-bottom: 4px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--ink);
+  font-size: 13px;
+}
+.net-banner.warn {
+  background: #ffe3a8;
+}
+.room-modal .room-share {
+  margin-bottom: 10px;
+}
+.room-players {
+  width: 100%;
+  border-collapse: collapse;
+}
+.room-players td {
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--line);
+}
+.room-players td:last-child {
+  text-align: right;
+}
+
+@media (max-width: 900px) {
+  .online-cols {
+    grid-template-columns: 1fr;
+  }
+  .online-box {
+    padding: 20px 16px 16px;
+  }
+  .lobby-seat {
+    grid-template-columns: 22px 1fr 1fr;
+  }
+  .lobby-seat > select {
+    grid-column: 2 / -1;
+  }
+  .online-badge {
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+  .online-badge .link-dot {
+    display: none;
+  }
+}
+.pre-note {
+  margin: 0 0 6px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #e5f3e8;
+  color: #23603b;
+  font-size: 13px;
+  font-weight: 700;
+}
+.pre-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  font-size: 13px;
+  color: #23603b;
+}
+.decision-bar.waiting > button.mini {
+  margin-left: auto;
+}
