@@ -423,6 +423,22 @@ describe('协会', () => {
     expect(g.projects.some((x) => x.id === 'p113')).toBe(true);
   });
 
+  it('“任意图标”奖励板块：支持基础项目时当作 1 个图标，用后翻面', () => {
+    const g = setup();
+    const p = g.players[0];
+    g.projects[0] = { id: 'p108', slots: [null, null, null] };
+    const uid = addEnclosure(g, 0, 2);
+    p.buildings.find((b) => b.uid === uid)!.animals.push('a456');
+    expect(supportError(g, 0, 'p108', 2, false)).toMatch('未达到');
+    p.cardTokens.t_wild = 1;
+    expect(supportError(g, 0, 'p108', 2, false, undefined, undefined, false, ['t_wild'])).toBeNull();
+    slot(g, 0, 'association', 4);
+    apply(g, { t: 'action', action: 'association', x: 0 });
+    apply(g, { t: 'assoc', task: 'project', project: 'p108', level: 2, fromHand: false, wild: ['t_wild'] });
+    expect(p.cardTokens.t_wild).toBe(0);
+    expect(p.cp).toBe(2);
+  });
+
   it('捐款需要升级的协会行动，每次 1 保护点数', () => {
     const g = setup();
     const p = g.players[0];
@@ -563,4 +579,34 @@ describe('特殊地图', () => {
     p.buildings.push({ uid: 50, type: 'E1', cells: inst, animals: [] });
     expect(animalError(g, 0, 'a403', -1, 60, false)).toBeNull();
   });
+
+  it('研究所不能忽略水域 / 岩石条件', () => {
+    const g = setup(['m6', 'm0']);
+    const p = g.players[0];
+    const map = getMap('m6');
+    p.buildings.push({ uid: 50, type: 'E1', cells: featureCells(map, 'institute'), animals: [] });
+    p.money = 60;
+    // 鸭嘴兽需要与水域相邻：找一个不靠水的 2 格围栏
+    const dry = placements(p, 'E2').find((cs) => !cs.some((i) => map.cells[i].nbrs.some((n) => map.cells[n].terrain === 'water')))!;
+    p.buildings.push({ uid: 61, type: 'E2', cells: dry, animals: [] });
+    p.hand = ['a449'];
+    expect(animalError(g, 0, 'a449', -1, 61, false)).toMatch('水域');
+  });
+
+  it('观景塔：动物住进与塔相邻的空标准围栏时吸引力 +2', () => {
+    const g = setup(['m1', 'm0']);
+    const p = g.players[0];
+    const map = getMap('m1');
+    const tower = featureCells(map, 'tower');
+    const cells = placements(p, 'E2').find((cs) => cs.some((i) => map.cells[i].nbrs.some((n) => tower.includes(n))));
+    if (!cells) return;
+    p.buildings.push({ uid: 70, type: 'E2', cells, animals: [] });
+    p.hand = ['a419'];
+    p.money = 30;
+    slot(g, 0, 'animals', 1);
+    apply(g, { t: 'action', action: 'animals', x: 0 });
+    apply(g, { t: 'animal', card: 'a419', from: -1, building: 70 });
+    expect(p.appeal).toBe(3 + 2);
+  });
 });
+

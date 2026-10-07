@@ -20,7 +20,6 @@ import {
   harborActive,
   has,
   iconCounts,
-  ignorable,
   isLarge,
   isSmall,
   kinds,
@@ -31,7 +30,7 @@ import {
   reqShort,
   sponsorLevel,
   terrainConnection,
-  unmetConditions,
+  unmetDetail,
 } from './query';
 import { appealIncome, cpPoints, progress, repRange, SOLO_ROUNDS } from './rules';
 import type { Ability, ActionId, AiLevel, AnimalCard, Building, Frame, Gain, GameState, Icon, Move, Opt, PlayerState, SponsorCard } from './types';
@@ -63,6 +62,13 @@ export const AI_PARAMS = {
   worker: 1.6,
   projects: 1,
   kiosk: 1,
+  /** 合作动物园、大学本身的价值（不含它们带来的图标、折扣） */
+  partnerVal: 2.5,
+  uniVal: 2.0,
+  /** 按实际进度估计剩余回合（0 = 按固定速度估计） */
+  adaptive: 0,
+  /** 进度会加速：观察到的平均速度乘以这个系数 */
+  accel: 1.3,
 };
 
 // ———————————————————————————————————————————— 局面估值
@@ -88,6 +94,15 @@ function context(g: GameState, pi: number): Ctx {
   const myProg = progress(me.appeal, me.cp);
   let R = Math.max(AI_PARAMS.turns - me.stats.turns, (100 - Math.max(myProg, oppProg)) / 4.5, 0);
   if (n > 1) R = Math.min(R, Math.max(0, (100 - oppProg) / 4.0));
+  if (AI_PARAMS.adaptive) {
+    // 每位玩家按开局以来的平均速度（会逐渐加快）估计还要多少回合到达终点，最快的那位决定对局长度
+    const left = g.players.map((p) => {
+      const prog = progress(p.appeal, p.cp);
+      const rate = Math.max(2.5, ((prog + 14) / Math.max(5, p.stats.turns)) * AI_PARAMS.accel);
+      return Math.max(0, (100 - prog) / rate);
+    });
+    R = Math.min(...left);
+  }
   let perBreakTurns = g.breakMax / (1.5 * Math.max(1, n));
   let breaks: number;
   if (g.solo) {
@@ -96,7 +111,7 @@ function context(g: GameState, pi: number): Ctx {
     perBreakTurns = 4;
   } else {
     if (g.endBy !== null) R = 0;
-    R = Math.min(25, R);
+    R = Math.min(AI_PARAMS.adaptive ? 40 : 25, R);
     breaks = Math.max(0, (R - (1 - g.breakPos / g.breakMax) * perBreakTurns) / perBreakTurns + 1);
     breaks = Math.min(breaks, R / perBreakTurns + 0.5);
   }
@@ -555,7 +570,9 @@ function projectCardValue(g: GameState, p: PlayerState, id: string, ctx: Ctx): n
 
 /** 动物能否住进某座建筑（含可忽略的条件） */
 function canHouse(p: PlayerState, a: AnimalCard, b: Building): boolean {
-  return fitsSpace(p, a, b) && unmetConditions(p, a, b).filter((s) => !s.startsWith('需要声望') && !s.startsWith('需要升级')).length <= ignorable(p, a);
+  if (!fitsSpace(p, a, b)) return false;
+  // 声望、升级之类的条件以后还能补上，这里只看建筑相关的条件是否满足
+  return unmetDetail(p, a, b).filter((x) => x.terrain).length <= (has(p, 's263') && isLarge(a) ? 1 : 0);
 }
 
 /** 单张卡在手牌中的价值（用于弃牌、保留、选择） */
@@ -699,7 +716,6 @@ export function evaluate(g: GameState, pi: number): number {
   v += Math.min(p.rep, 15) * ctx.vr + repRange(p.rep) * 0.25 * ctx.late(6);
   v += p.x * 0.6 * ctx.late(3);
   v += (p.workers - 1) * AI_PARAMS.worker * ctx.late(8);
-  v += p.ignoreTokens * 1.5 * ctx.late(4);
   for (const a of ACTIONS) {
     if (p.upgraded[a]) v += UPGRADE_VALUE[a] * AI_PARAMS.upgrade * ctx.late(10);
     const t = p.tokens[a];
@@ -707,7 +723,7 @@ export function evaluate(g: GameState, pi: number): number {
     if (t?.venom) v -= 1.0;
     if (t?.constrict) v -= 1.0;
   }
-  v += p.partners.length * 1.2 * ctx.late(6) + p.unis.length * 0.8 * ctx.late(6);
+  v += p.partners.length * AI_PARAMS.partnerVal * ctx.late(6) + p.unis.length * AI_PARAMS.uniVal * ctx.late(6);
   // 售货亭与地图带来的未来收入
   v += kioskIncome(p) * AI_PARAMS.kiosk * ctx.breaks * ctx.vm;
   const map = mapOf(p);
@@ -904,7 +920,7 @@ function chooseOptScore(g: GameState, pi: number, o: Opt): number {
     case 'worker':
       return p.workers < 2 ? 9.5 : p.workers < 3 ? 7 : 4;
     case 'tile':
-      return { t_money: 7, t_rep: 6, t_x: 6, t_enclosure: 5, t_cards: 6, t_mult: 5, t_uni: 7, t_partner: 7.5, t_ignore: 4 }[o.id] ?? 5;
+      return { t_money: 7, t_rep: 6, t_x: 6, t_enclosure: 5, t_cards: 6, t_mult: 5, t_uni: 7, t_partner: 7.5, t_wild: 5 }[o.id] ?? 5;
     case 'slot':
       return o.to === 4 ? 3 + (o.action === 'animals' ? 3 : o.action === 'association' ? 2 : 1) : p.actions.indexOf(o.action) >= 3 ? 0.5 : 1;
     case 'hypno': {

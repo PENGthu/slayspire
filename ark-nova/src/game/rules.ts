@@ -155,7 +155,7 @@ export interface BonusTile {
   text: string;
 }
 
-/** 保护点数 5 和 8 旁边的奖励板块：每局随机各摆 2 块，每块只能被一位玩家拿走 */
+/** 保护点数 5 和 8 旁边的奖励板块：原版共 9 块，每局随机摆出 4 块（5、8 各 2 块），每块只能被一位玩家拿走 */
 export const TILES: BonusTile[] = [
   { id: 't_money', name: '10 元', emoji: '💰', text: '获得 10 元' },
   { id: 't_rep', name: '声望', emoji: '🎓', text: '声望 +2' },
@@ -165,7 +165,7 @@ export const TILES: BonusTile[] = [
   { id: 't_mult', name: '倍增', emoji: '✖️2', text: '在任意一张行动卡上放 1 个倍增标记' },
   { id: 't_uni', name: '大学', emoji: '🏛️', text: '拿 1 所还没有的大学' },
   { id: 't_partner', name: '合作动物园', emoji: '🤝', text: '结交 1 个合作动物园（协会未升级时不能拿第 3 个）' },
-  { id: 't_ignore', name: '忽略条件', emoji: '🔓', text: '一次性：打出动物时最多忽略 3 个条件' },
+  { id: 't_wild', name: '任意图标', emoji: '🃏', text: '支持基础保护项目时，可以把这块板块当作任意 1 个图标（用后翻面）' },
 ];
 
 export function tile(id: string): BonusTile {

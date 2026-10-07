@@ -221,8 +221,6 @@ export interface PlayerState {
   cardTokens: Record<string, number>;
   /** WAZA 特别任务选择的动物类型 */
   waza: 'small' | 'large' | null;
-  /** 一次性奖励：忽略条件的次数（奖励板块） */
-  ignoreTokens: number;
   cpBonuses: number[];
   repBonuses: number[];
   donations: number;

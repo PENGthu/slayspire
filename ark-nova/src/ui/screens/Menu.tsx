@@ -69,7 +69,7 @@ export function SetupScreen() {
     { name: AI_NAMES[2], kind: 'normal', map: 'm3' },
     { name: AI_NAMES[3], kind: 'normal', map: 'm4' },
   ]);
-  const [soloAppeal, setSoloAppeal] = useState(10);
+  const [soloAppeal, setSoloAppeal] = useState(20);
   const [shuffleOrder, setShuffleOrder] = useState(true);
   const upd = (i: number, patch: Partial<Seat>) => setSeats(seats.map((s, j) => (j === i ? { ...s, ...patch } : s)));
   const start = () => {

@@ -747,9 +747,9 @@ function resolveTile(g: GameState, pi: number, id: string) {
     case 't_partner':
       pushChoose(g, pi, why, partnerOpts(p));
       break;
-    case 't_ignore':
-      p.ignoreTokens++;
-      log(g, pi, `${why}：下次打出动物时可以忽略最多 3 个条件`);
+    case 't_wild':
+      p.cardTokens.t_wild = 1;
+      log(g, pi, `${why}：支持基础保护项目时可以当作任意 1 个图标`);
       break;
   }
 }

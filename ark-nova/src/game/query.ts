@@ -390,30 +390,39 @@ export function fitsSpace(p: PlayerState, a: AnimalCard, b: Building): boolean {
   return false;
 }
 
-/** 动物在这座建筑里还差的条件（每个缺少的图标、水域 / 岩石格都算 1 个条件） */
-export function unmetConditions(p: PlayerState, a: AnimalCard, b: Building): string[] {
-  const out: string[] = [];
+/** 动物在这座建筑里还差的条件（每个缺少的图标、水域 / 岩石格都算 1 个条件；terrain 标出水域 / 岩石条件） */
+export function unmetDetail(p: PlayerState, a: AnimalCard, b: Building): { text: string; terrain: boolean }[] {
+  const out: { text: string; terrain: boolean }[] = [];
   const def = buildingDef(b.type);
   if (def.kind === 'enclosure' && !has(p, 's219')) {
     const w = (a.water ?? 0) - adjacentTerrain(p, b.cells, 'water');
-    for (let i = 0; i < w; i++) out.push(`需要与 ${a.water} 个水域格相邻`);
+    for (let i = 0; i < w; i++) out.push({ text: `需要与 ${a.water} 个水域格相邻`, terrain: true });
     const r = (a.rock ?? 0) - adjacentTerrain(p, b.cells, 'rock');
-    for (let i = 0; i < r; i++) out.push(`需要与 ${a.rock} 个岩石格相邻`);
+    for (let i = 0; i < r; i++) out.push({ text: `需要与 ${a.rock} 个岩石格相邻`, terrain: true });
   }
   const icons = iconCounts(p);
   for (const r of a.req ?? []) {
     const short = reqShort(p, r, icons, a);
-    for (let i = 0; i < short; i++) out.push(`需要${reqLabel(r)}`);
+    for (let i = 0; i < short; i++) out.push({ text: `需要${reqLabel(r)}`, terrain: false });
   }
   return out;
 }
 
-/** 打出这只动物时可以忽略的条件数（研究所、WAZA 大型动物计划、奖励板块） */
-export function ignorable(p: PlayerState, a: AnimalCard): number {
-  let n = p.ignoreTokens > 0 ? 3 : 0;
-  if (instituteActive(p)) n++;
-  if (has(p, 's263') && isLarge(a)) n++;
-  return n;
+export function unmetConditions(p: PlayerState, a: AnimalCard, b: Building): string[] {
+  return unmetDetail(p, a, b).map((x) => x.text);
+}
+
+/** 能否忽略还差的条件：研究所免费忽略 1 个非水域 / 岩石条件，大型动物计划（大型动物）免费忽略 1 个 */
+export function ignorePlan(p: PlayerState, a: AnimalCard, b: Building): { ok: boolean; n: number; first: string | null } {
+  const unmet = unmetDetail(p, a, b);
+  let other = unmet.filter((x) => !x.terrain).length;
+  let terrain = unmet.length - other;
+  if (instituteActive(p) && other > 0) other--;
+  if (has(p, 's263') && isLarge(a)) {
+    if (other > 0) other--;
+    else if (terrain > 0) terrain--;
+  }
+  return { ok: other + terrain === 0, n: unmet.length, first: unmet[0]?.text ?? null };
 }
 
 export function instituteActive(p: PlayerState): boolean {
@@ -456,8 +465,8 @@ export function animalError(g: GameState, pi: number, cardId: string, from: numb
   const b = p.buildings.find((x) => x.uid === uid);
   if (!b) return '没有这座建筑';
   if (!fitsSpace(p, c, b)) return '无法放进这座建筑';
-  const unmet = unmetConditions(p, c, b);
-  if (unmet.length > ignorable(p, c)) return unmet[0];
+  const plan = ignorePlan(p, c, b);
+  if (!plan.ok) return plan.first;
   if (animalCost(g, p, c, from) > p.money) return '钱不够';
   return null;
 }
@@ -583,7 +592,7 @@ export function releaseCandidates(p: PlayerState, c: ProjectCard, level: number)
 
 /** 繁育合作 / 育种计划卡上的标记（可当任意图标支持基础项目） */
 export function wildTokens(p: PlayerState): string[] {
-  return ['s215', 's218'].filter((id) => (p.cardTokens[id] ?? 0) > 0);
+  return ['s215', 's218', 't_wild'].filter((id) => (p.cardTokens[id] ?? 0) > 0);
 }
 
 export function supportedTimes(p: PlayerState, id: string): number {

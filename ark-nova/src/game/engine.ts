@@ -19,7 +19,7 @@ import {
   harborActive,
   has,
   iconCounts,
-  instituteActive,
+  ignorePlan,
   isLarge,
   isSmall,
   mapOf,
@@ -30,7 +30,6 @@ import {
   sponsorLevel,
   supportError,
   taskValue,
-  unmetConditions,
   workersNeeded,
 } from './query';
 import {
@@ -284,7 +283,6 @@ export function createGame(opts: GameOptions): GameState {
       tucked: {},
       cardTokens: {},
       waza: null,
-      ignoreTokens: 0,
       cpBonuses: [],
       repBonuses: [],
       donations: 0,
@@ -726,6 +724,7 @@ function playAnimal(g: GameState, pi: number, id: string, from: number, uid: num
   if (from < 0) removeFromHand(p, id);
   else takeDisplay(g, from);
   const b = p.buildings.find((x) => x.uid === uid)!;
+  const wasEmpty = b.animals.length === 0;
   b.animals.push(id);
   p.stats.animals++;
   log(g, pi, `打出 ${a.emoji}${a.name}（${cost} 元），放进${buildingDef(b.type).name}`);
@@ -734,7 +733,7 @@ function playAnimal(g: GameState, pi: number, id: string, from: number, uid: num
   if (p.waza === 'large' && isLarge(a)) gainLog(g, pi, '世界动物园协会特别任务', { appeal: 4 });
   const map = mapOf(p);
   const tower = featureCells(map, 'tower');
-  if (tower.length && buildingDef(b.type).kind === 'enclosure' && b.cells.some((i) => map.cells[i].nbrs.some((n) => tower.includes(n))))
+  if (tower.length && wasEmpty && buildingDef(b.type).kind === 'enclosure' && b.cells.some((i) => map.cells[i].nbrs.some((n) => tower.includes(n))))
     gainLog(g, pi, '观景塔', { appeal: 2 });
   const fxs = playAnimalFx(g, pi, a, uid);
   queue(g, [...fxs.map((fx) => ({ k: 'fx', p: pi, fx }) as Frame), ...iconFx(g, pi, id, cardIcons(id), before)]);
@@ -776,7 +775,7 @@ function supportProject(g: GameState, pi: number, m: Extract<Move, { t: 'assoc';
   }
   for (const w of m.wild ?? []) {
     p.cardTokens[w] = (p.cardTokens[w] ?? 0) - 1;
-    log(g, pi, `弃掉「${sponsor(w).name}」上的 1 个标记，当作任意 1 个图标`);
+    log(g, pi, w === 't_wild' ? '把「任意图标」奖励板块当作任意 1 个图标（翻面）' : `弃掉「${sponsor(w).name}」上的 1 个标记，当作任意 1 个图标`);
   }
   bp.slots[m.level] = pi;
   p.supported.push({ id: c.id, level: m.level });
@@ -977,18 +976,12 @@ function endAnimals(g: GameState, f: Extract<Frame, { k: 'animals' }>) {
   if (bonus228) push(g, { ...f, left: 1, onlySmall: true, waza228: true });
 }
 
-/** 动物需要忽略的条件：研究所、大型动物计划免费忽略 1 个，不够时用掉“忽略条件”奖励 */
+/** 打出动物时忽略条件（研究所、大型动物计划） */
 function useIgnores(g: GameState, pi: number, id: string, uid: number) {
   const p = g.players[pi];
-  const a = animal(id);
   const b = p.buildings.find((x) => x.uid === uid)!;
-  const unmet = unmetConditions(p, a, b).length;
-  if (!unmet) return;
-  const free = (instituteActive(p) ? 1 : 0) + (has(p, 's263') && isLarge(a) ? 1 : 0);
-  if (unmet > free) {
-    p.ignoreTokens--;
-    log(g, pi, `使用“忽略条件”奖励，忽略 ${unmet} 个条件`);
-  } else log(g, pi, `忽略 ${unmet} 个条件`);
+  const plan = ignorePlan(p, animal(id), b);
+  if (plan.n) log(g, pi, `忽略 ${plan.n} 个条件`);
 }
 
 export function apply(g: GameState, m: Move) {

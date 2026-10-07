@@ -106,13 +106,12 @@ export function PlayerStats({ g, pi }: { g: GameState; pi: number }) {
           </span>
         )}
         {p.unis.length > 0 && <span>大学：{p.unis.map((u) => UNIVERSITIES.find((x) => x.id === u)!.emoji).join('')}</span>}
-        {p.ignoreTokens > 0 && <span title="打出动物时可以忽略最多 3 个条件（一次性）">🔓 忽略条件 ×{p.ignoreTokens}</span>}
         {p.waza && <span title="世界动物园协会特别任务">📝 只打{p.waza === 'small' ? '小型' : '大型'}动物</span>}
         {Object.entries(p.cardTokens)
           .filter(([, n]) => n > 0)
           .map(([id, n]) => (
-            <span title={card(id).name}>
-              {card(id).emoji} 标记 ×{n}
+            <span title={id === 't_wild' ? '任意图标奖励板块：支持基础保护项目时当作任意 1 个图标' : card(id).name}>
+              {id === 't_wild' ? '🃏 任意图标' : `${card(id).emoji} 标记 ×${n}`}
             </span>
           ))}
         {(p.tucked.map?.length ?? 0) > 0 && <span title="压在地图下的牌">👝 地图下 {p.tucked.map!.length} 张</span>}
