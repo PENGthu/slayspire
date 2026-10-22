@@ -80,6 +80,7 @@ src/
     art/           程序化美术：墨线描边 + 光照滤镜的 SVG 插画（卡牌、敌人、立绘、遗物、药水、场景、地图）
 tests/             Vitest：内容完整性、规则单元测试、机器人完整流程模拟
 scripts/inline.mjs 把构建产物内联为单个 HTML
+claude-videos/     Claude 生成的视频（不参与构建）
 ```
 
 ## 测试
