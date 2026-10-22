@@ -11,6 +11,8 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
+    // gto-preflop/ 是独立的子项目，有自己的测试
+    include: ['tests/**/*.test.ts'],
     testTimeout: 120_000,
   },
 });
