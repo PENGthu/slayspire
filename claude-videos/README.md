@@ -7,7 +7,7 @@
 - **命名**：`YYYY-MM-DD-简短描述.扩展名`，例如 `2026-10-22-claude-character-trailer.mp4`；同一天多个版本加 `-v2`、`-v3`
 - **格式**：优先 `.mp4`（H.264），短循环动画可用 `.webm` 或 `.gif`
 - **大小**：GitHub 单个文件上限 100 MB，超过 50 MB 会有警告，请先压缩再提交
-- **说明**：生成视频用到的脚本、分镜或提示词，可以放在同名的 `.md` 文件里，例如 `2026-10-22-claude-character-trailer.md`
+- **说明**：生成视频用到的分镜或提示词，可以放在同名的 `.md` 文件里，例如 `2026-10-22-claude-character-trailer.md`；生成脚本放在 `generators/`
 
 ## 上传到 B站
 
@@ -51,4 +51,4 @@
 
 | 文件 | 日期 | 说明 |
 | --- | --- | --- |
-| _（暂无）_ | | |
+| [`2026-10-22-claude-deadlock-intro.mp4`](2026-10-22-claude-deadlock-intro.mp4) | 2026-10-22 | Claude 一分钟介绍 Valve 的《Deadlock》（字幕旁白 + 合成配乐，[分镜](2026-10-22-claude-deadlock-intro.md)） |
