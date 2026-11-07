@@ -7,6 +7,7 @@ import { stageInfo, tipProps } from '../components/Tooltip';
 import { act, refresh } from '../store';
 import { enemyArtUrl } from '../art/enemyArt';
 import { mapIconUrl } from '../art/mapArt';
+import { sfx } from '../sound';
 
 export function MapScreen({ run, readonly = false }: { run: Run; readonly?: boolean }) {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -100,7 +101,11 @@ export function MapScreen({ run, readonly = false }: { run: Run; readonly?: bool
             {...tipProps([{ title: `首领：${boss?.name ?? ''}`, body: '本幕的首领。走到地图最上面一层后，点击它开始首领战。' }], 'bottom')}
             onClick={() => {
               if (readonly) return;
-              if (run.bossReachable) return act(() => run.enterBoss());
+              if (run.bossReachable) {
+                sfx('step');
+                return act(() => run.enterBoss());
+              }
+              sfx('deny');
               // 还没走到最上面一层：给出提示，而不是毫无反应
               const left = MAP_H - 1 - curRow;
               if (run.screen.s === 'map' && left > 0) {
@@ -124,7 +129,11 @@ export function MapScreen({ run, readonly = false }: { run: Run; readonly?: bool
                 key={key}
                 class={`map-node k-${n.kind} ${reachable ? 'reachable' : ''} ${isCur ? 'current' : ''} ${visited && !isCur ? 'visited' : ''} ${!reachable && !visited && !readonly ? 'unreach' : ''}`}
                 style={{ left: `${p.x}px`, top: `${p.y}px` }}
-                onClick={() => reachable && act(() => run.enterNode(n.row, n.col))}
+                onClick={() => {
+                  if (!reachable) return;
+                  sfx('step');
+                  act(() => run.enterNode(n.row, n.col));
+                }}
                 {...tipProps([{ title: ROOM_NAMES[n.kind], body: roomDesc(n.kind) }], 'right')}
               >
                 <img src={mapIconUrl(n.kind)} alt="" draggable={false} />

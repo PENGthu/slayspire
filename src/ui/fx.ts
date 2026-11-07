@@ -1,5 +1,6 @@
 import type { Fx } from '../game/combat';
 import { rectInStage } from './components/Tooltip';
+import { auraFx, deathFx, shieldFlash, strike } from './enemyFx';
 import { sfx } from './sound';
 
 /** 把战斗引擎产生的特效事件渲染成浮动文字、抖动等 DOM 动画 */
@@ -25,7 +26,8 @@ export function playFx(layer: HTMLElement | null, root: HTMLElement | null, fxs:
         if (f.n) {
           shake(host, delay);
           slash(layer, cx, cy, delay);
-          sfx('hit');
+          // 玩家挨打是闷响，重击更沉
+          sfx(friendly[0] === f.uid ? 'hurt' : f.n >= 15 ? 'hitHeavy' : 'hit', delay);
           if (friendly[0] === f.uid) hurtFlash(layer, f.n, delay);
           if (f.n >= 15) screenShake(root, f.n, delay);
         }
@@ -33,28 +35,41 @@ export function playFx(layer: HTMLElement | null, root: HTMLElement | null, fxs:
       case 'hploss':
         float(layer, cx + jitter(), cy, String(f.n), 'hploss', delay);
         shake(host, delay);
+        sfx('hurt', delay);
         break;
       case 'blocked':
         float(layer, cx - 40, cy + 30, `格挡 ${f.n}`, 'blocked', delay);
+        sfx('blocked', delay);
         break;
       case 'block':
         float(layer, cx, cy + 20, `+${f.n}`, 'block', delay);
-        sfx('block');
+        shieldFlash(layer, host);
+        sfx('block', delay);
         break;
       case 'heal':
         float(layer, cx, cy, `+${f.n}${f.text ? ' ' + f.text : ''}`, 'heal', delay);
-        sfx('heal');
+        auraFx(layer, host, true);
+        sfx('heal', delay);
         break;
       case 'die':
-        sfx('die');
+        // 玩家倒下由战斗结束的画面处理；敌人化作烟尘消散
+        if (!friendly.includes(f.uid)) deathFx(layer, host, host.classList.contains('is-boss'));
+        break;
+      case 'escape':
+        sfx('escape');
+        break;
+      case 'shuffle':
+        sfx('shuffle');
         break;
       case 'buff':
         if (f.text) float(layer, cx, r.t - 10, f.text + (f.n && f.n !== 1 ? ` ${f.n > 0 ? '+' : ''}${f.n}` : ''), 'buff', delay);
-        sfx('buff');
+        auraFx(layer, host, true);
+        sfx('buff', delay);
         break;
       case 'debuff':
         if (f.text) float(layer, cx, r.t - 10, f.text + (f.n && Math.abs(f.n) !== 1 ? ` ${f.n}` : ''), 'debuff', delay);
-        sfx('debuff');
+        auraFx(layer, host, false);
+        sfx('debuff', delay);
         break;
       case 'negated':
         float(layer, cx, r.t - 10, '抵消', 'text', delay);
@@ -64,20 +79,22 @@ export function playFx(layer: HTMLElement | null, root: HTMLElement | null, fxs:
         break;
       case 'stars':
         float(layer, cx + 60, r.t, `★+${f.n}`, 'stars', delay);
+        sfx('stars', delay);
         break;
       case 'compact':
         float(layer, cx, r.t - 34, '压缩！', 'compact', delay);
-        sfx('buff');
+        sfx('compact');
         break;
       case 'summon':
         float(layer, cx, cy, `召唤 +${f.n}`, 'summon', delay);
+        sfx('summon');
         break;
-      case 'lunge': {
-        const cls = friendly.includes(f.uid) ? 'lunge-r' : 'lunge-l';
-        host.classList.add(cls);
-        setTimeout(() => host.classList.remove(cls), 170);
+      case 'lunge':
+        // 出击：朝对方冲过去再弹回，伴随挥击声
+        if (friendly.includes(f.uid)) strike(host, root.querySelector('.side-enemies'), 1);
+        else strike(host, root.querySelector(`[data-cuid="${friendly[0]}"] .sprite`), -1);
+        sfx('swing');
         break;
-      }
       default:
         break;
     }

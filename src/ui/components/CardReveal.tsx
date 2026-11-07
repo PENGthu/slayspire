@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Reveal, RevealKind, Run } from '../../game/run';
 import { flyGain, gainTargets } from '../gainFx';
+import { sfx } from '../sound';
 import { refresh } from '../store';
 import { CardView } from './CardView';
 import { stageInfo } from './Tooltip';
@@ -37,6 +38,8 @@ export function CardReveal({ run }: { run: Run }) {
   useEffect(() => {
     if (!rv) return;
     setLeaving(false);
+    // 篝火锻造是铁砧声，其余升级是一串亮音
+    sfx(rv.kind === 'upgrade' ? (run.screen.s === 'rest' ? 'smith' : 'upgrade') : rv.kind === 'enchant' ? 'buff' : 'reveal');
     const hold = 1500 + rv.cards.length * 300 + (rv.from ? 600 : 0);
     const t1 = setTimeout(() => {
       flyAway();

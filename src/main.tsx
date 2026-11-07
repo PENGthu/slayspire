@@ -6,6 +6,7 @@ import { installArtStyles } from './ui/art/frames';
 import { initCloud } from './cloud/sync';
 import { act, loadRun, refresh, state } from './ui/store';
 import { installFullscreen } from './ui/fullscreen';
+import { installSound, renderSfx, SFX_NAMES } from './ui/sound';
 
 interface HotData {
   view?: string;
@@ -29,6 +30,7 @@ function start(data: HotData) {
   }
   installArtStyles();
   installFullscreen();
+  installSound();
   initCloud();
   render(<App />, document.getElementById('app')!);
 }
@@ -39,4 +41,4 @@ if (hot?.ready) hot.ready(start);
 else start(hot?.data ?? {});
 
 // 调试入口：浏览器控制台中可通过 __spire 查看游戏状态
-(window as unknown as Record<string, unknown>).__spire = { state, act, refresh };
+(window as unknown as Record<string, unknown>).__spire = { state, act, refresh, renderSfx, SFX_NAMES };

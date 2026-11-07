@@ -6,6 +6,8 @@ import { act, refresh, setOverlay, state } from '../store';
 import { tipProps } from './Tooltip';
 import { PotionIcon, RelicIcon } from './Art';
 import { FullscreenButton } from './FullscreenButton';
+import { actWithGains } from '../gainFx';
+import { sfx } from '../sound';
 
 export const TIER_NAMES: Record<string, string> = {
   starter: '初始遗物',
@@ -148,9 +150,12 @@ function PotionMenu({ run, slot }: { run: Run; slot: number }) {
                 refresh();
                 return;
               }
+              sfx('potion');
               act(() => g.usePotion(slot, g.alive[0] ?? null));
             } else {
-              act(() => run.usePotionOutside(slot));
+              sfx('potion');
+              // 战斗外喝药（例如回血）：生命变化在顶栏飘字
+              actWithGains(run, document.querySelectorAll('.topbar .potion-slot')[slot] ?? null, () => run.usePotionOutside(slot));
             }
           }}
         >

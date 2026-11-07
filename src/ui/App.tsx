@@ -18,7 +18,7 @@ import {
   TreasureScreen,
 } from './screens/RoomScreens';
 import { refresh, state, useStore } from './store';
-import { sfxForScreen } from './sound';
+import { sfx, sfxForScreen } from './sound';
 import { SCENE_GROUND, sceneUrl } from './art/sceneArt';
 import { CardReveal } from './components/CardReveal';
 import { AchievementToasts } from './components/Achievements';
@@ -122,6 +122,13 @@ export function App() {
   const run = st.run;
   const actBg = run && st.view === 'run' ? (run.zone === 'underdocks' ? 'bg-docks' : `bg-act${run.act}`) : 'bg-menu';
   useEffect(() => sfxForScreen(run?.screen.s ?? st.view), [run?.screen.s, st.view]);
+  // 打开、关闭弹窗（地图、牌组、设置……）时的纸张声
+  const overlayKind = st.overlay?.kind ?? null;
+  const lastOverlay = useRef<string | null>(null);
+  useEffect(() => {
+    if (overlayKind !== lastOverlay.current) sfx(overlayKind ? 'open' : 'close');
+    lastOverlay.current = overlayKind;
+  }, [overlayKind]);
   useEffect(() => hideTip(), [run?.screen.s, st.view, st.overlay, run?.selection]);
 
   return (

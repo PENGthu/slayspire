@@ -11,6 +11,7 @@ import { eventArtUrl } from '../art/cardArt';
 import { figureUrl } from '../art/figureArt';
 import { serviceArtUrl } from '../art/itemArt';
 import { actWithGains, deny, flyGain, gainGoldFx, gainTargets, spendGold } from '../gainFx';
+import { sfx } from '../sound';
 
 export function relicTip(id: string) {
   const d = RELICS[id];
@@ -47,7 +48,11 @@ export function RewardScreen({ run }: { run: Run }) {
     act(() => {
       ok = run.takeReward(i, cardIndex);
     });
-    if (!ok) return;
+    if (!ok) {
+      // 拿不了（例如药水栏已满）：摇一下
+      if (item) deny(item);
+      return;
+    }
     setLeaving((l) => [...l, i]);
     if (fly?.el) flyGain(fly.el, fly.to, { endScale: fly.endScale, hideTarget: fly.hide });
   };
@@ -206,6 +211,7 @@ export function ShopScreen({ run }: { run: Run }) {
       ok = run.buy(i);
     });
     if (!ok) return;
+    sfx('buy');
     spendGold(el);
     const icon = el.querySelector('.item-icon') ?? el;
     if (it.kind === 'card') flyGain(el, gainTargets.deck, { endScale: 0.18, delay: 160 });
@@ -372,7 +378,9 @@ export function TreasureScreen({ run }: { run: Run }) {
   const open = () => {
     if (sc.opened || opening) return;
     setOpening(true);
+    sfx('chestShake');
     setTimeout(() => {
+      sfx('chestOpen');
       const gold0 = run.gold;
       const relic = sc.relic;
       act(() => run.openChest());
@@ -434,6 +442,7 @@ export function BossRelicScreen({ run }: { run: Run }) {
   const pick = (i: number, e: Event) => {
     if (chosen !== null) return;
     hideTip();
+    sfx('select');
     setChosen(i);
     const icon = (e.currentTarget as Element).querySelector('.item-icon');
     const id = sc.choices[i];

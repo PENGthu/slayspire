@@ -11,6 +11,7 @@ import { ORBS } from '../../game/orbs';
 import { CardView, cardTips } from '../components/CardView';
 import { hideTip, rectInStage, showTip, stageInfo, tipProps, toStage, type TipData } from '../components/Tooltip';
 import { playFx } from '../fx';
+import { enemyWindup, enterFx, playerCast, spawnFx } from '../enemyFx';
 import { act, refresh, saveProfile, setOverlay, sleep, speed, state } from '../store';
 import { sfx } from '../sound';
 
@@ -195,6 +196,45 @@ export function CombatScreen({ run }: { run: Run }) {
     if (fx.length) playFx(fxRef.current, rootRef.current, fx, [g.player.uid, g.osty?.uid ?? -1]);
   });
 
+  // 敌人入场（开场依次走进来）与召唤现身
+  const seen = useRef<{ g: Combat; uids: Set<number> } | null>(null);
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    const first = seen.current?.g !== g;
+    if (first) seen.current = { g, uids: new Set() };
+    const uids = seen.current!.uids;
+    let k = 0;
+    for (const e of g.enemies) {
+      if (uids.has(e.uid)) continue;
+      uids.add(e.uid);
+      const host = root.querySelector(`.enemy[data-cuid="${e.uid}"]`) as HTMLElement | null;
+      if (!host || e.dead) continue;
+      if (first) enterFx(host, k++);
+      else spawnFx(fxRef.current, host);
+    }
+  });
+
+  // 抽牌、消耗、充能球的声音（按数量变化判断）
+  const counts = useRef<{ g: Combat; hand: Set<number>; exhaust: number; orbs: number } | null>(null);
+  useLayoutEffect(() => {
+    const prev = counts.current;
+    const hand = new Set(g.hand.map((c) => c.uid));
+    if (!prev || prev.g !== g) {
+      // 开场抽的起手牌
+      for (let i = 0; i < Math.min(hand.size, 6); i++) sfx('draw', 250 + i * 75);
+    } else {
+      let drawn = 0;
+      for (const u of hand) if (!prev.hand.has(u)) drawn++;
+      for (let i = 0; i < Math.min(drawn, 6); i++) sfx('draw', i * 75);
+      if (g.exhaustPile.length > prev.exhaust) sfx('exhaust');
+      const orbs = g.orbs.filter(Boolean).length;
+      if (orbs > prev.orbs) sfx('orb');
+      else if (orbs < prev.orbs) sfx('evoke');
+    }
+    counts.current = { g, hand, exhaust: g.exhaustPile.length, orbs: g.orbs.filter(Boolean).length };
+  });
+
   // 回合横幅
   useEffect(() => {
     if (g.phase === 'player' && (lastPhase.current !== 'player' || lastTurn.current !== g.turn) && !g.over) {
@@ -213,12 +253,17 @@ export function CombatScreen({ run }: { run: Run }) {
     running.current = true;
     (async () => {
       flash('敌方回合');
+      sfx('enemyTurn');
       await sleep(speed(500));
       let more = true;
       while (more) {
+        // 轮到某个敌人行动：先做预备动作（蓄力、举盾、施法……），再结算这一步
+        const next = g.peekEnemyAction();
+        const release = next ? await enemyWindup(rootRef.current, fxRef.current, next.e.uid, next.intent, g.player.uid) : null;
         more = g.stepEnemy();
         refresh();
-        await sleep(speed(more ? 520 : 200));
+        release?.();
+        await sleep(speed(more ? 480 : 200));
       }
       running.current = false;
       refresh();
@@ -230,9 +275,14 @@ export function CombatScreen({ run }: { run: Run }) {
     if (!g.over || ending.current) return;
     ending.current = true;
     (async () => {
-      if (g.result === 'win') flash('胜利！');
-      else if (g.result === 'escape') flash('逃离战斗');
-      else flash('你倒下了……');
+      if (g.result === 'win') {
+        flash('胜利！');
+        sfx('victory', 250);
+      } else if (g.result === 'escape') flash('逃离战斗');
+      else {
+        flash('你倒下了……');
+        sfx('lose', 300);
+      }
       await sleep(speed(g.result === 'lose' ? 1600 : 1100));
       act(() => run.finishCombat());
     })();
@@ -268,12 +318,14 @@ export function CombatScreen({ run }: { run: Run }) {
     if (!canAct) return;
     setSel(null);
     hideTip();
+    sfx('endTurn');
     act(() => g.endTurn());
   }
 
   function tryPlay(c: Card, target: Enemy | null) {
     const ok = g.canPlay(c);
     if (ok !== true) {
+      sfx('deny');
       run.toast(ok);
       refresh();
       return;
@@ -285,9 +337,12 @@ export function CombatScreen({ run }: { run: Run }) {
     setSel(null);
     setHover(null);
     hideTip();
-    sfx('card');
-    flyCard(c, cardDefOf(c));
+    const type = cardDefOf(c);
+    sfx(type === 'attack' ? 'cardAttack' : type === 'power' ? 'cardPower' : 'cardSkill');
+    flyCard(c, type);
     act(() => g.playCard(c, target));
+    // 技能、能力牌：角色做一个施法动作（攻击牌的出击由引擎的 lunge 特效负责）
+    if (type === 'skill' || type === 'power') playerCast(rootRef.current, g.player.uid, type);
   }
 
   function clickCard(c: Card) {
@@ -304,16 +359,19 @@ export function CombatScreen({ run }: { run: Run }) {
     }
     const ok = g.canPlay(c);
     if (ok !== true) {
+      sfx('deny');
       run.toast(ok);
       refresh();
       return;
     }
+    sfx('select');
     setSel(c.uid);
   }
 
   function togglePick(c: Card) {
     if (!pending) return;
     const has = picks.includes(c.uid);
+    sfx('select');
     let next = has ? picks.filter((u) => u !== c.uid) : [...picks, c.uid];
     if (next.length > pending.max) next = next.slice(next.length - pending.max);
     if (pending.mode === 'grid' && pending.max === 1 && pending.min === 1) {
@@ -335,6 +393,7 @@ export function CombatScreen({ run }: { run: Run }) {
   function clickEnemy(e: Enemy) {
     if (potionTarget !== null) {
       state.ui.potionTarget = null;
+      sfx('potion');
       act(() => g.usePotion(potionTarget, e));
       return;
     }
@@ -614,6 +673,7 @@ export function CombatScreen({ run }: { run: Run }) {
               }}
               onPointerEnter={(e) => {
                 if (e.pointerType === 'touch') return;
+                if (!dragRef.current) sfx('hover');
                 setHover(c.uid);
                 hoverRef.current = c.uid;
                 const tips = cardTips(c);
@@ -857,7 +917,7 @@ function EnemyView({
       }}
     >
       {m && !e.dead && !e.escaped && g.phase !== 'over' && (
-        <div class="intent" style={{ top: `${-34 - 0}px` }}>
+        <div class="intent" key={`${e.move}-${e.turns}`} style={{ top: `${-34 - 0}px` }}>
           <IntentIcon kind={m.intent} dmg={intent ? intent.dmg * intent.hits : 0} />
           {intent && (
             <span class="dmg">

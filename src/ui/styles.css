@@ -769,7 +769,8 @@ button {
 }
 .enemy {
   max-width: 420px;
-  transition: transform 0.18s ease, opacity 0.4s, filter 0.3s, max-width 0.35s ease 0.45s, margin 0.35s ease 0.45s;
+  /* 倒下后等消散动画（enemyFx.ts 的 deathFx）播完，再收起它占的位置，免得旁边的敌人滑到残影下面 */
+  transition: transform 0.18s ease, opacity 0.4s, filter 0.3s, max-width 0.35s ease 1s, margin 0.35s ease 1s;
 }
 .enemy.dead,
 .enemy.escaped {
@@ -805,6 +806,68 @@ button {
 .creature.lunge-l { transform: translateX(-28px); }
 .creature.hurt .sprite {
   animation: hurt 0.32s ease;
+}
+/* 怪物动作的特效元素（见 enemyFx.ts） */
+.efx {
+  position: absolute;
+  pointer-events: none;
+  z-index: 3;
+}
+.efx.mote {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.efx.shield-ring {
+  border-radius: 50%;
+  border: 3px solid rgba(130, 195, 255, 0.95);
+  box-shadow: 0 0 18px rgba(110, 180, 255, 0.8), inset 0 0 22px rgba(110, 180, 255, 0.55);
+  background: radial-gradient(circle, transparent 55%, rgba(110, 180, 255, 0.18) 72%, transparent 76%);
+}
+.efx.summon-ring {
+  border-radius: 50%;
+  border: 3px dashed rgba(130, 255, 180, 0.9);
+  box-shadow: 0 0 22px rgba(110, 255, 170, 0.6), inset 0 0 18px rgba(110, 255, 170, 0.45);
+}
+.efx.hex-bolt {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, #e2b6ff 22%, #a24dff 55%, rgba(120, 40, 220, 0) 72%);
+  box-shadow: 0 0 22px 8px rgba(170, 80, 255, 0.65);
+}
+.efx.snore-z,
+.efx.stun-star {
+  font-family: var(--f-serif);
+  font-weight: 900;
+  font-size: 32px;
+  color: #cfe3ff;
+  text-shadow: 0 2px 4px #000;
+}
+.efx.stun-star {
+  color: #ffe08a;
+  font-size: 22px;
+}
+.efx.smoke {
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(150, 140, 160, 0.75) 0%, rgba(90, 82, 100, 0.45) 45%, rgba(60, 54, 70, 0) 70%);
+}
+.death-ghost {
+  pointer-events: none;
+  z-index: 2;
+}
+.creature.dying > .sprite {
+  visibility: hidden;
+}
+/* 意图换成下一回合的行动时弹出 */
+.creature .intent {
+  animation: intent-in 0.38s cubic-bezier(0.3, 1.5, 0.5, 1), bob 1.6s ease-in-out 0.38s infinite;
+}
+@keyframes intent-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px) scale(0.5);
+  }
 }
 @keyframes hurt {
   0% { transform: translateX(0); filter: brightness(1); }
@@ -1427,6 +1490,10 @@ button {
   gap: 20px;
   width: 100%;
   font-size: 16px;
+}
+.toggle-row input.volume {
+  width: 160px;
+  accent-color: var(--gold);
 }
 
 .combat > .overlay {

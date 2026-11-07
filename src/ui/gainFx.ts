@@ -5,6 +5,7 @@
 import type { Run } from '../game/run';
 import { potionArtUrl, relicArtUrl } from './art/itemArt';
 import { rectInStage, stageInfo } from './components/Tooltip';
+import { sfx } from './sound';
 import { act, state } from './store';
 
 export interface Rect {
@@ -92,11 +93,20 @@ export function flyGain(
         ghost.remove();
         if (hidden) hidden.style.visibility = '';
         pop(target);
+        landSound(target);
       };
       anim.onfinish = finish;
       setTimeout(finish, delay + duration + 250);
     }),
   );
+}
+
+/** 落地的音效：遗物叮当、药水瓶碰撞、牌收进牌组 */
+function landSound(target: Element) {
+  if (target.closest('.relic-bar')) sfx('relic');
+  else if (target.closest('.tb-potions')) sfx('potionGet');
+  else if (target.closest('[aria-label="查看牌组"]')) sfx('cardGet');
+  else if (target.closest('.tb-gold')) sfx('coin');
 }
 
 /** 一串金币从 a 飞向 b（舞台坐标）；全部落地后调用 onLand */
@@ -122,6 +132,7 @@ function coinShower(a: Rect, b: Rect, coins: number, onLand?: () => void) {
     );
     anim.onfinish = () => {
       coin.remove();
+      sfx('coin');
       if (k === coins - 1) onLand?.();
     };
     setTimeout(() => coin.remove(), 420 + k * 70 + 400);
@@ -151,7 +162,8 @@ export function gainGoldFx(from: Element | Rect, coins = 5) {
 }
 
 /** 买不起：轻轻摇一下 */
-export function deny(el: Element) {
+export function deny(el: Element, sound = true) {
+  if (sound) sfx('deny');
   el.classList.remove('deny-shake');
   void (el as HTMLElement).offsetWidth;
   el.classList.add('deny-shake');
@@ -171,6 +183,7 @@ export function burnAway(el: Element) {
   Object.assign(ghost.style, { position: 'absolute', left: `${r.l}px`, top: `${r.t}px`, width: `${r.r - r.l}px`, height: `${r.b - r.t}px`, margin: '0', zIndex: '400', pointerEvents: 'none' });
   stage.appendChild(ghost);
   (el as HTMLElement).style.visibility = 'hidden';
+  sfx('burn');
   const anim = ghost.animate(
     [
       { transform: 'scale(1)', filter: 'brightness(1)', opacity: 1 },
@@ -231,7 +244,8 @@ function hpFloat(text: string, kind: 'heal' | 'hurt' | 'max', delay: number) {
   );
   anim.onfinish = () => el.remove();
   setTimeout(() => el.remove(), delay + 1700);
-  setTimeout(() => (kind === 'hurt' ? deny(counter) : pop(counter)), delay + 120);
+  setTimeout(() => (kind === 'hurt' ? deny(counter, false) : pop(counter)), delay + 120);
+  sfx(kind === 'heal' ? 'heal' : kind === 'hurt' ? 'hurt' : 'buff', delay + 60);
 }
 
 const signed = (n: number) => (n > 0 ? `+${n}` : `−${-n}`);

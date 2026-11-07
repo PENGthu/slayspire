@@ -17,6 +17,7 @@ import { AchievementsOverlay } from './Achievements';
 import { SlotsOverlay } from './SaveSlots';
 import { enterFullscreen, exitFullscreen, isFullscreen, needsHomeScreen, showFullscreenButton } from '../fullscreen';
 import { actWithGains, burnAway } from '../gainFx';
+import { sfx } from '../sound';
 
 const TYPE_ORDER: Record<string, number> = { attack: 0, skill: 1, power: 2, status: 3, curse: 4 };
 
@@ -152,9 +153,32 @@ function Settings() {
               s.sound = (e.target as HTMLInputElement).checked;
               saveProfile();
               refresh();
+              if (s.sound) sfx('select');
             }}
           />
         </label>
+        {s.sound && (
+          <label class="toggle-row" for="opt-volume">
+            <span>音量</span>
+            <input
+              id="opt-volume"
+              class="volume"
+              type="range"
+              min="0"
+              max="100"
+              step="5"
+              value={Math.round((s.volume ?? 0.7) * 100)}
+              onInput={(e) => {
+                s.volume = Number((e.target as HTMLInputElement).value) / 100;
+                refresh();
+              }}
+              onChange={() => {
+                saveProfile();
+                sfx('coin');
+              }}
+            />
+          </label>
+        )}
         {showFullscreenButton() && (
           <>
             <label class="toggle-row" for="opt-fs">
@@ -291,6 +315,7 @@ export function SelectionOverlay({ run }: { run: Run }) {
               cls={picked.includes(c.uid) ? 'picked' : ''}
               onClick={() => {
                 if (single) return done([c], document.querySelector(`.overlay [data-card="${c.uid}"]`));
+                sfx('select');
                 setPicked((p) => (p.includes(c.uid) ? p.filter((u) => u !== c.uid) : p.length < s.max ? [...p, c.uid] : p));
               }}
               onPointerEnter={(e) => {

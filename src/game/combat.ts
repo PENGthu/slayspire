@@ -29,6 +29,7 @@ import type {
   Creature,
   Enemy,
   EnemyDef,
+  IntentKind,
   MoveDef,
   Player,
   PowerDef,
@@ -171,7 +172,8 @@ export class Combat {
   /** 战斗内的文字备注（例如 OpenAI「记住」的那张牌） */
   notes: Record<string, string> = {};
   private processing = false;
-  private enemySteps: (() => void)[] = [];
+  /** 敌方回合剩下的步骤；actor 是这一步行动的敌人（界面据此先播放预备动作） */
+  private enemySteps: { run: () => void; actor?: Enemy }[] = [];
   /** 已经打出过的附魔首效 */
   private enchFirstPlayed = new Set<number>();
   log: string[] = [];
@@ -418,21 +420,23 @@ export class Combat {
   private beginEnemyPhase() {
     if (this.over) return;
     this.phase = 'enemy';
-    const steps: (() => void)[] = [];
+    const steps: { run: () => void; actor?: Enemy }[] = [];
     // 第一步：所有敌人回合开始（格挡清除、中毒、灾厄）
-    steps.push(() => {
-      for (const e of this.alive) {
-        if (!this.has(e, 'barricade')) e.block = 0;
-        this.decayPowers(e, 'start');
-        this.firePowers(e, 'onTurnStart');
-        this.checkEnd();
-        if (this.over) return;
-      }
+    steps.push({
+      run: () => {
+        for (const e of this.alive) {
+          if (!this.has(e, 'barricade')) e.block = 0;
+          this.decayPowers(e, 'start');
+          this.firePowers(e, 'onTurnStart');
+          this.checkEnd();
+          if (this.over) return;
+        }
+      },
     });
     for (const e of this.alive) {
-      steps.push(() => this.enemyAct(e));
+      steps.push({ run: () => this.enemyAct(e), actor: e });
     }
-    steps.push(() => this.endRound());
+    steps.push({ run: () => this.endRound() });
     this.enemySteps = steps;
   }
 
@@ -442,7 +446,7 @@ export class Combat {
     const s = this.enemySteps.shift();
     if (s) {
       try {
-        s();
+        s.run();
       } catch (e) {
         this.reportError(e);
       }
@@ -453,6 +457,19 @@ export class Combat {
       return false;
     }
     return this.enemySteps.length > 0;
+  }
+
+  /**
+   * 下一步将要行动的敌人及其行动类型（眩晕时为 stun）；下一步不是某个敌人的行动、
+   * 或那个敌人已经倒下时返回 null。只读，不改变战斗状态。
+   */
+  peekEnemyAction(): { e: Enemy; intent: IntentKind } | null {
+    if (this.phase !== 'enemy' || this.over) return null;
+    const e = this.enemySteps[0]?.actor;
+    if (!e || e.dead || e.escaped) return null;
+    if (this.has(e, 'stunned')) return { e, intent: 'stun' };
+    const m = e.move ? this.enemyDef(e).moves[e.move] : undefined;
+    return m ? { e, intent: m.intent } : null;
   }
 
   /** 一次性跑完敌方回合（测试 / 快速模式） */

@@ -1,7 +1,8 @@
-import { useState } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 import { ACH_BY_ID, ACH_CATEGORIES, ACHIEVEMENTS, type AchCategory } from '../../game/achievements';
 import { cloud } from '../../cloud/sync';
 import { setOverlay, state, useStore } from '../store';
+import { sfx } from '../sound';
 
 function fmtDate(t: number): string {
   const d = new Date(t);
@@ -89,6 +90,10 @@ export function AchievementsOverlay() {
 /** 解锁成就时右上角弹出的提示 */
 export function AchievementToasts() {
   const st = useStore();
+  const newest = st.achToasts[st.achToasts.length - 1]?.key;
+  useEffect(() => {
+    if (newest !== undefined) sfx('achievement');
+  }, [newest]);
   if (!st.achToasts.length) return null;
   return (
     <div class="ach-toasts">
