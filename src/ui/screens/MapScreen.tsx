@@ -5,7 +5,8 @@ import type { Run } from '../../game/run';
 import type { MapNode, RoomKind } from '../../game/types';
 import { stageInfo, tipProps } from '../components/Tooltip';
 import { act, refresh } from '../store';
-import { enemyArtUrl } from '../art/enemyArt';
+import { enemyArtUrl, prewarmEnemyArt } from '../art/enemyArt';
+import { Rng } from '../../core/rng';
 import { mapIconUrl } from '../art/mapArt';
 import { sfx } from '../sound';
 
@@ -32,6 +33,20 @@ export function MapScreen({ run, readonly = false }: { run: Run; readonly?: bool
   const bossArt = boss && Array.isArray(boss.enemies) ? enemyArtUrl([...boss.enemies].sort((a, b) => (ENEMIES[b]?.size ?? 1) - (ENEMIES[a]?.size ?? 1))[0]) : null;
   const bossX = width / 2;
   const bossY = 110;
+
+  // 在地图上空闲时，先把本幕可能遇到的敌人立绘画好
+  useEffect(() => {
+    if (readonly) return;
+    const ids = new Set<string>();
+    for (const enc of Object.values(ENCOUNTERS)) {
+      // 本区域的普通、精英战，以及本幕已经定下的首领
+      const mine = enc.kind === 'boss' ? enc.id === run.boss : run.encInZone(enc) && (!enc.char || enc.char === run.char);
+      if (!mine) continue;
+      if (Array.isArray(enc.enemies)) enc.enemies.forEach((id) => ids.add(id));
+      else for (let k = 1; k <= 4; k++) enc.enemies(new Rng(k)).forEach((id) => ids.add(id));
+    }
+    prewarmEnemyArt(ids);
+  }, [run.act, run.zone, run.boss, readonly]);
 
   useEffect(() => {
     const el = wrapRef.current;

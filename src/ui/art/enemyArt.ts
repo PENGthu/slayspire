@@ -9,6 +9,8 @@ import { PALS } from './palettes';
 import { M } from './palettes';
 import { bugLegs, dark, eye, hi, knight, robed, shadow, spikes } from './enemyParts';
 import { LINEUP_ART } from './enemyArtLineup';
+import { REDRAWN_ART } from './enemyArtRedraw';
+import { rasterize } from './raster';
 
 type Art = () => string;
 
@@ -912,16 +914,55 @@ const ART: Record<string, Art> = {
   test_subject,
   queen,
   queen_guard,
+  // 重画的版本覆盖上面的同名立绘
+  ...REDRAWN_ART,
 };
 
 export function hasEnemyArt(id: string): boolean {
   return id in ART;
 }
 
+/**
+ * 怪物专用的上色滤镜（一次处理整只怪物）：
+ *  1. 墨线轻微抖动；小尺度的漫反射光照给每个色块加体积（与卡牌插画相同）
+ *  2. 大尺度的形体阴影：按整体轮廓计算受光，背光一侧压暗并偏冷（紫蓝），立体感更强；再叠一层
+ *     轻微的颜料斑驳，大块平涂的颜色不再像矢量图
+ *  3. 左上的暖色高光边与右后方的冷色轮廓光，让怪物从暗色背景里跳出来
+ *  4. 粗的外轮廓墨线（内部线条保持原来的细线），像手绘插画那样先勾外形
+ * 发光、阴影之类半透明的部分不参与轮廓与光照（先按不透明度取阈值）。
+ */
+const MONSTER_FILTER = `<defs><filter id="mon" x="-12%" y="-12%" width="124%" height="124%" color-interpolation-filters="sRGB">
+<feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="2" seed="5" result="t"/>
+<feDisplacementMap in="SourceGraphic" in2="t" scale="2.4" xChannelSelector="R" yChannelSelector="G" result="d"/>
+<feComponentTransfer in="d" result="A"><feFuncR type="discrete" tableValues="0"/><feFuncG type="discrete" tableValues="0"/><feFuncB type="discrete" tableValues="0"/><feFuncA type="linear" slope="6" intercept="-3"/></feComponentTransfer>
+<feGaussianBlur in="d" stdDeviation="2.6" result="b"/>
+<feDiffuseLighting in="b" surfaceScale="3.2" diffuseConstant="1" lighting-color="#fff" result="l"><feDistantLight azimuth="235" elevation="52"/></feDiffuseLighting>
+<feComposite in="d" in2="l" operator="arithmetic" k1="1.24" result="m"/>
+<feGaussianBlur in="A" stdDeviation="9" result="b2"/>
+<feDiffuseLighting in="b2" surfaceScale="11" diffuseConstant="1" lighting-color="#fff" result="l2"><feDistantLight azimuth="228" elevation="40"/></feDiffuseLighting>
+<feComponentTransfer in="l2" result="f"><feFuncR type="linear" slope="1.45" intercept="0.08"/><feFuncG type="linear" slope="1.35" intercept="0.14"/><feFuncB type="linear" slope="0.9" intercept="0.43"/></feComponentTransfer>
+<feComposite in="m" in2="f" operator="arithmetic" k1="1" result="m1"/>
+<feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="1" seed="9" result="n"/>
+<feColorMatrix in="n" type="matrix" values="0.34 0 0 0 0.83  0.34 0 0 0 0.83  0.3 0 0 0 0.85  0 0 0 0 1" result="nf"/>
+<feComposite in="m1" in2="nf" operator="arithmetic" k1="1" result="m2"/>
+<feOffset in="A" dx="-4" dy="1" result="Ao"/>
+<feComposite in="A" in2="Ao" operator="out" result="e1"/>
+<feFlood flood-color="#9cc8ff" flood-opacity="0.36"/>
+<feComposite in2="e1" operator="in" result="rim"/>
+<feOffset in="A" dx="3" dy="4" result="At"/>
+<feComposite in="A" in2="At" operator="out" result="e2"/>
+<feFlood flood-color="#fff0cc" flood-opacity="0.24"/>
+<feComposite in2="e2" operator="in" result="top"/>
+<feMorphology in="A" operator="dilate" radius="1.7" result="dil"/>
+<feFlood flood-color="${INK}"/>
+<feComposite in2="dil" operator="in" result="ol"/>
+<feMerge><feMergeNode in="ol"/><feMergeNode in="m2"/><feMergeNode in="top"/><feMergeNode in="rim"/></feMerge>
+</filter></defs>`;
+
 export function enemyArtSvg(id: string): string {
   const fn = ART[id];
   if (!fn) return '';
-  return doc(200, 200, `<g filter="url(#paint)">${fn()}</g>`, 5).replace('preserveAspectRatio="xMidYMid slice"', 'preserveAspectRatio="xMidYMax meet" overflow="visible"');
+  return doc(200, 200, `${MONSTER_FILTER}<g filter="url(#mon)">${fn()}</g>`, 5).replace('preserveAspectRatio="xMidYMid slice"', 'preserveAspectRatio="xMidYMax meet" overflow="visible"');
 }
 
 const cache = memo((id: string) => enemyArtSvg(id));
@@ -930,4 +971,13 @@ export function enemyArtUrl(id: string): string | null {
   return ART[id] ? cache(id) : null;
 }
 
-
+/**
+ * 预先把一批敌人的立绘栅格化（排在空闲时进行）。怪物的上色滤镜比较重，
+ * 在地图上先画好本幕会遇到的敌人，开战时就直接用位图，不会在入场动画时卡一下。
+ */
+export function prewarmEnemyArt(ids: Iterable<string>) {
+  for (const id of ids) {
+    const u = enemyArtUrl(id);
+    if (u) void rasterize(u, 200, 200);
+  }
+}
