@@ -8,15 +8,22 @@ import { state } from './store';
  */
 let ctx: AudioContext | null = null;
 let bus: GainNode | null = null;
+let musicOut: GainNode | null = null;
 let noiseBuf: AudioBuffer | null = null;
+const unlockHooks: (() => void)[] = [];
 
 function volume(): number {
   const v = state.profile.settings.volume;
   return typeof v === 'number' ? Math.max(0, Math.min(1, v)) : 0.7;
 }
 
-function ac(): AudioContext | null {
-  if (!state.profile.settings.sound || volume() <= 0) return null;
+/**
+ * 共用的 AudioContext：音效或背景音乐有一个开着就创建。
+ * 音效走「音量 → 压缩器 → 输出」，背景音乐有自己的音量总线（见 music.ts）。
+ */
+export function audioCtx(): AudioContext | null {
+  const st = state.profile.settings;
+  if (!st.sound && !st.music) return null;
   try {
     if (!ctx) {
       const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
@@ -30,17 +37,36 @@ function ac(): AudioContext | null {
       comp.release.value = 0.2;
       bus = ctx.createGain();
       bus.connect(comp).connect(ctx.destination);
+      musicOut = ctx.createGain();
+      musicOut.gain.value = 0;
+      musicOut.connect(ctx.destination);
       // 一段 2 秒的白噪声，所有噪声类音效共用
       noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
       const d = noiseBuf.getChannelData(0);
       for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     }
-    if (ctx.state === 'suspended') void ctx.resume();
-    bus!.gain.value = volume() * 0.9;
+    if (ctx.state === 'suspended' && !document.hidden) void ctx.resume();
     return ctx;
   } catch {
     return null;
   }
+}
+
+/** 背景音乐的总线（音量由 music.ts 控制） */
+export function musicBus(): GainNode | null {
+  return audioCtx() ? musicOut : null;
+}
+
+/** 音频第一次可用时（用户第一次点击）通知背景音乐开始播放 */
+export function onAudioUnlock(fn: () => void) {
+  unlockHooks.push(fn);
+}
+
+function ac(): AudioContext | null {
+  if (!state.profile.settings.sound || volume() <= 0) return null;
+  const c = audioCtx();
+  if (c) bus!.gain.value = volume() * 0.9;
+  return c;
 }
 
 // ------------------------------------------------------------------ 基本音色
@@ -473,7 +499,15 @@ let installed = false;
 export function installSound() {
   if (installed || typeof window === 'undefined') return;
   installed = true;
-  const unlock = () => void ac();
+  const unlock = () => {
+    if (audioCtx()) for (const fn of unlockHooks) fn();
+  };
+  // 切到后台时暂停所有声音，回来再继续
+  document.addEventListener('visibilitychange', () => {
+    if (!ctx) return;
+    if (document.hidden) void ctx.suspend();
+    else void ctx.resume();
+  });
   window.addEventListener('pointerdown', unlock, { capture: true, passive: true });
   window.addEventListener('keydown', unlock, { capture: true, passive: true });
   window.addEventListener(

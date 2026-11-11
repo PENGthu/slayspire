@@ -179,6 +179,38 @@ function Settings() {
             />
           </label>
         )}
+        <label class="toggle-row" for="opt-music">
+          <span>背景音乐</span>
+          <input
+            id="opt-music"
+            type="checkbox"
+            checked={s.music !== false}
+            onChange={(e) => {
+              s.music = (e.target as HTMLInputElement).checked;
+              saveProfile();
+              refresh();
+            }}
+          />
+        </label>
+        {s.music !== false && (
+          <label class="toggle-row" for="opt-music-volume">
+            <span>音乐音量</span>
+            <input
+              id="opt-music-volume"
+              class="volume"
+              type="range"
+              min="0"
+              max="100"
+              step="5"
+              value={Math.round((s.musicVolume ?? 0.5) * 100)}
+              onInput={(e) => {
+                s.musicVolume = Number((e.target as HTMLInputElement).value) / 100;
+                refresh();
+              }}
+              onChange={() => saveProfile()}
+            />
+          </label>
+        )}
         {showFullscreenButton() && (
           <>
             <label class="toggle-row" for="opt-fs">

@@ -13,6 +13,10 @@ export interface Settings {
   sound: boolean;
   /** 音量 0–1 */
   volume: number;
+  /** 背景音乐 */
+  music: boolean;
+  /** 背景音乐音量 0–1 */
+  musicVolume: number;
   /** 打开游戏后第一次点击时自动进入全屏 */
   autoFullscreen: boolean;
 }
@@ -95,7 +99,7 @@ export function safeDel(key: string) {
 }
 
 function loadProfile(): Profile {
-  const def: Profile = { maxAsc: {}, wins: 0, runs: 0, bestScore: 0, settings: { fast: false, sound: true, volume: 0.7, autoFullscreen: false }, ach: newAchState() };
+  const def: Profile = { maxAsc: {}, wins: 0, runs: 0, bestScore: 0, settings: { fast: false, sound: true, volume: 0.7, music: true, musicVolume: 0.5, autoFullscreen: false }, ach: newAchState() };
   const raw = safeGet(PROFILE_KEY);
   if (!raw) return def;
   try {
